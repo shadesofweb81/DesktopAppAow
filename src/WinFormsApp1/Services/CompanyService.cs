@@ -115,6 +115,64 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<PaginatedCompanyListResponse?> GetCompanyListAsync(int pageNumber = 1, int pageSize = 5)
+        {
+            try
+            {
+                SetAuthHeader();
+                var url = $"api/v1/Company?pageNumber={pageNumber}&pageSize={pageSize}";
+                
+                Console.WriteLine($"Fetching paginated company list from: {url}");
+
+                var response = await _httpClient.GetAsync(url);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+                Console.WriteLine($"Response Content Preview: {responseContent?.Substring(0, Math.Min(500, responseContent.Length)) ?? "null"}");
+                if (responseContent?.Length > 500)
+                {
+                    Console.WriteLine($"... (truncated, full content available in logs)");
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedCompanyListResponse>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        if (paginatedResponse != null)
+                        {
+                            Console.WriteLine($"Successfully parsed paginated company list: {paginatedResponse.Items.Count} companies, Page {paginatedResponse.CurrentPage}/{paginatedResponse.TotalPages}, Total: {paginatedResponse.TotalItems}");
+                            return paginatedResponse;
+                        }
+
+                        Console.WriteLine("Could not parse paginated company list response");
+                        return null;
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Raw response: {responseContent}");
+                        return null;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Get company list exception: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<Company?> GetCompanyByIdAsync(Guid id)
         {
             try

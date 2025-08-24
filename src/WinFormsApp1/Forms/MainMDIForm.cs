@@ -30,31 +30,31 @@ namespace WinFormsApp1.Forms
         private Label mastersLabel = null!;
         private Label transactionsLabel = null!;
         private Label reportsLabel = null!;
-        
+
         // Masters Section Buttons
         private Button productsListButton = null!;
         private Button companyListButton = null!;
-        private Button customersButton = null!;
+        private Button selectCompanyButton = null!;
         private Button suppliersButton = null!;
         private Button accountsButton = null!;
-        
+
         // Transactions Section Buttons
         private Button saleButton = null!;
         private Button purchaseButton = null!;
         private Button receiptButton = null!;
         private Button paymentButton = null!;
         private Button journalButton = null!;
-        
+
         // Reports Section Buttons
         private Button stockReportButton = null!;
         private Button taxReportButton = null!;
         private Button salesReportButton = null!;
         private Button purchaseReportButton = null!;
         private Button profitLossButton = null!;
-        
+
         // Navigation state
         private bool isNavigationVisible = true;
-        
+
         // Button navigation order for arrow key navigation within sections
         private Button[] mastersButtons = null!;
         private Button[] transactionsButtons = null!;
@@ -71,425 +71,406 @@ namespace WinFormsApp1.Forms
 
         private void InitializeComponent()
         {
-            this.menuStrip = new MenuStrip();
-            this.fileMenu = new ToolStripMenuItem();
-            this.companyMenuItem = new ToolStripMenuItem();
-            this.selectCompanyMenuItem = new ToolStripMenuItem();
-            this.debugApiMenuItem = new ToolStripMenuItem();
-            this.logoutMenuItem = new ToolStripMenuItem();
-            this.exitMenuItem = new ToolStripMenuItem();
-            this.windowMenu = new ToolStripMenuItem();
-            this.cascadeMenuItem = new ToolStripMenuItem();
-            this.tileHorizontalMenuItem = new ToolStripMenuItem();
-            this.tileVerticalMenuItem = new ToolStripMenuItem();
-            this.closeAllMenuItem = new ToolStripMenuItem();
-            
-            // Initialize navigation panel controls
-            this.navigationPanel = new Panel();
-            this.mainNavigationGroupBox = new GroupBox();
-            this.mastersLabel = new Label();
-            this.transactionsLabel = new Label();
-            this.reportsLabel = new Label();
-            
-            // Initialize Masters section buttons
-            this.productsListButton = new Button();
-            this.companyListButton = new Button();
-            this.customersButton = new Button();
-            this.suppliersButton = new Button();
-            this.accountsButton = new Button();
-            
-            // Initialize Transactions section buttons
-            this.saleButton = new Button();
-            this.purchaseButton = new Button();
-            this.receiptButton = new Button();
-            this.paymentButton = new Button();
-            this.journalButton = new Button();
-            
-            // Initialize Reports section buttons
-            this.stockReportButton = new Button();
-            this.taxReportButton = new Button();
-            this.salesReportButton = new Button();
-            this.purchaseReportButton = new Button();
-            this.profitLossButton = new Button();
-            
-            this.menuStrip.SuspendLayout();
-            this.navigationPanel.SuspendLayout();
-            this.mainNavigationGroupBox.SuspendLayout();
-            this.SuspendLayout();
+            menuStrip = new MenuStrip();
+            fileMenu = new ToolStripMenuItem();
+            selectCompanyMenuItem = new ToolStripMenuItem();
+            companyMenuItem = new ToolStripMenuItem();
+            debugApiMenuItem = new ToolStripMenuItem();
+            logoutMenuItem = new ToolStripMenuItem();
+            exitMenuItem = new ToolStripMenuItem();
+            windowMenu = new ToolStripMenuItem();
+            cascadeMenuItem = new ToolStripMenuItem();
+            tileHorizontalMenuItem = new ToolStripMenuItem();
+            tileVerticalMenuItem = new ToolStripMenuItem();
+            closeAllMenuItem = new ToolStripMenuItem();
+            navigationPanel = new Panel();
+            mainNavigationGroupBox = new GroupBox();
+            mastersLabel = new Label();
+            productsListButton = new Button();
+            companyListButton = new Button();
+            selectCompanyButton = new Button();
+            suppliersButton = new Button();
+            accountsButton = new Button();
+            transactionsLabel = new Label();
+            saleButton = new Button();
+            purchaseButton = new Button();
+            receiptButton = new Button();
+            paymentButton = new Button();
+            journalButton = new Button();
+            reportsLabel = new Label();
+            stockReportButton = new Button();
+            taxReportButton = new Button();
+            salesReportButton = new Button();
+            purchaseReportButton = new Button();
+            profitLossButton = new Button();
+            menuStrip.SuspendLayout();
+            navigationPanel.SuspendLayout();
+            mainNavigationGroupBox.SuspendLayout();
+            SuspendLayout();
             // 
             // menuStrip
             // 
-            this.menuStrip.Items.AddRange(new ToolStripItem[] {
-            this.fileMenu,
-            this.windowMenu});
-            this.menuStrip.Location = new Point(0, 0);
-            this.menuStrip.Name = "menuStrip";
-            this.menuStrip.Size = new Size(800, 24);
-            this.menuStrip.TabIndex = 0;
-            this.menuStrip.Text = "menuStrip";
+            menuStrip.ImageScalingSize = new Size(20, 20);
+            menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, windowMenu });
+            menuStrip.Location = new Point(0, 0);
+            menuStrip.Name = "menuStrip";
+            menuStrip.Padding = new Padding(7, 3, 0, 3);
+            menuStrip.Size = new Size(914, 30);
+            menuStrip.TabIndex = 0;
+            menuStrip.Text = "menuStrip";
             // 
             // fileMenu
             // 
-            this.fileMenu.DropDownItems.AddRange(new ToolStripItem[] {
-            this.selectCompanyMenuItem,
-            this.companyMenuItem,
-            this.debugApiMenuItem,
-            new ToolStripSeparator(),
-            this.logoutMenuItem,
-            this.exitMenuItem});
-            this.fileMenu.Name = "fileMenu";
-            this.fileMenu.Size = new Size(37, 20);
-            this.fileMenu.Text = "File";
-            
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { selectCompanyMenuItem, companyMenuItem, debugApiMenuItem, logoutMenuItem, exitMenuItem });
+            fileMenu.Name = "fileMenu";
+            fileMenu.Size = new Size(46, 24);
+            fileMenu.Text = "File";
             // 
             // selectCompanyMenuItem
             // 
-            this.selectCompanyMenuItem.Name = "selectCompanyMenuItem";
-            this.selectCompanyMenuItem.Size = new Size(180, 22);
-            this.selectCompanyMenuItem.Text = "&Select Company";
-            this.selectCompanyMenuItem.Click += new EventHandler(this.selectCompanyMenuItem_Click);
-            
+            selectCompanyMenuItem.Name = "selectCompanyMenuItem";
+            selectCompanyMenuItem.Size = new Size(224, 26);
+            selectCompanyMenuItem.Text = "&Select Company";
+            selectCompanyMenuItem.Click += selectCompanyMenuItem_Click;
             // 
             // companyMenuItem
             // 
-            this.companyMenuItem.Name = "companyMenuItem";
-            this.companyMenuItem.Size = new Size(180, 22);
-            this.companyMenuItem.Text = "&Manage Companies";
-            this.companyMenuItem.Click += new EventHandler(this.companyMenuItem_Click);
-            
-        
+            companyMenuItem.Name = "companyMenuItem";
+            companyMenuItem.Size = new Size(224, 26);
+            companyMenuItem.Text = "&Manage Companies";
+            companyMenuItem.Click += companyMenuItem_Click;
+            // 
+            // debugApiMenuItem
+            // 
+            debugApiMenuItem.Name = "debugApiMenuItem";
+            debugApiMenuItem.Size = new Size(224, 26);
             // 
             // logoutMenuItem
             // 
-            this.logoutMenuItem.Name = "logoutMenuItem";
-            this.logoutMenuItem.Size = new Size(112, 22);
-            this.logoutMenuItem.Text = "Logout";
-            this.logoutMenuItem.Click += new EventHandler(this.logoutMenuItem_Click);
+            logoutMenuItem.Name = "logoutMenuItem";
+            logoutMenuItem.Size = new Size(224, 26);
+            logoutMenuItem.Text = "Logout";
+            logoutMenuItem.Click += logoutMenuItem_Click;
             // 
             // exitMenuItem
             // 
-            this.exitMenuItem.Name = "exitMenuItem";
-            this.exitMenuItem.Size = new Size(112, 22);
-            this.exitMenuItem.Text = "Exit";
-            this.exitMenuItem.Click += new EventHandler(this.exitMenuItem_Click);
+            exitMenuItem.Name = "exitMenuItem";
+            exitMenuItem.Size = new Size(224, 26);
+            exitMenuItem.Text = "Exit";
+            exitMenuItem.Click += exitMenuItem_Click;
             // 
             // windowMenu
             // 
-            this.windowMenu.DropDownItems.AddRange(new ToolStripItem[] {
-            this.cascadeMenuItem,
-            this.tileHorizontalMenuItem,
-            this.tileVerticalMenuItem,
-            this.closeAllMenuItem});
-            this.windowMenu.Name = "windowMenu";
-            this.windowMenu.Size = new Size(63, 20);
-            this.windowMenu.Text = "Window";
+            windowMenu.DropDownItems.AddRange(new ToolStripItem[] { cascadeMenuItem, tileHorizontalMenuItem, tileVerticalMenuItem, closeAllMenuItem });
+            windowMenu.Name = "windowMenu";
+            windowMenu.Size = new Size(78, 24);
+            windowMenu.Text = "Window";
             // 
             // cascadeMenuItem
             // 
-            this.cascadeMenuItem.Name = "cascadeMenuItem";
-            this.cascadeMenuItem.Size = new Size(151, 22);
-            this.cascadeMenuItem.Text = "Cascade";
-            this.cascadeMenuItem.Click += new EventHandler(this.cascadeMenuItem_Click);
+            cascadeMenuItem.Name = "cascadeMenuItem";
+            cascadeMenuItem.Size = new Size(190, 26);
+            cascadeMenuItem.Text = "Cascade";
+            cascadeMenuItem.Click += cascadeMenuItem_Click;
             // 
             // tileHorizontalMenuItem
             // 
-            this.tileHorizontalMenuItem.Name = "tileHorizontalMenuItem";
-            this.tileHorizontalMenuItem.Size = new Size(151, 22);
-            this.tileHorizontalMenuItem.Text = "Tile Horizontal";
-            this.tileHorizontalMenuItem.Click += new EventHandler(this.tileHorizontalMenuItem_Click);
+            tileHorizontalMenuItem.Name = "tileHorizontalMenuItem";
+            tileHorizontalMenuItem.Size = new Size(190, 26);
+            tileHorizontalMenuItem.Text = "Tile Horizontal";
+            tileHorizontalMenuItem.Click += tileHorizontalMenuItem_Click;
             // 
             // tileVerticalMenuItem
             // 
-            this.tileVerticalMenuItem.Name = "tileVerticalMenuItem";
-            this.tileVerticalMenuItem.Size = new Size(151, 22);
-            this.tileVerticalMenuItem.Text = "Tile Vertical";
-            this.tileVerticalMenuItem.Click += new EventHandler(this.tileVerticalMenuItem_Click);
+            tileVerticalMenuItem.Name = "tileVerticalMenuItem";
+            tileVerticalMenuItem.Size = new Size(190, 26);
+            tileVerticalMenuItem.Text = "Tile Vertical";
+            tileVerticalMenuItem.Click += tileVerticalMenuItem_Click;
             // 
             // closeAllMenuItem
             // 
-            this.closeAllMenuItem.Name = "closeAllMenuItem";
-            this.closeAllMenuItem.Size = new Size(151, 22);
-            this.closeAllMenuItem.Text = "Close All";
-            this.closeAllMenuItem.Click += new EventHandler(this.closeAllMenuItem_Click);
-            
+            closeAllMenuItem.Name = "closeAllMenuItem";
+            closeAllMenuItem.Size = new Size(190, 26);
+            closeAllMenuItem.Text = "Close All";
+            closeAllMenuItem.Click += closeAllMenuItem_Click;
             // 
             // navigationPanel
             // 
-            this.navigationPanel.BackColor = Color.FromArgb(245, 245, 245);
-            this.navigationPanel.BorderStyle = BorderStyle.FixedSingle;
-            this.navigationPanel.Controls.Add(this.mainNavigationGroupBox);
-            this.navigationPanel.Dock = DockStyle.Left;
-            this.navigationPanel.Location = new Point(0, 24);
-            this.navigationPanel.Name = "navigationPanel";
-            this.navigationPanel.Size = new Size(300, 576);
-            this.navigationPanel.TabIndex = 1;
-            this.navigationPanel.Padding = new Padding(5);
-            
+            navigationPanel.BackColor = Color.FromArgb(245, 245, 245);
+            navigationPanel.BorderStyle = BorderStyle.FixedSingle;
+            navigationPanel.Controls.Add(mainNavigationGroupBox);
+            navigationPanel.Dock = DockStyle.Left;
+            navigationPanel.Location = new Point(0, 30);
+            navigationPanel.Margin = new Padding(3, 4, 3, 4);
+            navigationPanel.Name = "navigationPanel";
+            navigationPanel.Padding = new Padding(6, 7, 6, 7);
+            navigationPanel.Size = new Size(343, 770);
+            navigationPanel.TabIndex = 1;
             // 
             // mainNavigationGroupBox
             // 
-            this.mainNavigationGroupBox.Controls.Add(this.mastersLabel);
-            this.mainNavigationGroupBox.Controls.Add(this.productsListButton);
-            this.mainNavigationGroupBox.Controls.Add(this.companyListButton);
-            this.mainNavigationGroupBox.Controls.Add(this.customersButton);
-            this.mainNavigationGroupBox.Controls.Add(this.suppliersButton);
-            this.mainNavigationGroupBox.Controls.Add(this.accountsButton);
-            this.mainNavigationGroupBox.Controls.Add(this.transactionsLabel);
-            this.mainNavigationGroupBox.Controls.Add(this.saleButton);
-            this.mainNavigationGroupBox.Controls.Add(this.purchaseButton);
-            this.mainNavigationGroupBox.Controls.Add(this.receiptButton);
-            this.mainNavigationGroupBox.Controls.Add(this.paymentButton);
-            this.mainNavigationGroupBox.Controls.Add(this.journalButton);
-            this.mainNavigationGroupBox.Controls.Add(this.reportsLabel);
-            this.mainNavigationGroupBox.Controls.Add(this.stockReportButton);
-            this.mainNavigationGroupBox.Controls.Add(this.taxReportButton);
-            this.mainNavigationGroupBox.Controls.Add(this.salesReportButton);
-            this.mainNavigationGroupBox.Controls.Add(this.purchaseReportButton);
-            this.mainNavigationGroupBox.Controls.Add(this.profitLossButton);
-            this.mainNavigationGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            this.mainNavigationGroupBox.Location = new Point(10, 10);
-            this.mainNavigationGroupBox.Name = "mainNavigationGroupBox";
-            this.mainNavigationGroupBox.Size = new Size(280, 625);
-            this.mainNavigationGroupBox.TabIndex = 0;
-            this.mainNavigationGroupBox.TabStop = false;
-            this.mainNavigationGroupBox.Text = "APPLICATION NAVIGATION";
-            
+            mainNavigationGroupBox.Controls.Add(mastersLabel);
+            mainNavigationGroupBox.Controls.Add(productsListButton);
+            mainNavigationGroupBox.Controls.Add(companyListButton);
+            mainNavigationGroupBox.Controls.Add(selectCompanyButton);
+            mainNavigationGroupBox.Controls.Add(suppliersButton);
+            mainNavigationGroupBox.Controls.Add(accountsButton);
+            mainNavigationGroupBox.Controls.Add(transactionsLabel);
+            mainNavigationGroupBox.Controls.Add(saleButton);
+            mainNavigationGroupBox.Controls.Add(purchaseButton);
+            mainNavigationGroupBox.Controls.Add(receiptButton);
+            mainNavigationGroupBox.Controls.Add(paymentButton);
+            mainNavigationGroupBox.Controls.Add(journalButton);
+            mainNavigationGroupBox.Controls.Add(reportsLabel);
+            mainNavigationGroupBox.Controls.Add(stockReportButton);
+            mainNavigationGroupBox.Controls.Add(taxReportButton);
+            mainNavigationGroupBox.Controls.Add(salesReportButton);
+            mainNavigationGroupBox.Controls.Add(purchaseReportButton);
+            mainNavigationGroupBox.Controls.Add(profitLossButton);
+            mainNavigationGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            mainNavigationGroupBox.Location = new Point(11, 13);
+            mainNavigationGroupBox.Margin = new Padding(3, 4, 3, 4);
+            mainNavigationGroupBox.Name = "mainNavigationGroupBox";
+            mainNavigationGroupBox.Padding = new Padding(3, 4, 3, 4);
+            mainNavigationGroupBox.Size = new Size(320, 833);
+            mainNavigationGroupBox.TabIndex = 0;
+            mainNavigationGroupBox.TabStop = false;
+            mainNavigationGroupBox.Text = "APPLICATION NAVIGATION";
+            mainNavigationGroupBox.Enter += mainNavigationGroupBox_Enter;
             // 
             // mastersLabel
             // 
-            this.mastersLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.mastersLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            this.mastersLabel.Location = new Point(8, 25);
-            this.mastersLabel.Name = "mastersLabel";
-            this.mastersLabel.Size = new Size(150, 20);
-            this.mastersLabel.TabIndex = 0;
-            this.mastersLabel.Text = "MASTERS (Alt+M)";
-            
+            mastersLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            mastersLabel.ForeColor = Color.FromArgb(0, 102, 204);
+            mastersLabel.Location = new Point(9, 33);
+            mastersLabel.Name = "mastersLabel";
+            mastersLabel.Size = new Size(171, 27);
+            mastersLabel.TabIndex = 0;
+            mastersLabel.Text = "MASTERS (Alt+M)";
             // 
             // productsListButton
             // 
-            this.productsListButton.Font = new Font("Segoe UI", 9F);
-            this.productsListButton.Location = new Point(8, 50);
-            this.productsListButton.Name = "productsListButton";
-            this.productsListButton.Size = new Size(264, 28);
-            this.productsListButton.TabIndex = 1;
-            this.productsListButton.Text = "&Products List (F2)";
-            this.productsListButton.UseVisualStyleBackColor = true;
-            this.productsListButton.Click += new EventHandler(this.productsListButton_Click);
-            
+            productsListButton.Font = new Font("Segoe UI", 9F);
+            productsListButton.Location = new Point(9, 67);
+            productsListButton.Margin = new Padding(3, 4, 3, 4);
+            productsListButton.Name = "productsListButton";
+            productsListButton.Size = new Size(302, 37);
+            productsListButton.TabIndex = 1;
+            productsListButton.Text = "&Products List (F2)";
+            productsListButton.UseVisualStyleBackColor = true;
+            productsListButton.Click += productsListButton_Click;
             // 
             // companyListButton
             // 
-            this.companyListButton.Font = new Font("Segoe UI", 9F);
-            this.companyListButton.Location = new Point(8, 84);
-            this.companyListButton.Name = "companyListButton";
-            this.companyListButton.Size = new Size(264, 28);
-            this.companyListButton.TabIndex = 1;
-            this.companyListButton.Text = "&Company List (F3)";
-            this.companyListButton.UseVisualStyleBackColor = true;
-            this.companyListButton.Click += new EventHandler(this.companyListButton_Click);
-            
+            companyListButton.Font = new Font("Segoe UI", 9F);
+            companyListButton.Location = new Point(9, 112);
+            companyListButton.Margin = new Padding(3, 4, 3, 4);
+            companyListButton.Name = "companyListButton";
+            companyListButton.Size = new Size(302, 37);
+            companyListButton.TabIndex = 1;
+            companyListButton.Text = "&Company List (F3)";
+            companyListButton.UseVisualStyleBackColor = true;
+            companyListButton.Click += companyListButton_Click;
             // 
-            // customersButton
+            // selectCompanyButton
             // 
-            this.customersButton.Font = new Font("Segoe UI", 9F);
-            this.customersButton.Location = new Point(8, 118);
-            this.customersButton.Name = "customersButton";
-            this.customersButton.Size = new Size(264, 28);
-            this.customersButton.TabIndex = 2;
-            this.customersButton.Text = "C&ustomers (F4)";
-            this.customersButton.UseVisualStyleBackColor = true;
-            this.customersButton.Click += new EventHandler(this.customersButton_Click);
-            
+            selectCompanyButton.Font = new Font("Segoe UI", 9F);
+            selectCompanyButton.Location = new Point(9, 157);
+            selectCompanyButton.Margin = new Padding(3, 4, 3, 4);
+            selectCompanyButton.Name = "selectCompanyButton";
+            selectCompanyButton.Size = new Size(302, 37);
+            selectCompanyButton.TabIndex = 2;
+            selectCompanyButton.Text = "&Select Company (F4)";
+            selectCompanyButton.UseVisualStyleBackColor = true;
+            selectCompanyButton.Click += selectCompanyButton_Click;
             // 
             // suppliersButton
             // 
-            this.suppliersButton.Font = new Font("Segoe UI", 9F);
-            this.suppliersButton.Location = new Point(8, 152);
-            this.suppliersButton.Name = "suppliersButton";
-            this.suppliersButton.Size = new Size(264, 28);
-            this.suppliersButton.TabIndex = 3;
-            this.suppliersButton.Text = "&Suppliers (F5)";
-            this.suppliersButton.UseVisualStyleBackColor = true;
-            this.suppliersButton.Click += new EventHandler(this.suppliersButton_Click);
-            
+            suppliersButton.Font = new Font("Segoe UI", 9F);
+            suppliersButton.Location = new Point(9, 203);
+            suppliersButton.Margin = new Padding(3, 4, 3, 4);
+            suppliersButton.Name = "suppliersButton";
+            suppliersButton.Size = new Size(302, 37);
+            suppliersButton.TabIndex = 3;
+            suppliersButton.Text = "&Suppliers (F5)";
+            suppliersButton.UseVisualStyleBackColor = true;
+            suppliersButton.Click += suppliersButton_Click;
             // 
             // accountsButton
             // 
-            this.accountsButton.Font = new Font("Segoe UI", 9F);
-            this.accountsButton.Location = new Point(8, 186);
-            this.accountsButton.Name = "accountsButton";
-            this.accountsButton.Size = new Size(264, 28);
-            this.accountsButton.TabIndex = 4;
-            this.accountsButton.Text = "&Accounts (F6)";
-            this.accountsButton.UseVisualStyleBackColor = true;
-            this.accountsButton.Click += new EventHandler(this.accountsButton_Click);
-            
+            accountsButton.Font = new Font("Segoe UI", 9F);
+            accountsButton.Location = new Point(9, 248);
+            accountsButton.Margin = new Padding(3, 4, 3, 4);
+            accountsButton.Name = "accountsButton";
+            accountsButton.Size = new Size(302, 37);
+            accountsButton.TabIndex = 4;
+            accountsButton.Text = "&Accounts (F6)";
+            accountsButton.UseVisualStyleBackColor = true;
+            accountsButton.Click += accountsButton_Click;
             // 
             // transactionsLabel
             // 
-            this.transactionsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.transactionsLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            this.transactionsLabel.Location = new Point(8, 225);
-            this.transactionsLabel.Name = "transactionsLabel";
-            this.transactionsLabel.Size = new Size(200, 20);
-            this.transactionsLabel.TabIndex = 5;
-            this.transactionsLabel.Text = "TRANSACTIONS (Alt+T)";
-            
+            transactionsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            transactionsLabel.ForeColor = Color.FromArgb(0, 102, 204);
+            transactionsLabel.Location = new Point(9, 300);
+            transactionsLabel.Name = "transactionsLabel";
+            transactionsLabel.Size = new Size(229, 27);
+            transactionsLabel.TabIndex = 5;
+            transactionsLabel.Text = "TRANSACTIONS (Alt+T)";
             // 
             // saleButton
             // 
-            this.saleButton.Font = new Font("Segoe UI", 9F);
-            this.saleButton.Location = new Point(8, 250);
-            this.saleButton.Name = "saleButton";
-            this.saleButton.Size = new Size(264, 28);
-            this.saleButton.TabIndex = 6;
-            this.saleButton.Text = "&Sale (F7)";
-            this.saleButton.UseVisualStyleBackColor = true;
-            this.saleButton.Click += new EventHandler(this.saleButton_Click);
-            
+            saleButton.Font = new Font("Segoe UI", 9F);
+            saleButton.Location = new Point(9, 333);
+            saleButton.Margin = new Padding(3, 4, 3, 4);
+            saleButton.Name = "saleButton";
+            saleButton.Size = new Size(302, 37);
+            saleButton.TabIndex = 6;
+            saleButton.Text = "&Sale (F7)";
+            saleButton.UseVisualStyleBackColor = true;
+            saleButton.Click += saleButton_Click;
             // 
             // purchaseButton
             // 
-            this.purchaseButton.Font = new Font("Segoe UI", 9F);
-            this.purchaseButton.Location = new Point(8, 284);
-            this.purchaseButton.Name = "purchaseButton";
-            this.purchaseButton.Size = new Size(264, 28);
-            this.purchaseButton.TabIndex = 7;
-            this.purchaseButton.Text = "&Purchase (F8)";
-            this.purchaseButton.UseVisualStyleBackColor = true;
-            this.purchaseButton.Click += new EventHandler(this.purchaseButton_Click);
-            
+            purchaseButton.Font = new Font("Segoe UI", 9F);
+            purchaseButton.Location = new Point(9, 379);
+            purchaseButton.Margin = new Padding(3, 4, 3, 4);
+            purchaseButton.Name = "purchaseButton";
+            purchaseButton.Size = new Size(302, 37);
+            purchaseButton.TabIndex = 7;
+            purchaseButton.Text = "&Purchase (F8)";
+            purchaseButton.UseVisualStyleBackColor = true;
+            purchaseButton.Click += purchaseButton_Click;
             // 
             // receiptButton
             // 
-            this.receiptButton.Font = new Font("Segoe UI", 9F);
-            this.receiptButton.Location = new Point(8, 318);
-            this.receiptButton.Name = "receiptButton";
-            this.receiptButton.Size = new Size(264, 28);
-            this.receiptButton.TabIndex = 8;
-            this.receiptButton.Text = "&Receipt (F9)";
-            this.receiptButton.UseVisualStyleBackColor = true;
-            this.receiptButton.Click += new EventHandler(this.receiptButton_Click);
-            
+            receiptButton.Font = new Font("Segoe UI", 9F);
+            receiptButton.Location = new Point(9, 424);
+            receiptButton.Margin = new Padding(3, 4, 3, 4);
+            receiptButton.Name = "receiptButton";
+            receiptButton.Size = new Size(302, 37);
+            receiptButton.TabIndex = 8;
+            receiptButton.Text = "&Receipt (F9)";
+            receiptButton.UseVisualStyleBackColor = true;
+            receiptButton.Click += receiptButton_Click;
             // 
             // paymentButton
             // 
-            this.paymentButton.Font = new Font("Segoe UI", 9F);
-            this.paymentButton.Location = new Point(8, 352);
-            this.paymentButton.Name = "paymentButton";
-            this.paymentButton.Size = new Size(264, 28);
-            this.paymentButton.TabIndex = 9;
-            this.paymentButton.Text = "Pa&yment (F10)";
-            this.paymentButton.UseVisualStyleBackColor = true;
-            this.paymentButton.Click += new EventHandler(this.paymentButton_Click);
-            
+            paymentButton.Font = new Font("Segoe UI", 9F);
+            paymentButton.Location = new Point(9, 469);
+            paymentButton.Margin = new Padding(3, 4, 3, 4);
+            paymentButton.Name = "paymentButton";
+            paymentButton.Size = new Size(302, 37);
+            paymentButton.TabIndex = 9;
+            paymentButton.Text = "Pa&yment (F10)";
+            paymentButton.UseVisualStyleBackColor = true;
+            paymentButton.Click += paymentButton_Click;
             // 
             // journalButton
             // 
-            this.journalButton.Font = new Font("Segoe UI", 9F);
-            this.journalButton.Location = new Point(8, 386);
-            this.journalButton.Name = "journalButton";
-            this.journalButton.Size = new Size(264, 28);
-            this.journalButton.TabIndex = 10;
-            this.journalButton.Text = "&Journal (F11)";
-            this.journalButton.UseVisualStyleBackColor = true;
-            this.journalButton.Click += new EventHandler(this.journalButton_Click);
-            
+            journalButton.Font = new Font("Segoe UI", 9F);
+            journalButton.Location = new Point(9, 515);
+            journalButton.Margin = new Padding(3, 4, 3, 4);
+            journalButton.Name = "journalButton";
+            journalButton.Size = new Size(302, 37);
+            journalButton.TabIndex = 10;
+            journalButton.Text = "&Journal (F11)";
+            journalButton.UseVisualStyleBackColor = true;
+            journalButton.Click += journalButton_Click;
             // 
             // reportsLabel
             // 
-            this.reportsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.reportsLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            this.reportsLabel.Location = new Point(8, 425);
-            this.reportsLabel.Name = "reportsLabel";
-            this.reportsLabel.Size = new Size(150, 20);
-            this.reportsLabel.TabIndex = 11;
-            this.reportsLabel.Text = "REPORTS (Alt+R)";
-            
+            reportsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            reportsLabel.ForeColor = Color.FromArgb(0, 102, 204);
+            reportsLabel.Location = new Point(9, 567);
+            reportsLabel.Name = "reportsLabel";
+            reportsLabel.Size = new Size(171, 27);
+            reportsLabel.TabIndex = 11;
+            reportsLabel.Text = "REPORTS (Alt+R)";
             // 
             // stockReportButton
             // 
-            this.stockReportButton.Font = new Font("Segoe UI", 9F);
-            this.stockReportButton.Location = new Point(8, 450);
-            this.stockReportButton.Name = "stockReportButton";
-            this.stockReportButton.Size = new Size(264, 28);
-            this.stockReportButton.TabIndex = 12;
-            this.stockReportButton.Text = "St&ock Report (Ctrl+F1)";
-            this.stockReportButton.UseVisualStyleBackColor = true;
-            this.stockReportButton.Click += new EventHandler(this.stockReportButton_Click);
-            
+            stockReportButton.Font = new Font("Segoe UI", 9F);
+            stockReportButton.Location = new Point(9, 600);
+            stockReportButton.Margin = new Padding(3, 4, 3, 4);
+            stockReportButton.Name = "stockReportButton";
+            stockReportButton.Size = new Size(302, 37);
+            stockReportButton.TabIndex = 12;
+            stockReportButton.Text = "St&ock Report (Ctrl+F1)";
+            stockReportButton.UseVisualStyleBackColor = true;
+            stockReportButton.Click += stockReportButton_Click;
             // 
             // taxReportButton
             // 
-            this.taxReportButton.Font = new Font("Segoe UI", 9F);
-            this.taxReportButton.Location = new Point(8, 484);
-            this.taxReportButton.Name = "taxReportButton";
-            this.taxReportButton.Size = new Size(264, 28);
-            this.taxReportButton.TabIndex = 13;
-            this.taxReportButton.Text = "Ta&x Report (Ctrl+F2)";
-            this.taxReportButton.UseVisualStyleBackColor = true;
-            this.taxReportButton.Click += new EventHandler(this.taxReportButton_Click);
-            
+            taxReportButton.Font = new Font("Segoe UI", 9F);
+            taxReportButton.Location = new Point(9, 645);
+            taxReportButton.Margin = new Padding(3, 4, 3, 4);
+            taxReportButton.Name = "taxReportButton";
+            taxReportButton.Size = new Size(302, 37);
+            taxReportButton.TabIndex = 13;
+            taxReportButton.Text = "Ta&x Report (Ctrl+F2)";
+            taxReportButton.UseVisualStyleBackColor = true;
+            taxReportButton.Click += taxReportButton_Click;
             // 
             // salesReportButton
             // 
-            this.salesReportButton.Font = new Font("Segoe UI", 9F);
-            this.salesReportButton.Location = new Point(8, 518);
-            this.salesReportButton.Name = "salesReportButton";
-            this.salesReportButton.Size = new Size(264, 28);
-            this.salesReportButton.TabIndex = 14;
-            this.salesReportButton.Text = "Sales &Report (Ctrl+F3)";
-            this.salesReportButton.UseVisualStyleBackColor = true;
-            this.salesReportButton.Click += new EventHandler(this.salesReportButton_Click);
-            
+            salesReportButton.Font = new Font("Segoe UI", 9F);
+            salesReportButton.Location = new Point(9, 691);
+            salesReportButton.Margin = new Padding(3, 4, 3, 4);
+            salesReportButton.Name = "salesReportButton";
+            salesReportButton.Size = new Size(302, 37);
+            salesReportButton.TabIndex = 14;
+            salesReportButton.Text = "Sales &Report (Ctrl+F3)";
+            salesReportButton.UseVisualStyleBackColor = true;
+            salesReportButton.Click += salesReportButton_Click;
             // 
             // purchaseReportButton
             // 
-            this.purchaseReportButton.Font = new Font("Segoe UI", 9F);
-            this.purchaseReportButton.Location = new Point(8, 552);
-            this.purchaseReportButton.Name = "purchaseReportButton";
-            this.purchaseReportButton.Size = new Size(264, 28);
-            this.purchaseReportButton.TabIndex = 15;
-            this.purchaseReportButton.Text = "Purchase Re&port (Ctrl+F4)";
-            this.purchaseReportButton.UseVisualStyleBackColor = true;
-            this.purchaseReportButton.Click += new EventHandler(this.purchaseReportButton_Click);
-            
+            purchaseReportButton.Font = new Font("Segoe UI", 9F);
+            purchaseReportButton.Location = new Point(9, 736);
+            purchaseReportButton.Margin = new Padding(3, 4, 3, 4);
+            purchaseReportButton.Name = "purchaseReportButton";
+            purchaseReportButton.Size = new Size(302, 37);
+            purchaseReportButton.TabIndex = 15;
+            purchaseReportButton.Text = "Purchase Re&port (Ctrl+F4)";
+            purchaseReportButton.UseVisualStyleBackColor = true;
+            purchaseReportButton.Click += purchaseReportButton_Click;
             // 
             // profitLossButton
             // 
-            this.profitLossButton.Font = new Font("Segoe UI", 9F);
-            this.profitLossButton.Location = new Point(8, 586);
-            this.profitLossButton.Name = "profitLossButton";
-            this.profitLossButton.Size = new Size(264, 28);
-            this.profitLossButton.TabIndex = 16;
-            this.profitLossButton.Text = "Profit && &Loss (Ctrl+F5)";
-            this.profitLossButton.UseVisualStyleBackColor = true;
-            this.profitLossButton.Click += new EventHandler(this.profitLossButton_Click);
-            
+            profitLossButton.Font = new Font("Segoe UI", 9F);
+            profitLossButton.Location = new Point(9, 781);
+            profitLossButton.Margin = new Padding(3, 4, 3, 4);
+            profitLossButton.Name = "profitLossButton";
+            profitLossButton.Size = new Size(302, 37);
+            profitLossButton.TabIndex = 16;
+            profitLossButton.Text = "Profit && &Loss (Ctrl+F5)";
+            profitLossButton.UseVisualStyleBackColor = true;
+            profitLossButton.Click += profitLossButton_Click;
             // 
             // MainMDIForm
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(800, 600);
-            this.Controls.Add(this.navigationPanel);
-            this.Controls.Add(this.menuStrip);
-            this.IsMdiContainer = true;
-            this.MainMenuStrip = this.menuStrip;
-            this.KeyPreview = true;
-            this.Name = "MainMDIForm";
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.Text = "Main Application - Esc=File Menu | ↑↓=Navigate All | Alt+M/T/R=Jump Sections | F1=Help";
-            this.WindowState = FormWindowState.Maximized;
-            this.FormClosing += new FormClosingEventHandler(this.MainMDIForm_FormClosing);
-            this.KeyDown += new KeyEventHandler(this.MainMDIForm_KeyDown);
-            this.menuStrip.ResumeLayout(false);
-            this.menuStrip.PerformLayout();
-            this.navigationPanel.ResumeLayout(false);
-            this.mainNavigationGroupBox.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(914, 800);
+            Controls.Add(navigationPanel);
+            Controls.Add(menuStrip);
+            IsMdiContainer = true;
+            KeyPreview = true;
+            MainMenuStrip = menuStrip;
+            Margin = new Padding(3, 4, 3, 4);
+            Name = "MainMDIForm";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "Main Application - Esc=File Menu | ↑↓=Navigate All | Alt+M/T/R=Jump Sections | F1=Help";
+            WindowState = FormWindowState.Maximized;
+            FormClosing += MainMDIForm_FormClosing;
+            KeyDown += MainMDIForm_KeyDown;
+            menuStrip.ResumeLayout(false);
+            menuStrip.PerformLayout();
+            navigationPanel.ResumeLayout(false);
+            mainNavigationGroupBox.ResumeLayout(false);
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         private void SetupForm()
@@ -499,24 +480,24 @@ namespace WinFormsApp1.Forms
             dashboardMenuItem.Click += new EventHandler(this.dashboardMenuItem_Click);
             fileMenu.DropDownItems.Insert(0, dashboardMenuItem);
             fileMenu.DropDownItems.Insert(1, new ToolStripSeparator());
-            
+
             // Add a menu item to create new child forms
-            var newFormMenuItem = new ToolStripMenuItem("New Form");          
+            var newFormMenuItem = new ToolStripMenuItem("New Form");
             fileMenu.DropDownItems.Insert(2, newFormMenuItem);
             fileMenu.DropDownItems.Insert(3, new ToolStripSeparator());
-            
+
             // Initialize navigation button order for arrow key navigation
             InitializeNavigationOrder();
-            
+
             // Update title with selected company if any
             UpdateTitleWithSelectedCompany();
-            
+
             // Check if company is selected, if not, show company selection form
             CheckAndShowCompanySelection();
-            
+
             // Set focus to navigation panel after form is loaded
             this.Load += (s, e) => SetFocusToNavigation();
-            
+
             // Monitor child form closing events
             this.MdiChildActivate += (s, e) => CheckAndShowNavigationIfNoChildForms();
         }
@@ -528,7 +509,7 @@ namespace WinFormsApp1.Forms
             {
                 productsListButton,
                 companyListButton,
-                customersButton,
+                selectCompanyButton,
                 suppliersButton,
                 accountsButton,
                 saleButton,
@@ -542,7 +523,7 @@ namespace WinFormsApp1.Forms
                 purchaseReportButton,
                 profitLossButton
             };
-            
+
             // Keep section-specific arrays for Alt+M/T/R shortcuts
             transactionsButtons = new Button[]
             {
@@ -552,7 +533,7 @@ namespace WinFormsApp1.Forms
                 paymentButton,
                 journalButton
             };
-            
+
             reportsButtons = new Button[]
             {
                 stockReportButton,
@@ -573,7 +554,7 @@ namespace WinFormsApp1.Forms
                     // No company selected, show company selection form automatically
                     var companySelectForm = new CompanySelectForm(_companyService, _localStorageService);
                     var result = companySelectForm.ShowDialog();
-                    
+
                     if (result == DialogResult.OK)
                     {
                         // Company was selected successfully, update title and show navigation
@@ -619,15 +600,15 @@ namespace WinFormsApp1.Forms
                 MdiParent = this,
                 Text = "Company Dashboard"
             };
-            
+
             dashboardForm.Show();
         }
 
         private void logoutMenuItem_Click(object? sender, EventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login and require you to log in again next time.", "Logout", 
+            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login and require you to log in again next time.", "Logout",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            
+
             if (result == DialogResult.Yes)
             {
                 _authService.Logout();
@@ -637,9 +618,9 @@ namespace WinFormsApp1.Forms
 
         private void exitMenuItem_Click(object? sender, EventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to exit?", "Exit", 
+            var result = MessageBox.Show("Are you sure you want to exit?", "Exit",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            
+
             if (result == DialogResult.Yes)
             {
                 Application.Exit();
@@ -669,7 +650,7 @@ namespace WinFormsApp1.Forms
             }
         }
 
-     
+
 
         private void MainMDIForm_KeyDown(object? sender, KeyEventArgs e)
         {
@@ -679,37 +660,37 @@ namespace WinFormsApp1.Forms
                     fileMenu.ShowDropDown();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.M when e.Alt: // Alt+M to focus Masters section
                     ShowNavigationAndFocusSection("masters");
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.T when e.Alt: // Alt+T to focus Transactions section
                     ShowNavigationAndFocusSection("transactions");
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.R when e.Alt: // Alt+R to focus Reports section
                     ShowNavigationAndFocusSection("reports");
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.S when e.Alt: // Alt+S for Select Company
                     OpenCompanySelectForm();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.D when e.Alt: // Alt+D for Dashboard
                     CreateDashboardForm();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.C when e.Alt: // Alt+C for Manage Companies
                     OpenCompanyForm();
                     e.Handled = true;
                     break;
-                    
+
                 // Function keys for Masters section (only when no modifiers)
                 case Keys.F2 when !e.Control && !e.Alt:
                     productsListButton_Click(null, EventArgs.Empty);
@@ -720,7 +701,7 @@ namespace WinFormsApp1.Forms
                     e.Handled = true;
                     break;
                 case Keys.F4 when !e.Control && !e.Alt:
-                    customersButton_Click(null, EventArgs.Empty);
+                    selectCompanyButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
                 case Keys.F5 when !e.Control && !e.Alt:
@@ -731,7 +712,7 @@ namespace WinFormsApp1.Forms
                     accountsButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
-                    
+
                 // Function keys for Transactions section (only when no modifiers)
                 case Keys.F7 when !e.Control && !e.Alt:
                     saleButton_Click(null, EventArgs.Empty);
@@ -753,7 +734,7 @@ namespace WinFormsApp1.Forms
                     journalButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
-                    
+
                 // Ctrl+Function keys for Reports section
                 case Keys.F1 when e.Control && !e.Alt:
                     stockReportButton_Click(null, EventArgs.Empty);
@@ -775,23 +756,23 @@ namespace WinFormsApp1.Forms
                     profitLossButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.F1 when !e.Control && !e.Alt: // F1 for Help (only when no modifiers)
                     ShowKeyboardHelp();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.F4 when e.Alt: // Alt+F4 to exit
                     this.Close();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.Escape: // ESC to close active child form or open file menu
                     if (this.ActiveMdiChild != null)
                     {
                         this.ActiveMdiChild.Close();
                         e.Handled = true;
-                        
+
                         // If this was the last child form, open file menu
                         if (this.MdiChildren.Length == 0)
                         {
@@ -809,18 +790,18 @@ namespace WinFormsApp1.Forms
                         e.Handled = true;
                     }
                     break;
-                    
+
                 case Keys.Tab when e.Control: // Ctrl+Tab to cycle through child forms
                     CycleChildForms();
                     e.Handled = true;
                     break;
-                    
+
                 case Keys.W when e.Control: // Ctrl+W to close active child form
                     if (this.ActiveMdiChild != null)
                     {
                         this.ActiveMdiChild.Close();
                         e.Handled = true;
-                        
+
                         // If this was the last child form, open file menu
                         if (this.MdiChildren.Length == 0)
                         {
@@ -832,14 +813,14 @@ namespace WinFormsApp1.Forms
                         }
                     }
                     break;
-                    
+
                 case Keys.Up: // Up arrow to navigate to previous button
                     if (isNavigationVisible && NavigateToPreviousButton())
                     {
                         e.Handled = true;
                     }
                     break;
-                    
+
                 case Keys.Down: // Down arrow to navigate to next button
                     if (isNavigationVisible && NavigateToNextButton())
                     {
@@ -883,7 +864,7 @@ namespace WinFormsApp1.Forms
                 MdiParent = this,
                 Text = "Company Management"
             };
-            
+
             companyForm.Show();
         }
 
@@ -894,15 +875,15 @@ namespace WinFormsApp1.Forms
             {
                 // Refresh the title to show selected company
                 UpdateTitleWithSelectedCompany();
-                
+
                 // Show dashboard for the selected company
                 CreateDashboardForm();
-                
+
                 // Show a brief message about the company change
                 var selectedCompany = _localStorageService.GetSelectedCompanyAsync().Result;
                 if (selectedCompany != null)
                 {
-                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}\n\nDashboard opened for the selected company.", 
+                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}\n\nDashboard opened for the selected company.",
                         "Company Changed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -946,7 +927,7 @@ MAIN NAVIGATION:
 MASTERS SECTION:
 • F2 - Products List
 • F3 - Company List
-• F4 - Customers
+• F4 - Select Company
 • F5 - Suppliers
 • F6 - Accounts
 
@@ -993,7 +974,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
         }
 
-     
+
         public LocalStorageService GetLocalStorageService()
         {
             return _localStorageService;
@@ -1013,10 +994,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         {
             navigationPanel.Visible = true;
             isNavigationVisible = true;
-            
+
             // Apply visual styling to make navigation prominent
             SetupNavigationStyling();
-            
+
             // Focus the first button in Masters section and highlight it
             if (productsListButton.Visible)
             {
@@ -1034,10 +1015,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void ShowNavigationAndFocusSection(string sectionName)
         {
             ShowNavigationPanel();
-            
+
             // Clear previous highlights and focus the first button in the specified section
             ClearAllButtonHighlights();
-            
+
             if (sectionName == "masters" && productsListButton.Visible)
             {
                 HighlightButton(productsListButton);
@@ -1084,10 +1065,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Move to previous button in the entire list, wrap around to last if at first
             var previousIndex = currentIndex == 0 ? mastersButtons.Length - 1 : currentIndex - 1;
             var previousButton = mastersButtons[previousIndex];
-            
+
             HighlightButton(previousButton);
             previousButton.Focus();
-            
+
             return true;
         }
 
@@ -1102,10 +1083,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Move to next button in the entire list, wrap around to first if at last
             var nextIndex = currentIndex == mastersButtons.Length - 1 ? 0 : currentIndex + 1;
             var nextButton = mastersButtons[nextIndex];
-            
+
             HighlightButton(nextButton);
             nextButton.Focus();
-            
+
             return true;
         }
 
@@ -1115,12 +1096,12 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Enhanced navigation panel styling
             navigationPanel.BackColor = Color.FromArgb(240, 240, 240);
             navigationPanel.BorderStyle = BorderStyle.FixedSingle;
-            
+
             // Style main group box
             mainNavigationGroupBox.BackColor = Color.White;
             mainNavigationGroupBox.ForeColor = Color.FromArgb(0, 102, 204);
             mainNavigationGroupBox.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            
+
             // Style all buttons with default appearance
             SetupButtonStyling();
         }
@@ -1130,7 +1111,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, customersButton, suppliersButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, suppliersButton, accountsButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1147,7 +1128,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(230, 245, 255);
                 btn.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
                 btn.Cursor = Cursors.Hand;
-                
+
                 // Add hover effects
                 btn.MouseEnter += Button_MouseEnter;
                 btn.MouseLeave += Button_MouseLeave;
@@ -1159,7 +1140,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         {
             // Clear previous highlights first
             ClearAllButtonHighlights();
-            
+
             // Highlight the selected button
             button.BackColor = Color.FromArgb(0, 120, 215);
             button.ForeColor = Color.White;
@@ -1172,7 +1153,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, customersButton, suppliersButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, suppliersButton, accountsButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1228,10 +1209,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             OpenCompanyForm();
         }
 
-        private void customersButton_Click(object? sender, EventArgs e)
+        private void selectCompanyButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Customers feature will be implemented here.", "Customers", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenCompanySelectForm();
         }
 
         private void suppliersButton_Click(object? sender, EventArgs e)
@@ -1306,6 +1287,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         {
             if (sender is Button btn) HighlightButton(btn);
             MessageBox.Show("Profit & Loss Report feature will be implemented here.", "Profit & Loss", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void mainNavigationGroupBox_Enter(object sender, EventArgs e)
+        {
+
         }
     }
 }

@@ -285,7 +285,7 @@ namespace WinFormsApp1.Forms.Company
                     {
                         var companiesForCache = _companies.Select(sc => new WinFormsApp1.Models.Company
                         {
-                            Id = Guid.TryParse(sc.Id, out var id) ? id : Guid.Empty,
+                            Id = sc.Id,
                             Name = sc.CompanyName,
                             Code = sc.CompanyCode,
                             IsActive = sc.IsActive
@@ -447,7 +447,7 @@ namespace WinFormsApp1.Forms.Company
                 // Convert SelectCompanyModel to Company for storage
                 var companyForStorage = new WinFormsApp1.Models.Company
                 {
-                    Id = Guid.TryParse(_selectedCompany.Id, out var id) ? id : Guid.Empty,
+                    Id = _selectedCompany.Id,
                     Name = _selectedCompany.CompanyName,
                     Code = _selectedCompany.CompanyCode,
                     IsActive = _selectedCompany.IsActive

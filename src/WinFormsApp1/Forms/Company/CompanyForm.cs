@@ -14,8 +14,12 @@ namespace WinFormsApp1.Forms.Company
         private Button btnRefresh = null!;
         private Label lblStatus = null!;
         private Label lblInstructions = null!;
-        private List<SelectCompanyModel> _companies = new List<SelectCompanyModel>();
-        private SelectCompanyModel? _selectedCompany;
+        private List<WinFormsApp1.Models.Company> _companies = new List<WinFormsApp1.Models.Company>();
+        private WinFormsApp1.Models.Company? _selectedCompany;
+        private int _currentPage = 1;
+        private int _pageSize = 5;
+        private int _totalCount = 0;
+        private int _totalPages = 0;
 
         public CompanyForm(CompanyService companyService)
         {
@@ -169,28 +173,40 @@ namespace WinFormsApp1.Forms.Company
                 lblStatus.Text = "Loading companies...";
                 lblStatus.ForeColor = Color.Blue;
                 
-                _companies = await _companyService.GetAllCompaniesAsync();
+                var paginatedResponse = await _companyService.GetCompanyListAsync(_currentPage, _pageSize);
                 
-                Console.WriteLine($"Loaded {_companies.Count} companies:");
-                foreach (var company in _companies.Take(5)) // Show first 5 for debugging
+                if (paginatedResponse != null)
                 {
-                    Console.WriteLine($"  - ID: '{company.Id}', CompanyId: '{company.CompanyId}', Name: '{company.CompanyName}'");
-                }
-                
-                lstCompanies.DataSource = null;
-                lstCompanies.DataSource = _companies;
-                lstCompanies.DisplayMember = "DisplayName";
-                
-                if (_companies.Any())
-                {
-                    lblStatus.Text = $"Loaded {_companies.Count} companies";
-                    lblStatus.ForeColor = Color.Green;
-                    lstCompanies.SelectedIndex = 0;
+                    _companies = paginatedResponse.Data;
+                    _totalCount = paginatedResponse.TotalCount;
+                    _totalPages = paginatedResponse.TotalPages;
+                    
+                    Console.WriteLine($"Loaded {_companies.Count} companies (Page {_currentPage}/{_totalPages}, Total: {_totalCount}):");
+                    foreach (var company in _companies.Take(5)) // Show first 5 for debugging
+                    {
+                        Console.WriteLine($"  - ID: '{company.Id}', Name: '{company.Name}', Code: '{company.Code}'");
+                    }
+                    
+                    lstCompanies.DataSource = null;
+                    lstCompanies.DataSource = _companies;
+                    lstCompanies.DisplayMember = "DisplayName";
+                    
+                    if (_companies.Any())
+                    {
+                        lblStatus.Text = $"Page {_currentPage} of {_totalPages} - Showing {_companies.Count} of {_totalCount} companies";
+                        lblStatus.ForeColor = Color.Green;
+                        lstCompanies.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        lblStatus.Text = "No companies found";
+                        lblStatus.ForeColor = Color.Orange;
+                    }
                 }
                 else
                 {
-                    lblStatus.Text = "No companies found";
-                    lblStatus.ForeColor = Color.Orange;
+                    lblStatus.Text = "Failed to load companies";
+                    lblStatus.ForeColor = Color.Red;
                 }
             }
             catch (Exception ex)
@@ -202,7 +218,7 @@ namespace WinFormsApp1.Forms.Company
 
         private void lstCompanies_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            _selectedCompany = lstCompanies.SelectedItem as SelectCompanyModel;
+            _selectedCompany = lstCompanies.SelectedItem as WinFormsApp1.Models.Company;
             btnEdit.Enabled = _selectedCompany != null;
             btnView.Enabled = _selectedCompany != null;
             btnDelete.Enabled = _selectedCompany != null;
@@ -345,64 +361,36 @@ namespace WinFormsApp1.Forms.Company
         {
             if (_selectedCompany != null)
             {
-                Console.WriteLine($"EditCompany called for: ID='{_selectedCompany.Id}', CompanyId='{_selectedCompany.CompanyId}', Name='{_selectedCompany.CompanyName}'");
+                Console.WriteLine($"EditCompany called for: ID='{_selectedCompany.Id}', Name='{_selectedCompany.Name}'");
                 try
                 {
                     lblStatus.Text = "Loading company data...";
                     lblStatus.ForeColor = Color.Blue;
 
-                    // Get the full company data from API using GetCompanyByIdAsync
+                    // Get the full company data from API using GetEditCompanyByIdAsync
                     Console.WriteLine($"Attempting to parse company ID: '{_selectedCompany.Id}'");
-                    Console.WriteLine($"Attempting to parse company CompanyId: '{_selectedCompany.CompanyId}'");
                     
-                    Guid companyId = Guid.Empty;
-                    bool idParsed = false;
+                    var editCompanyModel = await _companyService.GetEditCompanyByIdAsync(Guid.Parse(_selectedCompany.Id));
                     
-                    // Try to parse the Id field first
-                    if (Guid.TryParse(_selectedCompany.Id, out companyId))
+                    if (editCompanyModel != null)
                     {
-                        Console.WriteLine($"Successfully parsed company ID: {companyId}");
-                        idParsed = true;
-                    }
-                    // If Id field didn't work, try CompanyId field
-                    else if (Guid.TryParse(_selectedCompany.CompanyId, out companyId))
-                    {
-                        Console.WriteLine($"Successfully parsed company CompanyId: {companyId}");
-                        idParsed = true;
-                    }
-                    
-                    if (idParsed)
-                    {
-                        var editCompanyModel = await _companyService.GetEditCompanyByIdAsync(companyId);
+                        lblStatus.Text = "Company data loaded successfully";
+                        lblStatus.ForeColor = Color.Green;
                         
-                        if (editCompanyModel != null)
-                        {
-                            lblStatus.Text = "Company data loaded successfully";
-                            lblStatus.ForeColor = Color.Green;
+                        // Convert EditCompanyModel to Company for the edit form
+                        var companyForEdit = editCompanyModel.ToCompany();
                             
-                            // Convert EditCompanyModel to Company for the edit form
-                            var companyForEdit = editCompanyModel.ToCompany();
-                            
-                            var companyEditForm = new CompanyEditForm(_companyService, companyForEdit);
-                            if (companyEditForm.ShowDialog() == DialogResult.OK)
-                            {
-                                LoadCompanies();
-                            }
-                        }
-                        else
+                        var companyEditForm = new CompanyEditForm(_companyService, companyForEdit);
+                        if (companyEditForm.ShowDialog() == DialogResult.OK)
                         {
-                            lblStatus.Text = "Failed to load company data from server";
-                            lblStatus.ForeColor = Color.Red;
-                            MessageBox.Show("Could not load company data from the server. Please try again.", 
-                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            LoadCompanies();
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Failed to parse company ID: '{_selectedCompany.Id}' and CompanyId: '{_selectedCompany.CompanyId}' as GUID");
-                        lblStatus.Text = "Invalid company ID format";
+                        lblStatus.Text = "Failed to load company data from server";
                         lblStatus.ForeColor = Color.Red;
-                        MessageBox.Show($"The selected company has invalid ID formats: ID='{_selectedCompany.Id}', CompanyId='{_selectedCompany.CompanyId}'. Please try selecting a different company.", 
+                        MessageBox.Show("Could not load company data from the server. Please try again.", 
                             "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -420,7 +408,7 @@ namespace WinFormsApp1.Forms.Company
         {
             if (_selectedCompany != null)
             {
-                Console.WriteLine($"ViewCompany called for: ID='{_selectedCompany.Id}', CompanyId='{_selectedCompany.CompanyId}', Name='{_selectedCompany.CompanyName}'");
+                Console.WriteLine($"ViewCompany called for: ID='{_selectedCompany.Id}', Name='{_selectedCompany.Name}'");
                 try
                 {
                     lblStatus.Text = "Loading company data...";
@@ -428,54 +416,26 @@ namespace WinFormsApp1.Forms.Company
 
                     // Get the full company data from API using GetEditCompanyByIdAsync
                     Console.WriteLine($"Attempting to parse company ID: '{_selectedCompany.Id}'");
-                    Console.WriteLine($"Attempting to parse company CompanyId: '{_selectedCompany.CompanyId}'");
                     
-                    Guid companyId = Guid.Empty;
-                    bool idParsed = false;
+                    var editCompanyModel = await _companyService.GetEditCompanyByIdAsync(Guid.Parse(_selectedCompany.Id));
                     
-                    // Try to parse the Id field first
-                    if (Guid.TryParse(_selectedCompany.Id, out companyId))
+                    if (editCompanyModel != null)
                     {
-                        Console.WriteLine($"Successfully parsed company ID: {companyId}");
-                        idParsed = true;
-                    }
-                    // If Id field didn't work, try CompanyId field
-                    else if (Guid.TryParse(_selectedCompany.CompanyId, out companyId))
-                    {
-                        Console.WriteLine($"Successfully parsed company CompanyId: {companyId}");
-                        idParsed = true;
-                    }
-                    
-                    if (idParsed)
-                    {
-                        var editCompanyModel = await _companyService.GetEditCompanyByIdAsync(companyId);
+                        lblStatus.Text = "Company data loaded successfully";
+                        lblStatus.ForeColor = Color.Green;
                         
-                        if (editCompanyModel != null)
+                        // Show company details form
+                        var companyDetailsForm = new CompanyDetailsForm(editCompanyModel, _companyService);
+                        if (companyDetailsForm.ShowDialog() == DialogResult.OK)
                         {
-                            lblStatus.Text = "Company data loaded successfully";
-                            lblStatus.ForeColor = Color.Green;
-                            
-                            // Show company details form
-                            var companyDetailsForm = new CompanyDetailsForm(editCompanyModel, _companyService);
-                            if (companyDetailsForm.ShowDialog() == DialogResult.OK)
-                            {
-                                LoadCompanies(); // Refresh if user edited the company from details form
-                            }
-                        }
-                        else
-                        {
-                            lblStatus.Text = "Failed to load company data from server";
-                            lblStatus.ForeColor = Color.Red;
-                            MessageBox.Show("Could not load company data from the server. Please try again.", 
-                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            LoadCompanies(); // Refresh if user edited the company from details form
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Failed to parse company ID: '{_selectedCompany.Id}' and CompanyId: '{_selectedCompany.CompanyId}' as GUID");
-                        lblStatus.Text = "Invalid company ID format";
+                        lblStatus.Text = "Failed to load company data from server";
                         lblStatus.ForeColor = Color.Red;
-                        MessageBox.Show($"The selected company has invalid ID formats: ID='{_selectedCompany.Id}', CompanyId='{_selectedCompany.CompanyId}'. Please try selecting a different company.", 
+                        MessageBox.Show("Could not load company data from the server. Please try again.", 
                             "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -506,28 +466,18 @@ namespace WinFormsApp1.Forms.Company
                     lblStatus.Text = "Deleting company...";
                     lblStatus.ForeColor = Color.Blue;
 
-                    if (Guid.TryParse(_selectedCompany.Id, out var companyId))
+                    var success = await _companyService.DeleteCompanyAsync(Guid.Parse(_selectedCompany.Id));
+                    
+                    if (success)
                     {
-                        var success = await _companyService.DeleteCompanyAsync(companyId);
-                        
-                        if (success)
-                        {
-                            lblStatus.Text = "Company deleted successfully";
-                            lblStatus.ForeColor = Color.Green;
-                            LoadCompanies();
-                        }
-                        else
-                        {
-                            lblStatus.Text = "Failed to delete company";
-                            lblStatus.ForeColor = Color.Red;
-                        }
+                        lblStatus.Text = "Company deleted successfully";
+                        lblStatus.ForeColor = Color.Green;
+                        LoadCompanies();
                     }
                     else
                     {
-                        lblStatus.Text = "Invalid company ID format";
+                        lblStatus.Text = "Failed to delete company";
                         lblStatus.ForeColor = Color.Red;
-                        MessageBox.Show("The selected company has an invalid ID format. Cannot delete.", 
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
                 catch (Exception ex)

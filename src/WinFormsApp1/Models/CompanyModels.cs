@@ -5,7 +5,7 @@ namespace WinFormsApp1.Models
     public class Company
     {
         [JsonPropertyName("id")]
-        public Guid Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
@@ -40,6 +40,9 @@ namespace WinFormsApp1.Models
         [JsonPropertyName("taxId")]
         public string TaxId { get; set; } = string.Empty;
 
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = string.Empty;
+
         [JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = true;
 
@@ -50,7 +53,7 @@ namespace WinFormsApp1.Models
         public DateTime ModifiedDate { get; set; }
 
         // Display property for UI
-        public string DisplayName => $"{Code} - {Name}";
+        public string DisplayName => !string.IsNullOrEmpty(Code) ? $"{Code} - {Name}" : Name;
     }
 
     public class CompanyListResponse
@@ -230,7 +233,7 @@ namespace WinFormsApp1.Models
         {
             return new Company
             {
-                Id = Guid.TryParse(Id, out var guid) ? guid : Guid.Empty,
+                Id = Id,
                 Name = Name,
                 Code = "", // Code not available in EditCompanyModel
                 Address = Address,
@@ -245,5 +248,34 @@ namespace WinFormsApp1.Models
                 IsActive = true // Default to active since not provided in response
             };
         }
+    }
+
+    public class PaginatedCompanyListResponse
+    {
+        [JsonPropertyName("items")]
+        public List<Company> Items { get; set; } = new List<Company>();
+
+        [JsonPropertyName("totalItems")]
+        public int TotalItems { get; set; }
+
+        [JsonPropertyName("currentPage")]
+        public int CurrentPage { get; set; }
+
+        [JsonPropertyName("pageSize")]
+        public int PageSize { get; set; }
+
+        [JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; }
+
+        [JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; }
+
+        [JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; }
+
+        // Helper property to maintain compatibility with existing code
+        public List<Company> Data => Items;
+        public int TotalCount => TotalItems;
+        public int PageNumber => CurrentPage;
     }
 }

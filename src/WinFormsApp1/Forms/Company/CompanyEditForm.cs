@@ -368,7 +368,7 @@ namespace WinFormsApp1.Forms.Company
                 
                 if (_isEditMode && _company != null)
                 {
-                    success = await _companyService.UpdateCompanyAsync(_company.Id, request);
+                    success = await _companyService.UpdateCompanyAsync(Guid.Parse(_company.Id), request);
                 }
                 else
                 {
