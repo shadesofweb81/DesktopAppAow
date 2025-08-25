@@ -524,6 +524,9 @@ namespace WinFormsApp1.Forms
             // Monitor child form closing events
             this.MdiChildActivate += (s, e) => CheckAndShowNavigationIfNoChildForms();
             
+            // Monitor child form closing to show navigation when CompanyForm is closed
+            this.MdiChildActivate += (s, e) => HandleChildFormActivation();
+            
             // Update company display when form is activated
             this.Activated += (s, e) => UpdateTitleWithSelectedCompany();
         }
@@ -595,7 +598,8 @@ namespace WinFormsApp1.Forms
                 }
                 else
                 {
-                    // Company is already selected, show navigation panel
+                    // Company is already selected, just update title and show navigation
+                    UpdateTitleWithSelectedCompany();
                     ShowNavigationPanel();
                 }
             }
@@ -696,7 +700,7 @@ namespace WinFormsApp1.Forms
                     break;
 
                 case Keys.C when e.Alt: // Alt+C for Manage Companies
-                    OpenCompanyForm();
+                    OpenCompanyFormMaximized();
                     e.Handled = true;
                     break;
 
@@ -782,13 +786,14 @@ namespace WinFormsApp1.Forms
                         this.ActiveMdiChild.Close();
                         e.Handled = true;
 
-                        // If this was the last child form, open file menu
+                        // If this was the last child form, show navigation panel
                         if (this.MdiChildren.Length == 0)
                         {
                             this.BeginInvoke(new Action(() =>
                             {
-                                fileMenu.ShowDropDown();
-                                Console.WriteLine("Last MDI form closed, File menu opened");
+                                ShowNavigationPanel();
+                                SetFocusToNavigation();
+                                Console.WriteLine("Last MDI form closed, Navigation panel shown");
                             }));
                         }
                     }
@@ -811,13 +816,14 @@ namespace WinFormsApp1.Forms
                         this.ActiveMdiChild.Close();
                         e.Handled = true;
 
-                        // If this was the last child form, open file menu
+                        // If this was the last child form, show navigation panel
                         if (this.MdiChildren.Length == 0)
                         {
                             this.BeginInvoke(new Action(() =>
                             {
-                                fileMenu.ShowDropDown();
-                                Console.WriteLine("Last MDI form closed with Ctrl+W, File menu opened");
+                                ShowNavigationPanel();
+                                SetFocusToNavigation();
+                                Console.WriteLine("Last MDI form closed with Ctrl+W, Navigation panel shown");
                             }));
                         }
                     }
@@ -851,7 +857,7 @@ namespace WinFormsApp1.Forms
 
         private void companyMenuItem_Click(object? sender, EventArgs e)
         {
-            OpenCompanyForm();
+            OpenCompanyFormMaximized();
         }
 
         private void OpenCompanyForm()
@@ -878,6 +884,35 @@ namespace WinFormsApp1.Forms
             
             // Ensure navigation panel remains visible
             ShowNavigationPanel();
+        }
+
+        private void OpenCompanyFormMaximized()
+        {
+            // Check if Company form is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is CompanyForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    childForm.WindowState = FormWindowState.Maximized;
+                    HideNavigationPanel();
+                    return;
+                }
+            }
+
+            // Create new company form as maximized child form
+            var companyForm = new CompanyForm(_companyService)
+            {
+                MdiParent = this,
+                Text = "Company Management",
+                WindowState = FormWindowState.Maximized
+            };
+
+            companyForm.Show();
+            
+            // Hide navigation panel when company form is maximized
+            HideNavigationPanel();
         }
 
         private void OpenProductForm()
@@ -909,23 +944,42 @@ namespace WinFormsApp1.Forms
 
         private async void OpenCompanySelectForm()
         {
-            var companySelectForm = new CompanySelectForm(_companyService, _localStorageService);
-            if (companySelectForm.ShowDialog() == DialogResult.OK)
+            // Check if CompanySelectForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is CompanySelectForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new company select form as MDI child
+            var companySelectForm = new CompanySelectForm(_companyService, _localStorageService)
+            {
+                MdiParent = this,
+                Text = "Select Company",
+                WindowState = FormWindowState.Maximized
+            };
+
+            companySelectForm.Show();
+            
+            // Monitor the form closing to handle company selection
+            companySelectForm.FormClosed += async (s, e) =>
             {
                 // Refresh the title to show selected company
                 UpdateTitleWithSelectedCompany();
 
-                // Show dashboard for the selected company
-                CreateDashboardForm();
-
-                // Show a brief message about the company change
+                // Check if a company was actually selected (not just cancelled)
                 var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
                 if (selectedCompany != null)
                 {
-                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}\n\nDashboard opened for the selected company.",
+                    // Show a brief message about the company change
+                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}",
                         "Company Changed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }
+            };
         }
 
         private async void UpdateTitleWithSelectedCompany()
@@ -1064,7 +1118,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         }
 
         // Navigation Helper Methods
-        private void ShowNavigationPanel()
+        public void ShowNavigationPanel()
         {
             navigationPanel.Visible = true;
             isNavigationVisible = true;
@@ -1080,7 +1134,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
         }
 
-        private void HideNavigationPanel()
+        public void HideNavigationPanel()
         {
             navigationPanel.Visible = false;
             isNavigationVisible = false;
@@ -1110,7 +1164,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
         }
 
-        private void SetFocusToNavigation()
+        public void SetFocusToNavigation()
         {
             ShowNavigationPanel();
         }
@@ -1127,7 +1181,54 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             else
             {
-                // Keep navigation panel visible when child forms are open
+                // Check if the active child form is a company-related form
+                if (this.ActiveMdiChild is CompanyForm || 
+                    this.ActiveMdiChild is CompanySelectForm || 
+                    this.ActiveMdiChild is CompanyEditForm)
+                {
+                    // Hide navigation panel when company-related forms are active
+                    HideNavigationPanel();
+                }
+                else
+                {
+                    // Show navigation panel for other forms
+                    ShowNavigationPanel();
+                }
+            }
+        }
+
+        private void HandleChildFormActivation()
+        {
+            if (this.ActiveMdiChild is CompanyForm || 
+                this.ActiveMdiChild is CompanySelectForm || 
+                this.ActiveMdiChild is CompanyEditForm)
+            {
+                // Hide navigation panel when company-related forms are active
+                HideNavigationPanel();
+                
+                // Ensure CompanyForm stays maximized when it's the active form
+                if (this.ActiveMdiChild is CompanyForm)
+                {
+                    this.ActiveMdiChild.WindowState = FormWindowState.Maximized;
+                    
+                    // Force the CompanyForm to maintain its maximized state
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        if (this.ActiveMdiChild is CompanyForm companyForm)
+                        {
+                            companyForm.WindowState = FormWindowState.Maximized;
+                        }
+                    }));
+                }
+            }
+            else if (this.ActiveMdiChild != null)
+            {
+                // Show navigation panel for other forms
+                ShowNavigationPanel();
+            }
+            else
+            {
+                // No child forms, show navigation panel
                 ShowNavigationPanel();
             }
         }
@@ -1285,7 +1386,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void companyListButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenCompanyForm();
+            OpenCompanyFormMaximized();
         }
 
         private void selectCompanyButton_Click(object? sender, EventArgs e)

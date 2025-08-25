@@ -189,7 +189,7 @@ namespace WinFormsApp1.Forms.Company
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(595, 385);
+            ClientSize = new Size(800, 600);
             Controls.Add(lblStatus);
             Controls.Add(btnCancel);
             Controls.Add(grpCompanyDetails);
@@ -198,15 +198,19 @@ namespace WinFormsApp1.Forms.Company
             Controls.Add(cmbCompanies);
             Controls.Add(lblCurrentSelection);
             Controls.Add(lblInstructions);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            FormBorderStyle = FormBorderStyle.Sizable;
             KeyPreview = true;
-            MaximizeBox = false;
-            MinimizeBox = false;
+            MaximizeBox = true;
+            MinimizeBox = true;
             Name = "CompanySelectForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = "Select Company";
+            WindowState = FormWindowState.Maximized;
             KeyDown += new KeyEventHandler(CompanySelectForm_KeyDown);
             Load += new EventHandler(CompanySelectForm_Load);
+            Resize += new EventHandler(CompanySelectForm_Resize);
+            Activated += new EventHandler(CompanySelectForm_Activated);
+            FormClosing += new FormClosingEventHandler(CompanySelectForm_FormClosing);
             ResumeLayout(false);
         }
 
@@ -222,7 +226,84 @@ namespace WinFormsApp1.Forms.Company
 
         private void CompanySelectForm_Load(object? sender, EventArgs e)
         {
+            // Ensure the form opens maximized
+            WindowState = FormWindowState.Maximized;
+            
+            // Resize controls to fit the maximized form
+            ResizeControls();
+            
             cmbCompanies.Focus();
+            
+            // Hide MDI navigation panel when this form is maximized
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.HideNavigationPanel();
+            }
+        }
+        
+        private void CompanySelectForm_Resize(object? sender, EventArgs e)
+        {
+            // Resize controls when form is resized
+            ResizeControls();
+        }
+        
+        private void CompanySelectForm_Activated(object? sender, EventArgs e)
+        {
+            // When CompanySelectForm is activated, ensure it's maximized and navigation is hidden
+            if (WindowState != FormWindowState.Maximized)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+            
+            // Hide navigation panel when this form is activated
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.HideNavigationPanel();
+            }
+        }
+        
+        private void CompanySelectForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // When CompanySelectForm is closing, ensure navigation panel is shown again
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.BeginInvoke(new Action(() =>
+                {
+                    mdiForm.ShowNavigationPanel();
+                    mdiForm.SetFocusToNavigation();
+                }));
+            }
+        }
+        
+        private void ResizeControls()
+        {
+            // Get the client area size
+            int clientWidth = ClientSize.Width;
+            int clientHeight = ClientSize.Height;
+            
+            // Resize and reposition controls for maximized form
+            lblInstructions.Size = new Size(clientWidth - 24, 40);
+            
+            lblCurrentSelection.Location = new Point(12, 55);
+            lblCurrentSelection.Size = new Size(clientWidth - 24, 25);
+            
+            cmbCompanies.Location = new Point(12, 85);
+            cmbCompanies.Size = new Size(clientWidth - 200, 30);
+            
+            btnSelect.Location = new Point(clientWidth - 180, 84);
+            btnSelect.Size = new Size(80, 32);
+            
+            btnRefresh.Location = new Point(clientWidth - 90, 84);
+            btnRefresh.Size = new Size(80, 32);
+            
+            grpCompanyDetails.Location = new Point(12, 125);
+            grpCompanyDetails.Size = new Size(clientWidth - 24, 200);
+            
+            btnCancel.Location = new Point(clientWidth - 100, clientHeight - 50);
+            btnCancel.Size = new Size(80, 35);
+            
+            lblStatus.Location = new Point(12, clientHeight - 45);
+            lblStatus.Size = new Size(clientWidth - 120, 25);
         }
 
         private async void LoadCurrentSelection()
@@ -386,6 +467,15 @@ namespace WinFormsApp1.Forms.Company
                     break;
                     
                 case Keys.Escape:
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
                     DialogResult = DialogResult.Cancel;
                     Close();
                     e.Handled = true;
@@ -403,6 +493,15 @@ namespace WinFormsApp1.Forms.Company
                     break;
                     
                 case Keys.Escape:
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
                     DialogResult = DialogResult.Cancel;
                     Close();
                     e.Handled = true;
@@ -422,6 +521,15 @@ namespace WinFormsApp1.Forms.Company
 
         private void btnCancel_Click(object? sender, EventArgs e)
         {
+            // When closing with Cancel button, ensure navigation panel is shown
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.BeginInvoke(new Action(() =>
+                {
+                    mdiForm.ShowNavigationPanel();
+                    mdiForm.SetFocusToNavigation();
+                }));
+            }
             DialogResult = DialogResult.Cancel;
             Close();
         }

@@ -158,6 +158,7 @@ namespace WinFormsApp1.Forms.Company
             Load += new EventHandler(CompanyForm_Load);
             Resize += new EventHandler(CompanyForm_Resize);
             Activated += new EventHandler(CompanyForm_Activated);
+            FormClosing += new FormClosingEventHandler(CompanyForm_FormClosing);
             ResumeLayout(false);
         }
 
@@ -165,11 +166,47 @@ namespace WinFormsApp1.Forms.Company
         {
             // Set focus to the list box for immediate keyboard navigation
             ActiveControl = lstCompanies;
+            
+            // Style the buttons for better visibility
+            StyleButtons();
+        }
+        
+        private void StyleButtons()
+        {
+            var buttons = new[] { btnNew, btnEdit, btnView, btnDelete, btnRefresh };
+            
+            foreach (var button in buttons)
+            {
+                button.FlatStyle = FlatStyle.Flat;
+                button.BackColor = Color.FromArgb(240, 240, 240);
+                button.ForeColor = Color.Black;
+                button.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+                button.Cursor = Cursors.Hand;
+                
+                // Add hover effects
+                button.MouseEnter += (s, e) => 
+                {
+                    if (s is Button btn)
+                    {
+                        btn.BackColor = Color.FromArgb(230, 245, 255);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 215);
+                    }
+                };
+                
+                button.MouseLeave += (s, e) => 
+                {
+                    if (s is Button btn)
+                    {
+                        btn.BackColor = Color.FromArgb(240, 240, 240);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
+                    }
+                };
+            }
         }
 
         private void CompanyForm_Load(object? sender, EventArgs e)
         {
-            // Ensure the form opens maximized
+            // Open as maximized child form within MDI parent
             WindowState = FormWindowState.Maximized;
             
             // Resize controls to fit the maximized form
@@ -177,6 +214,21 @@ namespace WinFormsApp1.Forms.Company
             
             // Focus on the list box
             lstCompanies.Focus();
+            
+            // Hide MDI navigation panel when this form is maximized
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.HideNavigationPanel();
+            }
+            
+            // Ensure the form stays maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
         }
 
         private void ResizeControls()
@@ -185,20 +237,39 @@ namespace WinFormsApp1.Forms.Company
             int clientWidth = ClientSize.Width;
             int clientHeight = ClientSize.Height;
             
-            // Account for MDI navigation panel width (approximately 343px)
-            int availableWidth = clientWidth - 150;
-            int availableHeight = clientHeight - 150;
+            // Reserve space for buttons on the right side (120px for buttons + 30px margin)
+            int buttonAreaWidth = 150;
+            int availableWidth = clientWidth - buttonAreaWidth - 50; // 50px for left margin
+            int availableHeight = clientHeight - 100;
             
-            // Resize the list box to use most of the available space
+            // Ensure minimum width for the list
+            if (availableWidth < 300)
+            {
+                availableWidth = 300;
+            }
+            
+            // Resize the list box to use the available space
             lstCompanies.Size = new Size(availableWidth, availableHeight);
             
-            // Reposition buttons on the right side
-            int buttonX = availableWidth + 20;
+            // Position buttons on the right side, ensuring they're always visible
+            int buttonX = availableWidth + 30; // 30px margin from list
+            int buttonWidth = 120; // Slightly wider buttons for better visibility
+            int buttonHeight = 35; // Slightly taller buttons
+            
             btnNew.Location = new Point(buttonX, 52);
+            btnNew.Size = new Size(buttonWidth, buttonHeight);
+            
             btnEdit.Location = new Point(buttonX, 92);
+            btnEdit.Size = new Size(buttonWidth, buttonHeight);
+            
             btnView.Location = new Point(buttonX, 132);
+            btnView.Size = new Size(buttonWidth, buttonHeight);
+            
             btnDelete.Location = new Point(buttonX, 172);
+            btnDelete.Size = new Size(buttonWidth, buttonHeight);
+            
             btnRefresh.Location = new Point(buttonX, 212);
+            btnRefresh.Size = new Size(buttonWidth, buttonHeight);
             
             // Reposition status label at the bottom
             lblStatus.Location = new Point(12, clientHeight - 35);
@@ -216,10 +287,42 @@ namespace WinFormsApp1.Forms.Company
 
         private void CompanyForm_Activated(object? sender, EventArgs e)
         {
-            // Ensure MDI navigation panel is visible when this form is activated
+            // When CompanyForm is activated, ensure it's maximized and navigation is hidden
+            if (WindowState != FormWindowState.Maximized)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+            
+            // Hide navigation panel when this form is activated
             if (MdiParent is MainMDIForm mdiForm)
             {
-                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+                mdiForm.HideNavigationPanel();
+            }
+            
+            // Ensure the form takes focus and maintains its state
+            this.BringToFront();
+            this.Activate();
+            
+            // Force the form to stay maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
+        }
+
+        private void CompanyForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // When CompanyForm is closing, ensure navigation panel is shown again
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.BeginInvoke(new Action(() =>
+                {
+                    mdiForm.ShowNavigationPanel();
+                    mdiForm.SetFocusToNavigation();
+                }));
             }
         }
 
@@ -344,6 +447,15 @@ namespace WinFormsApp1.Forms.Company
                     break;
                     
                 case Keys.Escape:
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
                     Close();
                     e.Handled = true;
                     break;
@@ -355,6 +467,15 @@ namespace WinFormsApp1.Forms.Company
             switch (e.KeyCode)
             {
                 case Keys.Escape:
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
                     Close();
                     e.Handled = true;
                     break;
@@ -440,7 +561,8 @@ namespace WinFormsApp1.Forms.Company
             var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), null)
             {
                 MdiParent = this.MdiParent,
-                Text = "New Company"
+                Text = "New Company",
+                WindowState = FormWindowState.Maximized
             };
 
             companyEditForm.Show();
@@ -472,7 +594,8 @@ namespace WinFormsApp1.Forms.Company
                     var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), _selectedCompany)
                     {
                         MdiParent = this.MdiParent,
-                        Text = $"Edit Company - {_selectedCompany.DisplayName}"
+                        Text = $"Edit Company - {_selectedCompany.DisplayName}",
+                        WindowState = FormWindowState.Maximized
                     };
 
                     companyEditForm.Show();

@@ -353,6 +353,7 @@ namespace WinFormsApp1.Forms.Company
             Load += new EventHandler(CompanyEditForm_Load);
             Resize += new EventHandler(CompanyEditForm_Resize);
             Activated += new EventHandler(CompanyEditForm_Activated);
+            FormClosing += new FormClosingEventHandler(CompanyEditForm_FormClosing);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -377,6 +378,12 @@ namespace WinFormsApp1.Forms.Company
             {
                 // This is an MDI child form - maximize it
                 WindowState = FormWindowState.Maximized;
+                
+                // Hide MDI navigation panel when this form is maximized
+                if (MdiParent is MainMDIForm mdiForm)
+                {
+                    mdiForm.HideNavigationPanel();
+                }
             }
             else
             {
@@ -424,10 +431,50 @@ namespace WinFormsApp1.Forms.Company
 
         private void CompanyEditForm_Activated(object? sender, EventArgs e)
         {
-            // Ensure MDI navigation panel is visible when this form is activated
+            // When CompanyEditForm is activated, ensure it's maximized and navigation is hidden
+            if (WindowState != FormWindowState.Maximized)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+            
+            // Hide navigation panel when this form is activated
             if (MdiParent is MainMDIForm mdiForm)
             {
-                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+                mdiForm.HideNavigationPanel();
+            }
+        }
+
+        private void CompanyEditForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // When CompanyEditForm is closing, check if any CompanyForm is open
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                // Check if any CompanyForm is open among MDI children
+                bool hasCompanyForm = false;
+                foreach (Form childForm in mdiForm.MdiChildren)
+                {
+                    if (childForm is CompanyForm)
+                    {
+                        hasCompanyForm = true;
+                        break;
+                    }
+                }
+                
+                if (hasCompanyForm)
+                {
+                    // If CompanyForm is open, don't show navigation panel
+                    // Let the CompanyForm handle its own state
+                    return;
+                }
+                else
+                {
+                    // No CompanyForm is open, show navigation panel
+                    mdiForm.BeginInvoke(new Action(() =>
+                    {
+                        mdiForm.ShowNavigationPanel();
+                        mdiForm.SetFocusToNavigation();
+                    }));
+                }
             }
         }
 
