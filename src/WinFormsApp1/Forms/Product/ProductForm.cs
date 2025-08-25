@@ -150,7 +150,7 @@ namespace WinFormsApp1.Forms.Product
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(650, 480);
+            ClientSize = new Size(800, 600);
             Controls.Add(lblStatus);
             Controls.Add(btnRefresh);
             Controls.Add(btnDelete);
@@ -160,14 +160,18 @@ namespace WinFormsApp1.Forms.Product
             Controls.Add(lstProducts);
             Controls.Add(lblInstructions);
             Controls.Add(lblCompanyInfo);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            FormBorderStyle = FormBorderStyle.Sizable;
             KeyPreview = true;
-            MaximizeBox = false;
-            MinimizeBox = false;
+            MaximizeBox = true;
+            MinimizeBox = true;
             Name = "ProductForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = _company != null ? $"Products - {_company.DisplayName}" : "Products - No Company Selected";
+            WindowState = FormWindowState.Maximized;
             KeyDown += new KeyEventHandler(ProductForm_KeyDown);
+            Load += new EventHandler(ProductForm_Load);
+            Resize += new EventHandler(ProductForm_Resize);
+            Activated += new EventHandler(ProductForm_Activated);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -180,6 +184,67 @@ namespace WinFormsApp1.Forms.Product
             
             // Focus on product list
             lstProducts.Focus();
+        }
+
+        private void ProductForm_Load(object? sender, EventArgs e)
+        {
+            // Ensure the form opens maximized
+            WindowState = FormWindowState.Maximized;
+            
+            // Resize controls to fit the maximized form
+            ResizeControls();
+            
+            // Ensure MDI navigation panel is visible
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                // The MDI form will handle showing the navigation panel
+                // We just need to ensure our form doesn't interfere
+            }
+        }
+
+        private void ResizeControls()
+        {
+            // Get the client area size
+            int clientWidth = ClientSize.Width;
+            int clientHeight = ClientSize.Height;
+            
+            // Account for MDI navigation panel width (approximately 343px)
+            int availableWidth = clientWidth - 150;
+            int availableHeight = clientHeight - 150;
+            
+            // Resize the list box to use most of the available space
+            lstProducts.Size = new Size(availableWidth, availableHeight);
+            
+            // Reposition buttons on the right side
+            int buttonX = availableWidth + 20;
+            btnNew.Location = new Point(buttonX, 85);
+            btnEdit.Location = new Point(buttonX, 125);
+            btnView.Location = new Point(buttonX, 165);
+            btnDelete.Location = new Point(buttonX, 205);
+            btnRefresh.Location = new Point(buttonX, 245);
+            
+            // Reposition status label at the bottom
+            lblStatus.Location = new Point(12, clientHeight - 30);
+            lblStatus.Size = new Size(clientWidth - 24, 20);
+            
+            // Resize company info and instructions labels
+            lblCompanyInfo.Size = new Size(clientWidth - 24, 25);
+            lblInstructions.Size = new Size(clientWidth - 24, 40);
+        }
+
+        private void ProductForm_Resize(object? sender, EventArgs e)
+        {
+            // Resize controls when form is resized
+            ResizeControls();
+        }
+
+        private void ProductForm_Activated(object? sender, EventArgs e)
+        {
+            // Ensure MDI navigation panel is visible when this form is activated
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+            }
         }
 
         private async void LoadCompanyAndProducts()

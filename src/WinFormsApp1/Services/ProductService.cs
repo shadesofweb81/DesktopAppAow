@@ -53,28 +53,20 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        // Try to parse as ProductListResponse first
-                        var productListResponse = JsonSerializer.Deserialize<ProductListResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
-
-                        if (productListResponse != null)
-                        {
-                            var products = productListResponse.GetProducts();
-                            Console.WriteLine($"Successfully parsed {products.Count} products from ProductListResponse");
-                            return products;
-                        }
-
+                        Console.WriteLine("Attempting to parse response...");
+                        
+                      
                         // If that doesn't work, try to parse as direct array
-                        var productsArray = JsonSerializer.Deserialize<List<ProductModel>>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        Console.WriteLine("ProductListResponse parsing failed, trying direct array...");
+                        var productsArray = JsonSerializer.Deserialize<List<ProductModel>>(responseContent);
 
                         if (productsArray != null)
                         {
                             Console.WriteLine($"Successfully parsed {productsArray.Count} products as direct array");
+                            foreach (var product in productsArray)
+                            {
+                                Console.WriteLine($"  - Product: {product.Name} (ID: {product.Id})");
+                            }
                             return productsArray;
                         }
 
@@ -125,10 +117,7 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedProductListResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedProductListResponse>(responseContent);
 
                         if (paginatedResponse != null)
                         {
@@ -176,10 +165,7 @@ namespace WinFormsApp1.Services
                     try
                     {
                         // Try to parse as ProductResponse first
-                        var productResponse = JsonSerializer.Deserialize<ProductResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        var productResponse = JsonSerializer.Deserialize<ProductResponse>(responseContent);
 
                         if (productResponse != null)
                         {
@@ -187,10 +173,7 @@ namespace WinFormsApp1.Services
                         }
 
                         // If that doesn't work, try to parse as direct ProductModel object
-                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent);
 
                         return product;
                     }
@@ -241,10 +224,7 @@ namespace WinFormsApp1.Services
                     try
                     {
                         // Try to parse as ProductResponse first
-                        var productResponse = JsonSerializer.Deserialize<ProductResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        var productResponse = JsonSerializer.Deserialize<ProductResponse>(responseContent);
 
                         if (productResponse != null && productResponse.Success)
                         {
@@ -252,10 +232,7 @@ namespace WinFormsApp1.Services
                         }
 
                         // If that doesn't work, try to parse as direct ProductModel object
-                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent);
 
                         return product;
                     }
@@ -333,6 +310,51 @@ namespace WinFormsApp1.Services
         public void Dispose()
         {
             _httpClient?.Dispose();
+        }
+
+        // Test method to verify JSON parsing
+        public static void TestJsonParsing()
+        {
+            var testJson = @"[
+                {
+                    ""id"": ""0070e4be-0e34-434c-a64f-249188028b4d"",
+                    ""name"": ""3 pound carton box"",
+                    ""productCode"": """",
+                    ""category"": """",
+                    ""description"": """",
+                    ""unit"": """",
+                    ""sku"": """",
+                    ""purchasePrice"": 0.0,
+                    ""sellingPrice"": 0.0,
+                    ""stockQuantity"": 0,
+                    ""reorderLevel"": null,
+                    ""companyId"": ""e6a993e0-6229-4ced-94e1-bfa1bfb92c20"",
+                    ""parentId"": ""cd2c1069-4d46-4daa-b5ff-1f9af8b45fa1"",
+                    ""attributeIds"": [],
+                    ""productVariants"": []
+                }
+            ]";
+
+            try
+            {
+                var products = JsonSerializer.Deserialize<List<ProductModel>>(testJson);
+                if (products != null && products.Any())
+                {
+                    Console.WriteLine($"Test parsing successful! Found {products.Count} products");
+                    foreach (var product in products)
+                    {
+                        Console.WriteLine($"  - {product.Name} (ID: {product.Id})");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Test parsing failed - no products found");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test parsing error: {ex.Message}");
+            }
         }
     }
 }

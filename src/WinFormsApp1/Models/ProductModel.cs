@@ -1,32 +1,71 @@
 
 
+using System.Text.Json.Serialization;
+
 namespace WinFormsApp1.Models
 {
     public class ProductModel
     {
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
+        
+        [JsonPropertyName("productCode")]
         public string ProductCode { get; set; } = string.Empty;
+        
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+        
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+        
+        [JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
-        public decimal PurchasePrice { get; set; }
-        public decimal SellingPrice { get; set; }
-        public int StockQuantity { get; set; }
-        public bool IsActive { get; set; }
-        public string SKU { get; set; } = string.Empty;
-        public string Barcode { get; set; } = string.Empty;        
+        
+        [JsonPropertyName("unit")]
         public string Unit { get; set; } = string.Empty;
+        
+        [JsonPropertyName("sku")]
+        public string SKU { get; set; } = string.Empty;
+        
+        [JsonPropertyName("purchasePrice")]
+        public decimal PurchasePrice { get; set; }
+        
+        [JsonPropertyName("sellingPrice")]
+        public decimal SellingPrice { get; set; }
+        
+        [JsonPropertyName("stockQuantity")]
+        public int StockQuantity { get; set; }
+        
+        [JsonPropertyName("reorderLevel")]
+        public int? ReorderLevel { get; set; }
+        
+        [JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = true;
+        
+        [JsonPropertyName("barcode")]
+        public string Barcode { get; set; } = string.Empty;
+        
         // Hierarchical structure
+        [JsonPropertyName("parentId")]
         public Guid? ParentId { get; set; }
         
         // Foreign keys
+        [JsonPropertyName("companyId")]
         public Guid CompanyId { get; set; }
+        
+        // Arrays from API
+        [JsonPropertyName("attributeIds")]
+        public List<string> AttributeIds { get; set; } = new List<string>();
+        
+        [JsonPropertyName("productVariants")]
+        public List<object> ProductVariants { get; set; } = new List<object>();
         
         // Navigation properties
         public ProductModel? Parent { get; set; }
         public ICollection<ProductModel> Children { get; set; } = new HashSet<ProductModel>();
         public Company Company { get; set; } = null!;
         public ICollection<ProductAttributeModel> ProductAttributes { get; set; } = new HashSet<ProductAttributeModel>();
-        public ICollection<ProductVariant> ProductVariants { get; set; } = new HashSet<ProductVariant>();
+        public ICollection<ProductVariant> ProductVariantsCollection { get; set; } = new HashSet<ProductVariant>();
         
         // Display property for UI
         public string DisplayName => !string.IsNullOrEmpty(ProductCode) ? $"{ProductCode} - {Name}" : Name;
@@ -34,17 +73,46 @@ namespace WinFormsApp1.Models
 
     public class ProductCreateRequest
     {
+        [JsonPropertyName("productCode")]
         public string ProductCode { get; set; } = string.Empty;
+        
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+        
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+        
+        [JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
-        public decimal PurchasePrice { get; set; }
-        public decimal SellingPrice { get; set; }
-        public int StockQuantity { get; set; }
-        public bool IsActive { get; set; } = true;
-        public string SKU { get; set; } = string.Empty;
-        public string Barcode { get; set; } = string.Empty;
+        
+        [JsonPropertyName("unit")]
         public string Unit { get; set; } = string.Empty;
+        
+        [JsonPropertyName("sku")]
+        public string SKU { get; set; } = string.Empty;
+        
+        [JsonPropertyName("purchasePrice")]
+        public decimal PurchasePrice { get; set; }
+        
+        [JsonPropertyName("sellingPrice")]
+        public decimal SellingPrice { get; set; }
+        
+        [JsonPropertyName("stockQuantity")]
+        public int StockQuantity { get; set; }
+        
+        [JsonPropertyName("reorderLevel")]
+        public int? ReorderLevel { get; set; }
+        
+        [JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = true;
+        
+        [JsonPropertyName("barcode")]
+        public string Barcode { get; set; } = string.Empty;
+        
+        [JsonPropertyName("parentId")]
         public Guid? ParentId { get; set; }
+        
+        [JsonPropertyName("companyId")]
         public Guid CompanyId { get; set; }
     }
 

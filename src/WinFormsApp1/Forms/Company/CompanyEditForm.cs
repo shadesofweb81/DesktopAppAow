@@ -10,6 +10,10 @@ namespace WinFormsApp1.Forms.Company
         private readonly WinFormsApp1.Models.Company? _company;
         private readonly bool _isEditMode;
 
+        // Public properties for MDI child form management
+        public bool IsEditMode => _isEditMode;
+        public string CompanyId => _company?.Id ?? string.Empty;
+
         private TextBox txtName = null!;
         private TextBox txtCode = null!;
         private TextBox txtAddress = null!;
@@ -337,14 +341,18 @@ namespace WinFormsApp1.Forms.Company
             Controls.Add(txtCode);
             Controls.Add(txtName);
             Controls.Add(lblInstructions);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            FormBorderStyle = FormBorderStyle.Sizable;
             KeyPreview = true;
-            MaximizeBox = false;
-            MinimizeBox = false;
+            MaximizeBox = true;
+            MinimizeBox = true;
             Name = "CompanyEditForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = _isEditMode ? "Edit Company" : "New Company";
+            WindowState = FormWindowState.Maximized;
             KeyDown += new KeyEventHandler(CompanyEditForm_KeyDown);
+            Load += new EventHandler(CompanyEditForm_Load);
+            Resize += new EventHandler(CompanyEditForm_Resize);
+            Activated += new EventHandler(CompanyEditForm_Activated);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -360,6 +368,67 @@ namespace WinFormsApp1.Forms.Company
             
             // Focus on name field
             txtName.Focus();
+        }
+
+        private void CompanyEditForm_Load(object? sender, EventArgs e)
+        {
+            // Check if this is an MDI child form or a dialog
+            if (MdiParent != null)
+            {
+                // This is an MDI child form - maximize it
+                WindowState = FormWindowState.Maximized;
+            }
+            else
+            {
+                // This is a dialog - center it and make it a reasonable size
+                WindowState = FormWindowState.Normal;
+                StartPosition = FormStartPosition.CenterParent;
+                Size = new Size(800, 600);
+            }
+            
+            // Resize controls to fit the form
+            ResizeControls();
+            
+            // Focus on name field
+            txtName.Focus();
+        }
+
+        private void ResizeControls()
+        {
+            // Get the client area size
+            int clientWidth = ClientSize.Width;
+            int clientHeight = ClientSize.Height;
+            
+            // Account for MDI navigation panel width (approximately 343px)
+            int availableWidth = clientWidth - 150;
+            int availableHeight = clientHeight - 150;
+            
+            // Reposition and resize controls for better layout
+            // Instructions label
+            lblInstructions.Size = new Size(availableWidth - 24, 25);
+            
+            // Status label at the bottom
+            lblStatus.Location = new Point(12, clientHeight - 35);
+            lblStatus.Size = new Size(clientWidth - 24, 20);
+            
+            // Buttons at the bottom
+            btnSave.Location = new Point(availableWidth - 200, clientHeight - 80);
+            btnCancel.Location = new Point(availableWidth - 100, clientHeight - 80);
+        }
+
+        private void CompanyEditForm_Resize(object? sender, EventArgs e)
+        {
+            // Resize controls when form is resized
+            ResizeControls();
+        }
+
+        private void CompanyEditForm_Activated(object? sender, EventArgs e)
+        {
+            // Ensure MDI navigation panel is visible when this form is activated
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+            }
         }
 
         private void LoadCountryDropdown()
@@ -547,8 +616,18 @@ namespace WinFormsApp1.Forms.Company
             switch (e.KeyCode)
             {
                 case Keys.Escape:
-                    DialogResult = DialogResult.Cancel;
-                    Close();
+                    // Check if this is an MDI child form
+                    if (MdiParent != null)
+                    {
+                        // This is an MDI child form - just close it
+                        Close();
+                    }
+                    else
+                    {
+                        // This is a dialog - set result and close
+                        DialogResult = DialogResult.Cancel;
+                        Close();
+                    }
                     e.Handled = true;
                     break;
                     
@@ -569,8 +648,18 @@ namespace WinFormsApp1.Forms.Company
 
         private void btnCancel_Click(object? sender, EventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
-            Close();
+            // Check if this is an MDI child form
+            if (MdiParent != null)
+            {
+                // This is an MDI child form - just close it
+                Close();
+            }
+            else
+            {
+                // This is a dialog - set result and close
+                DialogResult = DialogResult.Cancel;
+                Close();
+            }
         }
 
         private async Task SaveCompany()
@@ -620,10 +709,22 @@ namespace WinFormsApp1.Forms.Company
                     lblStatus.Text = _isEditMode ? "Company updated successfully!" : "Company created successfully!";
                     lblStatus.ForeColor = Color.Green;
                     
-                    // Close after a short delay
-                    await Task.Delay(1000);
-                    DialogResult = DialogResult.OK;
-                    Close();
+                    // Check if this is an MDI child form
+                    if (MdiParent != null)
+                    {
+                        // This is an MDI child form - stay open and show success message
+                        // The parent form will handle refreshing the list
+                        await Task.Delay(2000); // Show success message for 2 seconds
+                        lblStatus.Text = "Ready";
+                        lblStatus.ForeColor = Color.Green;
+                    }
+                    else
+                    {
+                        // This is a dialog - close after a short delay
+                        await Task.Delay(1000);
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
                 }
                 else
                 {

@@ -137,7 +137,7 @@ namespace WinFormsApp1.Forms.Company
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(650, 450);
+            ClientSize = new Size(800, 600);
             Controls.Add(lblStatus);
             Controls.Add(btnRefresh);
             Controls.Add(btnDelete);
@@ -148,12 +148,16 @@ namespace WinFormsApp1.Forms.Company
             Controls.Add(lblInstructions);
             FormBorderStyle = FormBorderStyle.Sizable;
             KeyPreview = true;
-            MinimumSize = new Size(666, 489);
+            MaximizeBox = true;
+            MinimizeBox = true;
             Name = "CompanyForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = "Company Management";
+            WindowState = FormWindowState.Maximized;
             KeyDown += new KeyEventHandler(CompanyForm_KeyDown);
             Load += new EventHandler(CompanyForm_Load);
+            Resize += new EventHandler(CompanyForm_Resize);
+            Activated += new EventHandler(CompanyForm_Activated);
             ResumeLayout(false);
         }
 
@@ -165,7 +169,58 @@ namespace WinFormsApp1.Forms.Company
 
         private void CompanyForm_Load(object? sender, EventArgs e)
         {
+            // Ensure the form opens maximized
+            WindowState = FormWindowState.Maximized;
+            
+            // Resize controls to fit the maximized form
+            ResizeControls();
+            
+            // Focus on the list box
             lstCompanies.Focus();
+        }
+
+        private void ResizeControls()
+        {
+            // Get the client area size
+            int clientWidth = ClientSize.Width;
+            int clientHeight = ClientSize.Height;
+            
+            // Account for MDI navigation panel width (approximately 343px)
+            int availableWidth = clientWidth - 150;
+            int availableHeight = clientHeight - 150;
+            
+            // Resize the list box to use most of the available space
+            lstCompanies.Size = new Size(availableWidth, availableHeight);
+            
+            // Reposition buttons on the right side
+            int buttonX = availableWidth + 20;
+            btnNew.Location = new Point(buttonX, 52);
+            btnEdit.Location = new Point(buttonX, 92);
+            btnView.Location = new Point(buttonX, 132);
+            btnDelete.Location = new Point(buttonX, 172);
+            btnRefresh.Location = new Point(buttonX, 212);
+            
+            // Reposition status label at the bottom
+            lblStatus.Location = new Point(12, clientHeight - 35);
+            lblStatus.Size = new Size(clientWidth - 24, 20);
+            
+            // Resize instructions label
+            lblInstructions.Size = new Size(clientWidth - 24, 40);
+        }
+
+        private void CompanyForm_Resize(object? sender, EventArgs e)
+        {
+            // Resize controls when form is resized
+            ResizeControls();
+        }
+
+        private void CompanyForm_Activated(object? sender, EventArgs e)
+        {
+            // Ensure MDI navigation panel is visible when this form is activated
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+            }
         }
 
         private async void LoadCompanies()
@@ -370,11 +425,28 @@ namespace WinFormsApp1.Forms.Company
 
         private void NewCompany()
         {
-            var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), null);
-            if (companyEditForm.ShowDialog() == DialogResult.OK)
+            // Check if CompanyEditForm is already open
+            foreach (Form childForm in this.MdiParent?.MdiChildren ?? new Form[0])
             {
-                LoadCompanies();
+                if (childForm is CompanyEditForm editForm && !editForm.IsEditMode)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
             }
+
+            // Create new company edit form as MDI child
+            var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), null)
+            {
+                MdiParent = this.MdiParent,
+                Text = "New Company"
+            };
+
+            companyEditForm.Show();
+            
+            // Refresh the company list when the edit form is closed
+            companyEditForm.FormClosed += (s, e) => LoadCompanies();
         }
 
         private async Task EditCompany()
@@ -384,13 +456,29 @@ namespace WinFormsApp1.Forms.Company
                 Console.WriteLine($"EditCompany called for: ID='{_selectedCompany.Id}', Name='{_selectedCompany.Name}'");
                 try
                 {
+                    // Check if CompanyEditForm is already open for this company
+                    foreach (Form childForm in this.MdiParent?.MdiChildren ?? new Form[0])
+                    {
+                        if (childForm is CompanyEditForm editForm && editForm.IsEditMode && editForm.CompanyId == _selectedCompany.Id)
+                        {
+                            childForm.BringToFront();
+                            childForm.Activate();
+                            return;
+                        }
+                    }
+
                     // Pass the selected company to the edit form
                     // The edit form will now fetch fresh data using GetCompanyByIdAsync
-                    var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), _selectedCompany);
-                    if (companyEditForm.ShowDialog() == DialogResult.OK)
+                    var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), _selectedCompany)
                     {
-                        LoadCompanies();
-                    }
+                        MdiParent = this.MdiParent,
+                        Text = $"Edit Company - {_selectedCompany.DisplayName}"
+                    };
+
+                    companyEditForm.Show();
+                    
+                    // Refresh the company list when the edit form is closed
+                    companyEditForm.FormClosed += (s, e) => LoadCompanies();
                 }
                 catch (Exception ex)
                 {

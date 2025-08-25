@@ -875,6 +875,9 @@ namespace WinFormsApp1.Forms
             };
 
             companyForm.Show();
+            
+            // Ensure navigation panel remains visible
+            ShowNavigationPanel();
         }
 
         private void OpenProductForm()
@@ -899,6 +902,9 @@ namespace WinFormsApp1.Forms
             };
 
             productForm.Show();
+            
+            // Ensure navigation panel remains visible
+            ShowNavigationPanel();
         }
 
         private async void OpenCompanySelectForm()
@@ -1118,6 +1124,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     fileMenu.ShowDropDown();
                     Console.WriteLine("No child forms open, File menu opened automatically");
                 }));
+            }
+            else
+            {
+                // Keep navigation panel visible when child forms are open
+                ShowNavigationPanel();
             }
         }
 
