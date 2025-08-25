@@ -164,6 +164,7 @@ namespace WinFormsApp1.Forms.Product
             KeyPreview = true;
             MaximizeBox = true;
             MinimizeBox = true;
+            CancelButton = null; // Ensure no default cancel button interferes
             Name = "ProductForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = _company != null ? $"Products - {_company.DisplayName}" : "Products - No Company Selected";
@@ -172,6 +173,7 @@ namespace WinFormsApp1.Forms.Product
             Load += new EventHandler(ProductForm_Load);
             Resize += new EventHandler(ProductForm_Resize);
             Activated += new EventHandler(ProductForm_Activated);
+            FormClosing += new FormClosingEventHandler(ProductForm_FormClosing);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -180,7 +182,7 @@ namespace WinFormsApp1.Forms.Product
         {
             // Set default button
             AcceptButton = btnEdit;
-            CancelButton = btnRefresh;
+            CancelButton = null; // Remove default cancel button to prevent conflicts
             
             // Focus on product list
             lstProducts.Focus();
@@ -188,18 +190,29 @@ namespace WinFormsApp1.Forms.Product
 
         private void ProductForm_Load(object? sender, EventArgs e)
         {
-            // Ensure the form opens maximized
+            // Open as maximized child form within MDI parent
             WindowState = FormWindowState.Maximized;
             
             // Resize controls to fit the maximized form
             ResizeControls();
             
-            // Ensure MDI navigation panel is visible
+            // Focus on the list box
+            lstProducts.Focus();
+            
+            // Hide MDI navigation panel when this form is maximized
             if (MdiParent is MainMDIForm mdiForm)
             {
-                // The MDI form will handle showing the navigation panel
-                // We just need to ensure our form doesn't interfere
+                mdiForm.HideNavigationPanel();
             }
+            
+            // Ensure the form stays maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
         }
 
         private void ResizeControls()
@@ -208,15 +221,22 @@ namespace WinFormsApp1.Forms.Product
             int clientWidth = ClientSize.Width;
             int clientHeight = ClientSize.Height;
             
-            // Account for MDI navigation panel width (approximately 343px)
-            int availableWidth = clientWidth - 150;
+            // Reserve space for buttons on the right side
+            int buttonAreaWidth = 150;
+            int availableWidth = clientWidth - buttonAreaWidth - 30; // 30px margin
             int availableHeight = clientHeight - 150;
+            
+            // Ensure minimum list width
+            if (availableWidth < 300)
+            {
+                availableWidth = 300;
+            }
             
             // Resize the list box to use most of the available space
             lstProducts.Size = new Size(availableWidth, availableHeight);
             
-            // Reposition buttons on the right side
-            int buttonX = availableWidth + 20;
+            // Reposition buttons on the right side with 30px margin
+            int buttonX = availableWidth + 30;
             btnNew.Location = new Point(buttonX, 85);
             btnEdit.Location = new Point(buttonX, 125);
             btnView.Location = new Point(buttonX, 165);
@@ -240,10 +260,42 @@ namespace WinFormsApp1.Forms.Product
 
         private void ProductForm_Activated(object? sender, EventArgs e)
         {
-            // Ensure MDI navigation panel is visible when this form is activated
+            // When ProductForm is activated, ensure it's maximized and navigation is hidden
+            if (WindowState != FormWindowState.Maximized)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+            
+            // Hide navigation panel when this form is activated
             if (MdiParent is MainMDIForm mdiForm)
             {
-                // The MDI form's MdiChildActivate event will handle showing the navigation panel
+                mdiForm.HideNavigationPanel();
+            }
+            
+            // Ensure the form takes focus and maintains its state
+            this.BringToFront();
+            this.Activate();
+            
+            // Force the form to stay maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
+        }
+
+        private void ProductForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // When ProductForm is closing, ensure navigation panel is shown again
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.BeginInvoke(new Action(() =>
+                {
+                    mdiForm.ShowNavigationPanel();
+                    mdiForm.SetFocusToNavigation();
+                }));
             }
         }
 
@@ -342,6 +394,7 @@ namespace WinFormsApp1.Forms.Product
 
         private void lstProducts_KeyDown(object? sender, KeyEventArgs e)
         {
+            Console.WriteLine($"lstProducts_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}");
             switch (e.KeyCode)
             {
                 case Keys.Enter:
@@ -372,21 +425,65 @@ namespace WinFormsApp1.Forms.Product
                         e.Handled = true;
                     }
                     break;
-            }
-        }
-
-        private void ProductForm_KeyDown(object? sender, KeyEventArgs e)
-        {
-            switch (e.KeyCode)
-            {
+                    
                 case Keys.F5:
                     _ = Task.Run(async () => await LoadProducts());
                     e.Handled = true;
                     break;
                     
                 case Keys.Escape:
+                    Console.WriteLine("Escape key pressed in lstProducts_KeyDown");
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
                     Close();
                     e.Handled = true;
+                    break;
+            }
+        }
+
+        private void ProductForm_KeyDown(object? sender, KeyEventArgs e)
+        {
+            Console.WriteLine($"ProductForm_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}");
+            switch (e.KeyCode)
+            {
+                case Keys.Escape:
+                    Console.WriteLine("Escape key pressed in ProductForm_KeyDown");
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
+                    Close();
+                    e.Handled = true;
+                    break;
+                    
+                case Keys.F5:
+                    _ = Task.Run(async () => await LoadProducts());
+                    e.Handled = true;
+                    break;
+                    
+                case Keys.Insert:
+                    NewProduct();
+                    e.Handled = true;
+                    break;
+                    
+                case Keys.V:
+                    if (_selectedProduct != null)
+                    {
+                        ViewProduct();
+                        e.Handled = true;
+                    }
                     break;
             }
         }
@@ -449,8 +546,29 @@ namespace WinFormsApp1.Forms.Product
                 return;
             }
             
-            // TODO: Implement ProductEditForm
-            MessageBox.Show($"Create new product for company: {_company.DisplayName}", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // Check if ProductEditForm is already open
+            foreach (Form childForm in this.MdiParent?.MdiChildren ?? new Form[0])
+            {
+                if (childForm is ProductEditForm editForm && !editForm.IsEditMode)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new product edit form as MDI child
+            var productEditForm = new ProductEditForm(_productService, null, Guid.Parse(_company.Id))
+            {
+                MdiParent = this.MdiParent,
+                Text = "New Product",
+                WindowState = FormWindowState.Maximized
+            };
+
+            productEditForm.Show();
+            
+            // Refresh the product list when the edit form is closed
+            productEditForm.FormClosed += (s, e) => LoadProducts();
         }
 
         private async Task EditProduct()
@@ -465,8 +583,29 @@ namespace WinFormsApp1.Forms.Product
             {
                 Console.WriteLine($"EditProduct called for: ID='{_selectedProduct.Id}', Name='{_selectedProduct.Name}'");
                 
-                // TODO: Implement ProductEditForm
-                MessageBox.Show($"Edit product: {_selectedProduct.Name} for company: {_company.DisplayName}", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Check if ProductEditForm is already open for this product
+                foreach (Form childForm in this.MdiParent?.MdiChildren ?? new Form[0])
+                {
+                    if (childForm is ProductEditForm editForm && editForm.IsEditMode && editForm.ProductId == _selectedProduct.Id)
+                    {
+                        childForm.BringToFront();
+                        childForm.Activate();
+                        return;
+                    }
+                }
+
+                // Create new product edit form as MDI child
+                var productEditForm = new ProductEditForm(_productService, _selectedProduct, Guid.Parse(_company.Id))
+                {
+                    MdiParent = this.MdiParent,
+                    Text = $"Edit Product - {_selectedProduct.DisplayName}",
+                    WindowState = FormWindowState.Maximized
+                };
+
+                productEditForm.Show();
+                
+                // Refresh the product list when the edit form is closed
+                productEditForm.FormClosed += (s, e) => LoadProducts();
             }
         }
 

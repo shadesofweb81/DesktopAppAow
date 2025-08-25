@@ -933,13 +933,14 @@ namespace WinFormsApp1.Forms
             var productForm = new ProductForm(productService)
             {
                 MdiParent = this,
-                Text = "Product Management"
+                Text = "Product Management",
+                WindowState = FormWindowState.Maximized
             };
 
             productForm.Show();
             
-            // Ensure navigation panel remains visible
-            ShowNavigationPanel();
+            // Hide navigation panel when ProductForm is opened
+            HideNavigationPanel();
         }
 
         private async void OpenCompanySelectForm()
@@ -1181,12 +1182,14 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             else
             {
-                // Check if the active child form is a company-related form
+                // Check if the active child form is a company/product-related form
                 if (this.ActiveMdiChild is CompanyForm || 
                     this.ActiveMdiChild is CompanySelectForm || 
-                    this.ActiveMdiChild is CompanyEditForm)
+                    this.ActiveMdiChild is CompanyEditForm ||
+                    this.ActiveMdiChild is ProductForm ||
+                    this.ActiveMdiChild is ProductEditForm)
                 {
-                    // Hide navigation panel when company-related forms are active
+                    // Hide navigation panel when company/product-related forms are active
                     HideNavigationPanel();
                 }
                 else
@@ -1201,12 +1204,14 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         {
             if (this.ActiveMdiChild is CompanyForm || 
                 this.ActiveMdiChild is CompanySelectForm || 
-                this.ActiveMdiChild is CompanyEditForm)
+                this.ActiveMdiChild is CompanyEditForm ||
+                this.ActiveMdiChild is ProductForm ||
+                this.ActiveMdiChild is ProductEditForm)
             {
-                // Hide navigation panel when company-related forms are active
+                // Hide navigation panel when company/product-related forms are active
                 HideNavigationPanel();
                 
-                // Ensure CompanyForm stays maximized when it's the active form
+                // Ensure forms stay maximized when they're the active form
                 if (this.ActiveMdiChild is CompanyForm)
                 {
                     this.ActiveMdiChild.WindowState = FormWindowState.Maximized;
@@ -1217,6 +1222,19 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                         if (this.ActiveMdiChild is CompanyForm companyForm)
                         {
                             companyForm.WindowState = FormWindowState.Maximized;
+                        }
+                    }));
+                }
+                else if (this.ActiveMdiChild is ProductForm)
+                {
+                    this.ActiveMdiChild.WindowState = FormWindowState.Maximized;
+                    
+                    // Force the ProductForm to maintain its maximized state
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        if (this.ActiveMdiChild is ProductForm productForm)
+                        {
+                            productForm.WindowState = FormWindowState.Maximized;
                         }
                     }));
                 }
