@@ -350,7 +350,7 @@ namespace WinFormsApp1.Forms.Company
 
         private void NewCompany()
         {
-            var companyEditForm = new CompanyEditForm(_companyService, null);
+            var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), null);
             if (companyEditForm.ShowDialog() == DialogResult.OK)
             {
                 LoadCompanies();
@@ -364,39 +364,17 @@ namespace WinFormsApp1.Forms.Company
                 Console.WriteLine($"EditCompany called for: ID='{_selectedCompany.Id}', Name='{_selectedCompany.Name}'");
                 try
                 {
-                    lblStatus.Text = "Loading company data...";
-                    lblStatus.ForeColor = Color.Blue;
-
-                    // Get the full company data from API using GetEditCompanyByIdAsync
-                    Console.WriteLine($"Attempting to parse company ID: '{_selectedCompany.Id}'");
-                    
-                    var editCompanyModel = await _companyService.GetEditCompanyByIdAsync(Guid.Parse(_selectedCompany.Id));
-                    
-                    if (editCompanyModel != null)
+                    // Pass the selected company to the edit form
+                    // The edit form will now fetch fresh data using GetCompanyByIdAsync
+                    var companyEditForm = new CompanyEditForm(_companyService, new CountryService(), _selectedCompany);
+                    if (companyEditForm.ShowDialog() == DialogResult.OK)
                     {
-                        lblStatus.Text = "Company data loaded successfully";
-                        lblStatus.ForeColor = Color.Green;
-                        
-                        // Convert EditCompanyModel to Company for the edit form
-                        var companyForEdit = editCompanyModel.ToCompany();
-                            
-                        var companyEditForm = new CompanyEditForm(_companyService, companyForEdit);
-                        if (companyEditForm.ShowDialog() == DialogResult.OK)
-                        {
-                            LoadCompanies();
-                        }
-                    }
-                    else
-                    {
-                        lblStatus.Text = "Failed to load company data from server";
-                        lblStatus.ForeColor = Color.Red;
-                        MessageBox.Show("Could not load company data from the server. Please try again.", 
-                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        LoadCompanies();
                     }
                 }
                 catch (Exception ex)
                 {
-                    lblStatus.Text = $"Error loading company data: {ex.Message}";
+                    lblStatus.Text = $"Error opening edit form: {ex.Message}";
                     lblStatus.ForeColor = Color.Red;
                     MessageBox.Show($"Error loading company data: {ex.Message}", 
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);

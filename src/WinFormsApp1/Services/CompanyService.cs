@@ -190,14 +190,19 @@ namespace WinFormsApp1.Services
                     try
                     {
                         // Try to parse as CompanyResponse first
-                        var companyResponse = JsonSerializer.Deserialize<CompanyResponse>(responseContent, new JsonSerializerOptions
+                 
+
+                        // Try to parse as EditCompanyModel since the API response matches this structure
+                        var editCompanyModel = JsonSerializer.Deserialize<EditCompanyModel>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true
                         });
 
-                        if (companyResponse != null)
+                        if (editCompanyModel != null)
                         {
-                            return companyResponse.GetCompany();
+                            Console.WriteLine($"Successfully parsed as EditCompanyModel: ID={editCompanyModel.Id}, Name={editCompanyModel.Name}, Currency={editCompanyModel.Currency}");
+                            // Convert EditCompanyModel to Company using the ToCompany method
+                            return editCompanyModel.ToCompany();
                         }
 
                         // If that doesn't work, try to parse as direct Company object
@@ -211,6 +216,7 @@ namespace WinFormsApp1.Services
                     catch (JsonException ex)
                     {
                         Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Raw response: {responseContent}");
                         return null;
                     }
                 }

@@ -207,7 +207,7 @@ namespace WinFormsApp1.Forms.Company
         {
             // Convert to Company model and open edit form
             var company = _editCompanyModel.ToCompany();
-            var editForm = new CompanyEditForm(_companyService, company);
+            var editForm = new CompanyEditForm(_companyService, new CountryService(), company);
             if (editForm.ShowDialog() == DialogResult.OK)
             {
                 // Close this form and let the parent refresh

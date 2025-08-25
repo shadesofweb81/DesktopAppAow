@@ -6,6 +6,7 @@ namespace WinFormsApp1.Forms.Company
     public partial class CompanyEditForm : Form
     {
         private readonly CompanyService _companyService;
+        private readonly CountryService _countryService;
         private readonly WinFormsApp1.Models.Company? _company;
         private readonly bool _isEditMode;
 
@@ -15,26 +16,31 @@ namespace WinFormsApp1.Forms.Company
         private TextBox txtCity = null!;
         private TextBox txtState = null!;
         private TextBox txtZipCode = null!;
-        private TextBox txtCountry = null!;
+        private ComboBox cboCountry = null!;
         private TextBox txtPhone = null!;
         private TextBox txtEmail = null!;
         private TextBox txtWebsite = null!;
         private TextBox txtTaxId = null!;
+        private TextBox txtLogoUrl = null!;
+        private TextBox txtCurrency = null!;
+        private TextBox txtUserRole = null!;
+        private DateTimePicker dtpStartingFinancialYear = null!;
         private CheckBox chkIsActive = null!;
         private Button btnSave = null!;
         private Button btnCancel = null!;
         private Label lblStatus = null!;
         private Label lblInstructions = null!;
 
-        public CompanyEditForm(CompanyService companyService, WinFormsApp1.Models.Company? company)
+        public CompanyEditForm(CompanyService companyService, CountryService countryService, WinFormsApp1.Models.Company? company)
         {
             _companyService = companyService;
+            _countryService = countryService;
             _company = company;
             _isEditMode = company != null;
             
             InitializeComponent();
             SetupForm();
-            LoadCompanyData();
+            LoadCompanyDataAsync();
         }
 
         private void InitializeComponent()
@@ -45,11 +51,15 @@ namespace WinFormsApp1.Forms.Company
             txtCity = new TextBox();
             txtState = new TextBox();
             txtZipCode = new TextBox();
-            txtCountry = new TextBox();
+            cboCountry = new ComboBox();
             txtPhone = new TextBox();
             txtEmail = new TextBox();
             txtWebsite = new TextBox();
             txtTaxId = new TextBox();
+            txtLogoUrl = new TextBox();
+            txtCurrency = new TextBox();
+            txtUserRole = new TextBox();
+            dtpStartingFinancialYear = new DateTimePicker();
             chkIsActive = new CheckBox();
             btnSave = new Button();
             btnCancel = new Button();
@@ -63,7 +73,7 @@ namespace WinFormsApp1.Forms.Company
             lblInstructions.Location = new Point(12, 9);
             lblInstructions.Name = "lblInstructions";
             lblInstructions.Size = new Size(500, 25);
-            lblInstructions.Text = "Keyboard Navigation: Tab/Shift+Tab to navigate, Enter to save, Esc to cancel";
+            lblInstructions.Text = "Keyboard Navigation: Tab/Shift+Tab to navigate, Enter to save, Esc to cancel | Country dropdown auto-updates currency";
             lblInstructions.ForeColor = Color.Blue;
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
 
@@ -153,10 +163,12 @@ namespace WinFormsApp1.Forms.Company
             lblCountry.TextAlign = ContentAlignment.MiddleRight;
             Controls.Add(lblCountry);
 
-            txtCountry.Location = new Point(268, 162);
-            txtCountry.Name = "txtCountry";
-            txtCountry.Size = new Size(120, 23);
-            txtCountry.TabIndex = 6;
+            cboCountry.Location = new Point(268, 162);
+            cboCountry.Name = "cboCountry";
+            cboCountry.Size = new Size(120, 23);
+            cboCountry.TabIndex = 6;
+            cboCountry.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboCountry.SelectedIndexChanged += new EventHandler(cboCountry_SelectedIndexChanged);
 
             // Phone
             var lblPhone = new Label();
@@ -210,35 +222,90 @@ namespace WinFormsApp1.Forms.Company
             txtTaxId.Size = new Size(150, 23);
             txtTaxId.TabIndex = 10;
 
+            // Logo URL
+            var lblLogoUrl = new Label();
+            lblLogoUrl.Location = new Point(12, 315);
+            lblLogoUrl.Size = new Size(80, 20);
+            lblLogoUrl.Text = "&Logo URL:";
+            lblLogoUrl.TextAlign = ContentAlignment.MiddleRight;
+            Controls.Add(lblLogoUrl);
+
+            txtLogoUrl.Location = new Point(100, 312);
+            txtLogoUrl.Name = "txtLogoUrl";
+            txtLogoUrl.Size = new Size(250, 23);
+            txtLogoUrl.TabIndex = 11;
+
+            // Currency
+            var lblCurrency = new Label();
+            lblCurrency.Location = new Point(12, 345);
+            lblCurrency.Size = new Size(80, 20);
+            lblCurrency.Text = "&Currency:";
+            lblCurrency.TextAlign = ContentAlignment.MiddleRight;
+            Controls.Add(lblCurrency);
+
+            txtCurrency.Location = new Point(100, 342);
+            txtCurrency.Name = "txtCurrency";
+            txtCurrency.Size = new Size(100, 23);
+            txtCurrency.TabIndex = 12;
+            txtCurrency.ReadOnly = true;
+            txtCurrency.BackColor = Color.LightGray;
+
+            // User Role
+            var lblUserRole = new Label();
+            lblUserRole.Location = new Point(210, 345);
+            lblUserRole.Size = new Size(60, 20);
+            lblUserRole.Text = "&Role:";
+            lblUserRole.TextAlign = ContentAlignment.MiddleRight;
+            Controls.Add(lblUserRole);
+
+            txtUserRole.Location = new Point(278, 342);
+            txtUserRole.Name = "txtUserRole";
+            txtUserRole.Size = new Size(120, 23);
+            txtUserRole.TabIndex = 13;
+
+            // Starting Financial Year Date
+            var lblStartingFinancialYear = new Label();
+            lblStartingFinancialYear.Location = new Point(12, 375);
+            lblStartingFinancialYear.Size = new Size(80, 20);
+            lblStartingFinancialYear.Text = "&Financial Year:";
+            lblStartingFinancialYear.TextAlign = ContentAlignment.MiddleRight;
+            Controls.Add(lblStartingFinancialYear);
+
+            dtpStartingFinancialYear.Location = new Point(100, 372);
+            dtpStartingFinancialYear.Name = "dtpStartingFinancialYear";
+            dtpStartingFinancialYear.Size = new Size(150, 23);
+            dtpStartingFinancialYear.TabIndex = 14;
+            dtpStartingFinancialYear.Format = DateTimePickerFormat.Short;
+
             // Is Active
-            chkIsActive.Location = new Point(100, 315);
+            chkIsActive.Location = new Point(100, 405);
             chkIsActive.Name = "chkIsActive";
             chkIsActive.Size = new Size(120, 24);
-            chkIsActive.TabIndex = 11;
+            chkIsActive.TabIndex = 15;
             chkIsActive.Text = "Is &Active";
             chkIsActive.UseVisualStyleBackColor = true;
             chkIsActive.Checked = true;
 
             // Save Button
-            btnSave.Location = new Point(200, 350);
+            btnSave.Location = new Point(200, 440);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(100, 30);
-            btnSave.TabIndex = 12;
+            btnSave.TabIndex = 16;
             btnSave.Text = "&Save";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += new EventHandler(btnSave_Click);
 
             // Cancel Button
-            btnCancel.Location = new Point(310, 350);
+            btnCancel.Location = new Point(310, 440);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(100, 30);
-            btnCancel.TabIndex = 13;
+            btnCancel.TabIndex = 17;
             btnCancel.Text = "&Cancel";
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += new EventHandler(btnCancel_Click);
 
             // Status Label
-            lblStatus.Location = new Point(12, 390);
+            lblStatus.Location = new Point(12, 480);
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(450, 20);
             lblStatus.Text = "Ready";
@@ -249,16 +316,20 @@ namespace WinFormsApp1.Forms.Company
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(480, 420);
+            ClientSize = new Size(480, 510);
             Controls.Add(lblStatus);
             Controls.Add(btnCancel);
             Controls.Add(btnSave);
             Controls.Add(chkIsActive);
+            Controls.Add(dtpStartingFinancialYear);
+            Controls.Add(txtUserRole);
+            Controls.Add(txtCurrency);
+            Controls.Add(txtLogoUrl);
             Controls.Add(txtTaxId);
             Controls.Add(txtWebsite);
             Controls.Add(txtEmail);
             Controls.Add(txtPhone);
-            Controls.Add(txtCountry);
+            Controls.Add(cboCountry);
             Controls.Add(txtZipCode);
             Controls.Add(txtState);
             Controls.Add(txtCity);
@@ -284,11 +355,151 @@ namespace WinFormsApp1.Forms.Company
             AcceptButton = btnSave;
             CancelButton = btnCancel;
             
+            // Load country dropdown
+            LoadCountryDropdown();
+            
             // Focus on name field
             txtName.Focus();
         }
 
-        private void LoadCompanyData()
+        private void LoadCountryDropdown()
+        {
+            try
+            {
+                var countries = _countryService.GetCountries();
+                
+                // Create a new list with default option
+                var countryList = new List<CountryOption>
+                {
+                    new CountryOption { Code = "", Name = "-- Select Country --" }
+                };
+                countryList.AddRange(countries);
+                
+                cboCountry.DataSource = countryList;
+                cboCountry.DisplayMember = "Name";
+                cboCountry.ValueMember = "Code";
+                cboCountry.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading countries: {ex.Message}");
+            }
+        }
+
+        private void cboCountry_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (cboCountry.SelectedItem is CountryOption selectedCountry && !string.IsNullOrEmpty(selectedCountry.Code))
+            {
+                // Update currency based on selected country
+                var currency = _countryService.GetCurrencyByCountry(selectedCountry.Code);
+                txtCurrency.Text = currency;
+                
+                Console.WriteLine($"Country changed to: {selectedCountry.Name}, Currency set to: {currency}");
+            }
+        }
+
+        private void SetCountrySelection(string countryName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(countryName))
+                {
+                    cboCountry.SelectedIndex = 0; // Select default option
+                    return;
+                }
+
+                // Find the country by name
+                for (int i = 0; i < cboCountry.Items.Count; i++)
+                {
+                    if (cboCountry.Items[i] is CountryOption country && 
+                        country.Name.Equals(countryName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        cboCountry.SelectedIndex = i;
+                        return;
+                    }
+                }
+
+                // If not found, select default
+                cboCountry.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting country selection: {ex.Message}");
+                cboCountry.SelectedIndex = 0;
+            }
+        }
+
+        private string GetSelectedCountryName()
+        {
+            if (cboCountry.SelectedItem is CountryOption selectedCountry)
+            {
+                return selectedCountry.Name;
+            }
+            return string.Empty;
+        }
+
+        private async void LoadCompanyDataAsync()
+        {
+            if (_isEditMode && _company != null)
+            {
+                try
+                {
+                    lblStatus.Text = "Loading company data...";
+                    lblStatus.ForeColor = Color.Blue;
+                    
+                    // Get fresh company data from API using GetCompanyByIdAsync
+                    var companyId = Guid.Parse(_company.Id);
+                    var freshCompanyData = await _companyService.GetCompanyByIdAsync(companyId);
+                    
+                    if (freshCompanyData != null)
+                    {
+                        // Update the form with fresh data from API
+                        txtName.Text = freshCompanyData.Name;
+                        txtCode.Text = freshCompanyData.Code;
+                        txtAddress.Text = freshCompanyData.Address;
+                        txtCity.Text = freshCompanyData.City;
+                        txtState.Text = freshCompanyData.State;
+                        txtZipCode.Text = freshCompanyData.ZipCode;
+                        SetCountrySelection(freshCompanyData.Country);
+                        txtPhone.Text = freshCompanyData.Phone;
+                        txtEmail.Text = freshCompanyData.Email;
+                        txtWebsite.Text = freshCompanyData.Website;
+                        txtTaxId.Text = freshCompanyData.TaxId;
+                        txtLogoUrl.Text = freshCompanyData.LogoUrl;
+                        txtCurrency.Text = freshCompanyData.Currency;
+                        txtUserRole.Text = freshCompanyData.UserRole;
+                        dtpStartingFinancialYear.Value = freshCompanyData.StartingFinancialYearDate ?? DateTime.Now;
+                        chkIsActive.Checked = freshCompanyData.IsActive;
+                        
+                        lblStatus.Text = "Company data loaded successfully";
+                        lblStatus.ForeColor = Color.Green;
+                    }
+                    else
+                    {
+                        // Fallback to the passed company data if API call fails
+                        LoadCompanyDataFromPassedData();
+                        lblStatus.Text = "Warning: Using cached data (API call failed)";
+                        lblStatus.ForeColor = Color.Orange;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Fallback to the passed company data if there's an error
+                    LoadCompanyDataFromPassedData();
+                    lblStatus.Text = $"Error loading data: {ex.Message}";
+                    lblStatus.ForeColor = Color.Red;
+                }
+            }
+            else
+            {
+                // For new company, just clear the form
+                ClearForm();
+                lblStatus.Text = "Ready to create new company";
+                lblStatus.ForeColor = Color.Green;
+            }
+        }
+
+        private void LoadCompanyDataFromPassedData()
         {
             if (_company != null)
             {
@@ -298,13 +509,37 @@ namespace WinFormsApp1.Forms.Company
                 txtCity.Text = _company.City;
                 txtState.Text = _company.State;
                 txtZipCode.Text = _company.ZipCode;
-                txtCountry.Text = _company.Country;
+                SetCountrySelection(_company.Country);
                 txtPhone.Text = _company.Phone;
                 txtEmail.Text = _company.Email;
                 txtWebsite.Text = _company.Website;
                 txtTaxId.Text = _company.TaxId;
+                txtLogoUrl.Text = _company.LogoUrl;
+                txtCurrency.Text = _company.Currency;
+                txtUserRole.Text = _company.UserRole;
+                dtpStartingFinancialYear.Value = _company.StartingFinancialYearDate ?? DateTime.Now;
                 chkIsActive.Checked = _company.IsActive;
             }
+        }
+
+        private void ClearForm()
+        {
+            txtName.Text = string.Empty;
+            txtCode.Text = string.Empty;
+            txtAddress.Text = string.Empty;
+            txtCity.Text = string.Empty;
+            txtState.Text = string.Empty;
+            txtZipCode.Text = string.Empty;
+            cboCountry.SelectedIndex = 0; // Select default "Select Country" option
+            txtPhone.Text = string.Empty;
+            txtEmail.Text = string.Empty;
+            txtWebsite.Text = string.Empty;
+            txtTaxId.Text = string.Empty;
+            txtLogoUrl.Text = string.Empty;
+            txtCurrency.Text = string.Empty;
+            txtUserRole.Text = string.Empty;
+            dtpStartingFinancialYear.Value = DateTime.Now;
+            chkIsActive.Checked = true;
         }
 
         private void CompanyEditForm_KeyDown(object? sender, KeyEventArgs e)
@@ -356,11 +591,15 @@ namespace WinFormsApp1.Forms.Company
                     City = txtCity.Text.Trim(),
                     State = txtState.Text.Trim(),
                     ZipCode = txtZipCode.Text.Trim(),
-                    Country = txtCountry.Text.Trim(),
+                    Country = GetSelectedCountryName(),
                     Phone = txtPhone.Text.Trim(),
                     Email = txtEmail.Text.Trim(),
                     Website = txtWebsite.Text.Trim(),
                     TaxId = txtTaxId.Text.Trim(),
+                    LogoUrl = txtLogoUrl.Text.Trim(),
+                    Currency = txtCurrency.Text.Trim(),
+                    UserRole = txtUserRole.Text.Trim(),
+                    StartingFinancialYearDate = dtpStartingFinancialYear.Value,
                     IsActive = chkIsActive.Checked
                 };
 
@@ -408,7 +647,7 @@ namespace WinFormsApp1.Forms.Company
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(txtCode.Text))
+            if (string.IsNullOrWhiteSpace(txtState.Text))
             {
                 MessageBox.Show("Company code is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtCode.Focus();

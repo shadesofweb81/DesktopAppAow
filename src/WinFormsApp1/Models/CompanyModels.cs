@@ -40,6 +40,18 @@ namespace WinFormsApp1.Models
         [JsonPropertyName("taxId")]
         public string TaxId { get; set; } = string.Empty;
 
+        [JsonPropertyName("logoUrl")]
+        public string LogoUrl { get; set; } = string.Empty;
+
+        [JsonPropertyName("currency")]
+        public string Currency { get; set; } = string.Empty;
+
+        [JsonPropertyName("userRole")]
+        public string UserRole { get; set; } = string.Empty;
+
+        [JsonPropertyName("startingFinancialYearDate")]
+        public DateTime? StartingFinancialYearDate { get; set; }
+
         [JsonPropertyName("role")]
         public string Role { get; set; } = string.Empty;
 
@@ -53,7 +65,7 @@ namespace WinFormsApp1.Models
         public DateTime ModifiedDate { get; set; }
 
         // Display property for UI
-        public string DisplayName => !string.IsNullOrEmpty(Code) ? $"{Code} - {Name}" : Name;
+        public string DisplayName => !string.IsNullOrEmpty(Code) ? $"{Code} - {Name}" : !string.IsNullOrEmpty(Currency) ? $"{Name} ({Currency})" : Name;
     }
 
     public class CompanyListResponse
@@ -123,6 +135,18 @@ namespace WinFormsApp1.Models
 
         [JsonPropertyName("taxId")]
         public string TaxId { get; set; } = string.Empty;
+
+        [JsonPropertyName("logoUrl")]
+        public string LogoUrl { get; set; } = string.Empty;
+
+        [JsonPropertyName("currency")]
+        public string Currency { get; set; } = string.Empty;
+
+        [JsonPropertyName("userRole")]
+        public string UserRole { get; set; } = string.Empty;
+
+        [JsonPropertyName("startingFinancialYearDate")]
+        public DateTime StartingFinancialYearDate { get; set; }
 
         [JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = true;
@@ -245,6 +269,10 @@ namespace WinFormsApp1.Models
                 Email = Email,
                 Website = Website,
                 TaxId = TaxId,
+                LogoUrl = LogoUrl,
+                Currency = Currency,
+                UserRole = UserRole,
+                StartingFinancialYearDate = StartingFinancialYearDate,
                 IsActive = true // Default to active since not provided in response
             };
         }
