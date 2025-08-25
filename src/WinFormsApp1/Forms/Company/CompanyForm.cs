@@ -6,6 +6,7 @@ namespace WinFormsApp1.Forms.Company
     public partial class CompanyForm : Form
     {
         private readonly CompanyService _companyService;
+        private readonly LocalStorageService _localStorageService;
         private ListBox lstCompanies = null!;
         private Button btnNew = null!;
         private Button btnEdit = null!;
@@ -24,6 +25,7 @@ namespace WinFormsApp1.Forms.Company
         public CompanyForm(CompanyService companyService)
         {
             _companyService = companyService;
+            _localStorageService = new LocalStorageService();
             InitializeComponent();
             SetupForm();
             LoadCompanies();
@@ -216,12 +218,26 @@ namespace WinFormsApp1.Forms.Company
             }
         }
 
-        private void lstCompanies_SelectedIndexChanged(object? sender, EventArgs e)
+        private async void lstCompanies_SelectedIndexChanged(object? sender, EventArgs e)
         {
             _selectedCompany = lstCompanies.SelectedItem as WinFormsApp1.Models.Company;
             btnEdit.Enabled = _selectedCompany != null;
             btnView.Enabled = _selectedCompany != null;
             btnDelete.Enabled = _selectedCompany != null;
+            
+            // Save selected company to local storage
+            if (_selectedCompany != null)
+            {
+                try
+                {
+                    await _localStorageService.SaveSelectedCompanyAsync(_selectedCompany);
+                    Console.WriteLine($"Selected company saved to local storage: {_selectedCompany.DisplayName}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving selected company: {ex.Message}");
+                }
+            }
         }
 
         private void lstCompanies_DoubleClick(object? sender, EventArgs e)
@@ -264,6 +280,8 @@ namespace WinFormsApp1.Forms.Company
                         e.Handled = true;
                     }
                     break;
+                    
+
                     
                 case Keys.F5:
                     LoadCompanies();
@@ -342,6 +360,8 @@ namespace WinFormsApp1.Forms.Company
                 DeleteCompany();
             }
         }
+
+
 
         private void btnRefresh_Click(object? sender, EventArgs e)
         {

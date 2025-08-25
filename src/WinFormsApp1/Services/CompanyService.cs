@@ -8,13 +8,15 @@ namespace WinFormsApp1.Services
     {
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
-
+        private readonly string _baseUrl = "api/v1/company";
+        
+        public AuthService AuthService => _authService;
         public CompanyService(AuthService authService)
         {
             _authService = authService;
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri(_authService.ErpBaseUrl);
-            
+
             // Add headers
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "WinFormsApp1/1.0");
@@ -35,10 +37,10 @@ namespace WinFormsApp1.Services
             {
                 SetAuthHeader();
                 var getCompaniesUrl = new Uri(_httpClient.BaseAddress + "api/v1/company/all");
-                
+
                 Console.WriteLine($"Fetching companies from: {getCompaniesUrl}");
 
-                var response = await _httpClient.GetAsync("api/v1/company/all");
+                var response = await _httpClient.GetAsync(_baseUrl + "/all");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Response Status: {response.StatusCode}");
@@ -85,13 +87,13 @@ namespace WinFormsApp1.Services
                                     CompanyCode = c.Code,
                                     IsActive = c.IsActive
                                 }).ToList();
-                                
+
                                 Console.WriteLine($"Successfully parsed {selectCompanies.Count} companies from CompanyListResponse and converted to SelectCompanyModel");
                                 return selectCompanies;
                             }
                         }
 
-                     
+
                         Console.WriteLine("Could not parse companies from any expected format");
                         return new List<SelectCompanyModel>();
                     }
@@ -121,7 +123,7 @@ namespace WinFormsApp1.Services
             {
                 SetAuthHeader();
                 var url = $"api/v1/Company?pageNumber={pageNumber}&pageSize={pageSize}";
-                
+
                 Console.WriteLine($"Fetching paginated company list from: {url}");
 
                 var response = await _httpClient.GetAsync(url);
@@ -178,7 +180,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                
+
                 var response = await _httpClient.GetAsync($"api/v1/company/{id}");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -190,7 +192,7 @@ namespace WinFormsApp1.Services
                     try
                     {
                         // Try to parse as CompanyResponse first
-                 
+
 
                         // Try to parse as EditCompanyModel since the API response matches this structure
                         var editCompanyModel = JsonSerializer.Deserialize<EditCompanyModel>(responseContent, new JsonSerializerOptions
@@ -238,8 +240,8 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                
-                var response = await _httpClient.GetAsync($"api/v1/company/{id}");
+
+                var response = await _httpClient.GetAsync($"{_baseUrl}/{id}");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Get edit company {id} - Status: {response.StatusCode}");
@@ -363,7 +365,7 @@ namespace WinFormsApp1.Services
 
                 Console.WriteLine($"Updating company {id} with data: {json}");
 
-                var response = await _httpClient.PutAsync($"api/v1/company/{id}", content);
+                var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Update company - Status: {response.StatusCode}");
@@ -384,7 +386,7 @@ namespace WinFormsApp1.Services
             {
                 SetAuthHeader();
 
-                var response = await _httpClient.DeleteAsync($"api/v1/company/{id}");
+                var response = await _httpClient.DeleteAsync($"{_baseUrl}/{id}");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Delete company {id} - Status: {response.StatusCode}");
@@ -404,13 +406,13 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                
-                var response = await _httpClient.GetAsync("api/v1/company/all");
+
+                var response = await _httpClient.GetAsync(_baseUrl + "/all");
                 var responseContent = await response.Content.ReadAsStringAsync();
-                
+
                 Console.WriteLine($"Raw API Response - Status: {response.StatusCode}");
                 Console.WriteLine($"Raw API Response - Content: {responseContent}");
-                
+
                 return responseContent;
             }
             catch (Exception ex)

@@ -1,5 +1,5 @@
 using WinFormsApp1.Forms.Company;
-using WinFormsApp1.Forms.Dashboard;
+using WinFormsApp1.Forms.Product;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -23,6 +23,7 @@ namespace WinFormsApp1.Forms
         private ToolStripMenuItem tileHorizontalMenuItem = null!;
         private ToolStripMenuItem tileVerticalMenuItem = null!;
         private ToolStripMenuItem closeAllMenuItem = null!;
+        private Label lblSelectedCompany = null!;
 
         // Navigation Panel Controls
         private Panel navigationPanel = null!;
@@ -83,6 +84,7 @@ namespace WinFormsApp1.Forms
             tileHorizontalMenuItem = new ToolStripMenuItem();
             tileVerticalMenuItem = new ToolStripMenuItem();
             closeAllMenuItem = new ToolStripMenuItem();
+            lblSelectedCompany = new Label();
             navigationPanel = new Panel();
             mainNavigationGroupBox = new GroupBox();
             mastersLabel = new Label();
@@ -118,6 +120,21 @@ namespace WinFormsApp1.Forms
             menuStrip.Size = new Size(914, 30);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "menuStrip";
+            // 
+            // lblSelectedCompany
+            // 
+            lblSelectedCompany.AutoSize = true;
+            lblSelectedCompany.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblSelectedCompany.Location = new Point(360, 35);
+            lblSelectedCompany.Name = "lblSelectedCompany";
+            lblSelectedCompany.Size = new Size(300, 20);
+            lblSelectedCompany.TabIndex = 2;
+            lblSelectedCompany.Text = "No Company Selected";
+            lblSelectedCompany.ForeColor = Color.Orange;
+            lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
+            lblSelectedCompany.BorderStyle = BorderStyle.FixedSingle;
+            lblSelectedCompany.Padding = new Padding(8, 4, 8, 4);
+            lblSelectedCompany.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // fileMenu
             // 
@@ -453,6 +470,7 @@ namespace WinFormsApp1.Forms
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(914, 800);
+            Controls.Add(lblSelectedCompany);
             Controls.Add(navigationPanel);
             Controls.Add(menuStrip);
             IsMdiContainer = true;
@@ -496,10 +514,18 @@ namespace WinFormsApp1.Forms
             CheckAndShowCompanySelection();
 
             // Set focus to navigation panel after form is loaded
-            this.Load += (s, e) => SetFocusToNavigation();
+            this.Load += (s, e) => 
+            {
+                SetFocusToNavigation();
+                // Ensure company display is updated after form loads
+                UpdateTitleWithSelectedCompany();
+            };
 
             // Monitor child form closing events
             this.MdiChildActivate += (s, e) => CheckAndShowNavigationIfNoChildForms();
+            
+            // Update company display when form is activated
+            this.Activated += (s, e) => UpdateTitleWithSelectedCompany();
         }
 
         private void InitializeNavigationOrder()
@@ -583,25 +609,8 @@ namespace WinFormsApp1.Forms
 
         private void CreateDashboardForm()
         {
-            // Check if Dashboard form is already open
-            foreach (Form childForm in this.MdiChildren)
-            {
-                if (childForm is DashboardForm)
-                {
-                    childForm.BringToFront();
-                    childForm.Activate();
-                    return;
-                }
-            }
-
-            // Create new dashboard form
-            var dashboardForm = new DashboardForm(_localStorageService, _companyService)
-            {
-                MdiParent = this,
-                Text = "Company Dashboard"
-            };
-
-            dashboardForm.Show();
+            // Dashboard form will be implemented later
+            MessageBox.Show("Dashboard feature will be implemented in a future update.", "Dashboard", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void logoutMenuItem_Click(object? sender, EventArgs e)
@@ -868,7 +877,31 @@ namespace WinFormsApp1.Forms
             companyForm.Show();
         }
 
-        private void OpenCompanySelectForm()
+        private void OpenProductForm()
+        {
+            // Check if Product form is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is ProductForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new product form
+            var productService = new ProductService(_authService);
+            var productForm = new ProductForm(productService)
+            {
+                MdiParent = this,
+                Text = "Product Management"
+            };
+
+            productForm.Show();
+        }
+
+        private async void OpenCompanySelectForm()
         {
             var companySelectForm = new CompanySelectForm(_companyService, _localStorageService);
             if (companySelectForm.ShowDialog() == DialogResult.OK)
@@ -880,7 +913,7 @@ namespace WinFormsApp1.Forms
                 CreateDashboardForm();
 
                 // Show a brief message about the company change
-                var selectedCompany = _localStorageService.GetSelectedCompanyAsync().Result;
+                var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
                 if (selectedCompany != null)
                 {
                     MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}\n\nDashboard opened for the selected company.",
@@ -897,16 +930,43 @@ namespace WinFormsApp1.Forms
                 if (selectedCompany != null)
                 {
                     this.Text = $"Main Application - {selectedCompany.DisplayName} - Alt+F=File Menu, Alt+S=Select Company, Alt+C=Manage Companies";
+                    
+                    // Update company display label if it exists
+                    if (lblSelectedCompany != null)
+                    {
+                        lblSelectedCompany.Text = $"Selected Company: {selectedCompany.DisplayName}";
+                        lblSelectedCompany.ForeColor = Color.DarkGreen;
+                        lblSelectedCompany.BackColor = Color.FromArgb(240, 255, 240);
+                        lblSelectedCompany.Visible = true;
+                    }
                 }
                 else
                 {
                     this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
+                    
+                    // Update company display label if it exists
+                    if (lblSelectedCompany != null)
+                    {
+                        lblSelectedCompany.Text = "No Company Selected";
+                        lblSelectedCompany.ForeColor = Color.Orange;
+                        lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
+                        lblSelectedCompany.Visible = true;
+                    }
                 }
             }
             catch
             {
                 // If there's an error, just use the default title
                 this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
+                
+                // Update company display label if it exists
+                if (lblSelectedCompany != null)
+                {
+                    lblSelectedCompany.Text = "Error loading company";
+                    lblSelectedCompany.ForeColor = Color.Red;
+                    lblSelectedCompany.BackColor = Color.FromArgb(255, 240, 240);
+                    lblSelectedCompany.Visible = true;
+                }
             }
         }
 
@@ -978,6 +1038,14 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         public LocalStorageService GetLocalStorageService()
         {
             return _localStorageService;
+        }
+
+        public async Task RefreshCompanyDisplay()
+        {
+            await Task.Run(() => 
+            {
+                this.BeginInvoke(new Action(() => UpdateTitleWithSelectedCompany()));
+            });
         }
 
 
@@ -1200,7 +1268,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void productsListButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Products List feature will be implemented here.", "Products List", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenProductForm();
         }
 
         private void companyListButton_Click(object? sender, EventArgs e)
