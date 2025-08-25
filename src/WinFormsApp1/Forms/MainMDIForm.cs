@@ -1,5 +1,6 @@
 using WinFormsApp1.Forms.Company;
 using WinFormsApp1.Forms.Product;
+using WinFormsApp1.Forms.FinancialYear;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -36,7 +37,7 @@ namespace WinFormsApp1.Forms
         private Button productsListButton = null!;
         private Button companyListButton = null!;
         private Button selectCompanyButton = null!;
-        private Button suppliersButton = null!;
+        private Button financialYearListButton = null!;
         private Button accountsButton = null!;
 
         // Transactions Section Buttons
@@ -91,7 +92,7 @@ namespace WinFormsApp1.Forms
             productsListButton = new Button();
             companyListButton = new Button();
             selectCompanyButton = new Button();
-            suppliersButton = new Button();
+            financialYearListButton = new Button();
             accountsButton = new Button();
             transactionsLabel = new Label();
             saleButton = new Button();
@@ -230,7 +231,7 @@ namespace WinFormsApp1.Forms
             mainNavigationGroupBox.Controls.Add(productsListButton);
             mainNavigationGroupBox.Controls.Add(companyListButton);
             mainNavigationGroupBox.Controls.Add(selectCompanyButton);
-            mainNavigationGroupBox.Controls.Add(suppliersButton);
+            mainNavigationGroupBox.Controls.Add(financialYearListButton);
             mainNavigationGroupBox.Controls.Add(accountsButton);
             mainNavigationGroupBox.Controls.Add(transactionsLabel);
             mainNavigationGroupBox.Controls.Add(saleButton);
@@ -301,17 +302,17 @@ namespace WinFormsApp1.Forms
             selectCompanyButton.UseVisualStyleBackColor = true;
             selectCompanyButton.Click += selectCompanyButton_Click;
             // 
-            // suppliersButton
+            // financialYearListButton
             // 
-            suppliersButton.Font = new Font("Segoe UI", 9F);
-            suppliersButton.Location = new Point(9, 203);
-            suppliersButton.Margin = new Padding(3, 4, 3, 4);
-            suppliersButton.Name = "suppliersButton";
-            suppliersButton.Size = new Size(302, 37);
-            suppliersButton.TabIndex = 3;
-            suppliersButton.Text = "&Suppliers (F5)";
-            suppliersButton.UseVisualStyleBackColor = true;
-            suppliersButton.Click += suppliersButton_Click;
+            financialYearListButton.Font = new Font("Segoe UI", 9F);
+            financialYearListButton.Location = new Point(9, 203);
+            financialYearListButton.Margin = new Padding(3, 4, 3, 4);
+            financialYearListButton.Name = "financialYearListButton";
+            financialYearListButton.Size = new Size(302, 37);
+            financialYearListButton.TabIndex = 3;
+            financialYearListButton.Text = "&Financial Years (F5)";
+            financialYearListButton.UseVisualStyleBackColor = true;
+            financialYearListButton.Click += financialYearListButton_Click;
             // 
             // accountsButton
             // 
@@ -386,7 +387,7 @@ namespace WinFormsApp1.Forms
             // journalButton
             // 
             journalButton.Font = new Font("Segoe UI", 9F);
-            journalButton.Location = new Point(9, 515);
+            journalButton.Location = new Point(9, 514);
             journalButton.Margin = new Padding(3, 4, 3, 4);
             journalButton.Name = "journalButton";
             journalButton.Size = new Size(302, 37);
@@ -399,7 +400,7 @@ namespace WinFormsApp1.Forms
             // 
             reportsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             reportsLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            reportsLabel.Location = new Point(9, 567);
+            reportsLabel.Location = new Point(9, 566);
             reportsLabel.Name = "reportsLabel";
             reportsLabel.Size = new Size(171, 27);
             reportsLabel.TabIndex = 11;
@@ -408,7 +409,7 @@ namespace WinFormsApp1.Forms
             // stockReportButton
             // 
             stockReportButton.Font = new Font("Segoe UI", 9F);
-            stockReportButton.Location = new Point(9, 600);
+            stockReportButton.Location = new Point(9, 599);
             stockReportButton.Margin = new Padding(3, 4, 3, 4);
             stockReportButton.Name = "stockReportButton";
             stockReportButton.Size = new Size(302, 37);
@@ -420,7 +421,7 @@ namespace WinFormsApp1.Forms
             // taxReportButton
             // 
             taxReportButton.Font = new Font("Segoe UI", 9F);
-            taxReportButton.Location = new Point(9, 645);
+            taxReportButton.Location = new Point(9, 644);
             taxReportButton.Margin = new Padding(3, 4, 3, 4);
             taxReportButton.Name = "taxReportButton";
             taxReportButton.Size = new Size(302, 37);
@@ -432,7 +433,7 @@ namespace WinFormsApp1.Forms
             // salesReportButton
             // 
             salesReportButton.Font = new Font("Segoe UI", 9F);
-            salesReportButton.Location = new Point(9, 691);
+            salesReportButton.Location = new Point(9, 689);
             salesReportButton.Margin = new Padding(3, 4, 3, 4);
             salesReportButton.Name = "salesReportButton";
             salesReportButton.Size = new Size(302, 37);
@@ -444,7 +445,7 @@ namespace WinFormsApp1.Forms
             // purchaseReportButton
             // 
             purchaseReportButton.Font = new Font("Segoe UI", 9F);
-            purchaseReportButton.Location = new Point(9, 736);
+            purchaseReportButton.Location = new Point(9, 734);
             purchaseReportButton.Margin = new Padding(3, 4, 3, 4);
             purchaseReportButton.Name = "purchaseReportButton";
             purchaseReportButton.Size = new Size(302, 37);
@@ -456,7 +457,7 @@ namespace WinFormsApp1.Forms
             // profitLossButton
             // 
             profitLossButton.Font = new Font("Segoe UI", 9F);
-            profitLossButton.Location = new Point(9, 781);
+            profitLossButton.Location = new Point(9, 779);
             profitLossButton.Margin = new Padding(3, 4, 3, 4);
             profitLossButton.Name = "profitLossButton";
             profitLossButton.Size = new Size(302, 37);
@@ -539,7 +540,7 @@ namespace WinFormsApp1.Forms
                 productsListButton,
                 companyListButton,
                 selectCompanyButton,
-                suppliersButton,
+                financialYearListButton,
                 accountsButton,
                 saleButton,
                 purchaseButton,
@@ -718,7 +719,7 @@ namespace WinFormsApp1.Forms
                     e.Handled = true;
                     break;
                 case Keys.F5 when !e.Control && !e.Alt:
-                    suppliersButton_Click(null, EventArgs.Empty);
+                    financialYearListButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
                 case Keys.F6 when !e.Control && !e.Alt:
@@ -791,8 +792,9 @@ namespace WinFormsApp1.Forms
                         {
                             this.BeginInvoke(new Action(() =>
                             {
+                                // Clear all highlights and show navigation panel with first button focused
+                                ClearAllButtonHighlights();
                                 ShowNavigationPanel();
-                                SetFocusToNavigation();
                                 Console.WriteLine("Last MDI form closed, Navigation panel shown");
                             }));
                         }
@@ -821,8 +823,9 @@ namespace WinFormsApp1.Forms
                         {
                             this.BeginInvoke(new Action(() =>
                             {
+                                // Clear all highlights and show navigation panel with first button focused
+                                ClearAllButtonHighlights();
                                 ShowNavigationPanel();
-                                SetFocusToNavigation();
                                 Console.WriteLine("Last MDI form closed with Ctrl+W, Navigation panel shown");
                             }));
                         }
@@ -943,6 +946,49 @@ namespace WinFormsApp1.Forms
             HideNavigationPanel();
         }
 
+        private void OpenFinancialYearListForm()
+        {
+            // Check if FinancialYearListForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is FinancialYearListForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new financial year list form
+            var financialYearService = new FinancialYearService(_authService);
+            var financialYearListForm = new FinancialYearListForm(financialYearService)
+            {
+                MdiParent = this,
+                Text = "Financial Year Management",
+                WindowState = FormWindowState.Maximized
+            };
+
+            financialYearListForm.Show();
+            
+            // Hide navigation panel when FinancialYearListForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            financialYearListForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Clear all highlights and show navigation panel with first button focused
+                        ClearAllButtonHighlights();
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1049,7 +1095,7 @@ MASTERS SECTION:
 • F2 - Products List
 • F3 - Company List
 • F4 - Select Company
-• F5 - Suppliers
+• F5 - Financial Years
 • F6 - Accounts
 
 TRANSACTIONS SECTION:
@@ -1127,6 +1173,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Apply visual styling to make navigation prominent
             SetupNavigationStyling();
 
+            // Always clear all highlights first to ensure clean state
+            ClearAllButtonHighlights();
+
             // Focus the first button in Masters section and highlight it
             if (productsListButton.Visible)
             {
@@ -1167,6 +1216,8 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
 
         public void SetFocusToNavigation()
         {
+            // Clear all highlights first to ensure clean state
+            ClearAllButtonHighlights();
             ShowNavigationPanel();
         }
 
@@ -1206,7 +1257,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is CompanySelectForm || 
                 this.ActiveMdiChild is CompanyEditForm ||
                 this.ActiveMdiChild is ProductForm ||
-                this.ActiveMdiChild is ProductEditForm)
+                this.ActiveMdiChild is ProductEditForm ||
+                this.ActiveMdiChild is FinancialYearListForm ||
+                this.ActiveMdiChild is FinancialYearEditForm ||
+                this.ActiveMdiChild is FinancialYearSelectForm)
             {
                 // Hide navigation panel when company/product-related forms are active
                 HideNavigationPanel();
@@ -1235,6 +1289,19 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                         if (this.ActiveMdiChild is ProductForm productForm)
                         {
                             productForm.WindowState = FormWindowState.Maximized;
+                        }
+                    }));
+                }
+                else if (this.ActiveMdiChild is FinancialYearListForm)
+                {
+                    this.ActiveMdiChild.WindowState = FormWindowState.Maximized;
+                    
+                    // Force the FinancialYearListForm to maintain its maximized state
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        if (this.ActiveMdiChild is FinancialYearListForm financialYearListForm)
+                        {
+                            financialYearListForm.WindowState = FormWindowState.Maximized;
                         }
                     }));
                 }
@@ -1309,7 +1376,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, selectCompanyButton, suppliersButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1351,7 +1418,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, selectCompanyButton, suppliersButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1413,10 +1480,12 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             OpenCompanySelectForm();
         }
 
-        private void suppliersButton_Click(object? sender, EventArgs e)
+
+
+        private void financialYearListButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Suppliers feature will be implemented here.", "Suppliers", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenFinancialYearListForm();
         }
 
         private void accountsButton_Click(object? sender, EventArgs e)

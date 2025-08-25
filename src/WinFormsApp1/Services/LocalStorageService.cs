@@ -8,6 +8,7 @@ namespace WinFormsApp1.Services
         private readonly string _dataDirectory;
         private readonly string _selectedCompanyFile;
         private readonly string _companyCacheFile;
+        private readonly string _selectedFinancialYearFile;
 
         public LocalStorageService()
         {
@@ -15,6 +16,7 @@ namespace WinFormsApp1.Services
             _dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WinFormsApp1");
             _selectedCompanyFile = Path.Combine(_dataDirectory, "selected_company.json");
             _companyCacheFile = Path.Combine(_dataDirectory, "company_cache.json");
+            _selectedFinancialYearFile = Path.Combine(_dataDirectory, "selected_financial_year.json");
             
             // Ensure directory exists
             Directory.CreateDirectory(_dataDirectory);
@@ -167,6 +169,77 @@ namespace WinFormsApp1.Services
             {
                 Console.WriteLine($"Error clearing company cache: {ex.Message}");
             }
+        }
+
+        #endregion
+
+        #region Selected Financial Year Management
+
+        public async Task SaveSelectedFinancialYearAsync(FinancialYearModel financialYear)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(financialYear, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(_selectedFinancialYearFile, json);
+                Console.WriteLine($"Selected financial year saved: {financialYear.YearLabel}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving selected financial year: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<FinancialYearModel?> GetSelectedFinancialYearAsync()
+        {
+            try
+            {
+                if (!File.Exists(_selectedFinancialYearFile))
+                    return null;
+
+                var json = await File.ReadAllTextAsync(_selectedFinancialYearFile);
+                
+                if (string.IsNullOrWhiteSpace(json))
+                    return null;
+
+                var financialYear = JsonSerializer.Deserialize<FinancialYearModel>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return financialYear;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading selected financial year: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task ClearSelectedFinancialYearAsync()
+        {
+            try
+            {
+                if (File.Exists(_selectedFinancialYearFile))
+                {
+                    File.Delete(_selectedFinancialYearFile);
+                    Console.WriteLine("Selected financial year cleared");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error clearing selected financial year: {ex.Message}");
+            }
+        }
+
+        public bool HasSelectedFinancialYear()
+        {
+            return File.Exists(_selectedFinancialYearFile);
         }
 
         #endregion
