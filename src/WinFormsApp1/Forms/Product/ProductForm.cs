@@ -8,7 +8,7 @@ namespace WinFormsApp1.Forms.Product
         private readonly ProductService _productService;
         private readonly LocalStorageService _localStorageService;
         private WinFormsApp1.Models.Company? _company;
-        private ListBox lstProducts = null!;
+        private DataGridView dgvProducts = null!;
         private Button btnNew = null!;
         private Button btnEdit = null!;
         private Button btnView = null!;
@@ -35,7 +35,7 @@ namespace WinFormsApp1.Forms.Product
 
         private void InitializeComponent()
         {
-            lstProducts = new ListBox();
+            dgvProducts = new DataGridView();
             btnNew = new Button();
             btnEdit = new Button();
             btnView = new Button();
@@ -62,21 +62,27 @@ namespace WinFormsApp1.Forms.Product
             lblInstructions.Location = new Point(12, 40);
             lblInstructions.Name = "lblInstructions";
             lblInstructions.Size = new Size(600, 40);
-            lblInstructions.Text = "Keyboard Navigation: ↑↓ to navigate, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | Uses selected company from local storage";
+            lblInstructions.Text = "Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | Uses selected company from local storage";
             lblInstructions.ForeColor = Color.Blue;
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
             
             // 
-            // lstProducts
+            // dgvProducts
             // 
-            lstProducts.Location = new Point(12, 85);
-            lstProducts.Name = "lstProducts";
-            lstProducts.Size = new Size(500, 350);
-            lstProducts.TabIndex = 0;
-            lstProducts.DisplayMember = "DisplayName";
-            lstProducts.SelectedIndexChanged += new EventHandler(lstProducts_SelectedIndexChanged);
-            lstProducts.DoubleClick += new EventHandler(lstProducts_DoubleClick);
-            lstProducts.KeyDown += new KeyEventHandler(lstProducts_KeyDown);
+            dgvProducts.Location = new Point(12, 85);
+            dgvProducts.Name = "dgvProducts";
+            dgvProducts.Size = new Size(800, 350);
+            dgvProducts.TabIndex = 0;
+            dgvProducts.AllowUserToAddRows = false;
+            dgvProducts.AllowUserToDeleteRows = false;
+            dgvProducts.ReadOnly = true;
+            dgvProducts.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvProducts.MultiSelect = false;
+            dgvProducts.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvProducts.RowHeadersVisible = false;
+            dgvProducts.SelectionChanged += new EventHandler(dgvProducts_SelectionChanged);
+            dgvProducts.DoubleClick += new EventHandler(dgvProducts_DoubleClick);
+            dgvProducts.KeyDown += new KeyEventHandler(dgvProducts_KeyDown);
             
             // 
             // btnNew
@@ -157,7 +163,7 @@ namespace WinFormsApp1.Forms.Product
             Controls.Add(btnView);
             Controls.Add(btnEdit);
             Controls.Add(btnNew);
-            Controls.Add(lstProducts);
+            Controls.Add(dgvProducts);
             Controls.Add(lblInstructions);
             Controls.Add(lblCompanyInfo);
             FormBorderStyle = FormBorderStyle.Sizable;
@@ -184,8 +190,8 @@ namespace WinFormsApp1.Forms.Product
             AcceptButton = btnEdit;
             CancelButton = null; // Remove default cancel button to prevent conflicts
             
-            // Focus on product list
-            lstProducts.Focus();
+            // Focus on product grid
+            dgvProducts.Focus();
         }
 
         private void ProductForm_Load(object? sender, EventArgs e)
@@ -196,8 +202,8 @@ namespace WinFormsApp1.Forms.Product
             // Resize controls to fit the maximized form
             ResizeControls();
             
-            // Focus on the list box
-            lstProducts.Focus();
+            // Focus on the data grid
+            dgvProducts.Focus();
             
             // Hide MDI navigation panel when this form is maximized
             if (MdiParent is MainMDIForm mdiForm)
@@ -226,14 +232,14 @@ namespace WinFormsApp1.Forms.Product
             int availableWidth = clientWidth - buttonAreaWidth - 30; // 30px margin
             int availableHeight = clientHeight - 150;
             
-            // Ensure minimum list width
-            if (availableWidth < 300)
+            // Ensure minimum grid width
+            if (availableWidth < 600)
             {
-                availableWidth = 300;
+                availableWidth = 600;
             }
             
-            // Resize the list box to use most of the available space
-            lstProducts.Size = new Size(availableWidth, availableHeight);
+            // Resize the data grid to use most of the available space
+            dgvProducts.Size = new Size(availableWidth, availableHeight);
             
             // Reposition buttons on the right side with 30px margin
             int buttonX = availableWidth + 30;
@@ -316,6 +322,28 @@ namespace WinFormsApp1.Forms.Product
                     return;
                 }
                 
+                // Validate company ID
+                if (string.IsNullOrWhiteSpace(_company.Id))
+                {
+                    lblStatus.Text = "Invalid company data. Please select a company again.";
+                    lblStatus.ForeColor = Color.Red;
+                    lblCompanyInfo.Text = "Invalid company data";
+                    Text = "Products - Invalid Company Data";
+                    UpdateButtonStates();
+                    return;
+                }
+                
+                // Try to parse the company ID as GUID
+                if (!Guid.TryParse(_company.Id, out Guid companyId))
+                {
+                    lblStatus.Text = "Invalid company ID format. Please select a company again.";
+                    lblStatus.ForeColor = Color.Red;
+                    lblCompanyInfo.Text = "Invalid company ID format";
+                    Text = "Products - Invalid Company ID";
+                    UpdateButtonStates();
+                    return;
+                }
+                
                 // Update UI with company info
                 lblCompanyInfo.Text = $"Products for: {_company.DisplayName}";
                 Text = $"Products - {_company.DisplayName}";
@@ -342,16 +370,67 @@ namespace WinFormsApp1.Forms.Product
                     return;
                 }
                 
+                // Validate company ID
+                if (string.IsNullOrWhiteSpace(_company.Id))
+                {
+                    lblStatus.Text = "Invalid company data";
+                    lblStatus.ForeColor = Color.Red;
+                    return;
+                }
+                
+                // Try to parse the company ID as GUID
+                if (!Guid.TryParse(_company.Id, out Guid companyId))
+                {
+                    lblStatus.Text = "Invalid company ID format";
+                    lblStatus.ForeColor = Color.Red;
+                    return;
+                }
+                
                 lblStatus.Text = "Loading products...";
                 lblStatus.ForeColor = Color.Blue;
                 
-                var companyId = Guid.Parse(_company.Id);
                 var products = await _productService.GetProductsByCompanyAsync(companyId);
                 
                 _products = products;
-                lstProducts.DataSource = null;
-                lstProducts.DataSource = _products;
-                lstProducts.DisplayMember = "DisplayName";
+                
+                // Configure DataGridView columns
+                dgvProducts.Columns.Clear();
+                dgvProducts.Columns.Add("ProductCode", "Product Code");
+                dgvProducts.Columns.Add("Name", "Product Name");
+                dgvProducts.Columns.Add("Category", "Category");
+                dgvProducts.Columns.Add("SKU", "SKU");
+                dgvProducts.Columns.Add("Unit", "Unit");
+                dgvProducts.Columns.Add("PurchasePrice", "Purchase Price");
+                dgvProducts.Columns.Add("SellingPrice", "Selling Price");
+                dgvProducts.Columns.Add("StockQuantity", "Stock Qty");
+                dgvProducts.Columns.Add("IsActive", "Active");
+                
+                // Set column widths
+                if (dgvProducts.Columns["ProductCode"] != null) dgvProducts.Columns["ProductCode"].Width = 100;
+                if (dgvProducts.Columns["Name"] != null) dgvProducts.Columns["Name"].Width = 200;
+                if (dgvProducts.Columns["Category"] != null) dgvProducts.Columns["Category"].Width = 120;
+                if (dgvProducts.Columns["SKU"] != null) dgvProducts.Columns["SKU"].Width = 100;
+                if (dgvProducts.Columns["Unit"] != null) dgvProducts.Columns["Unit"].Width = 80;
+                if (dgvProducts.Columns["PurchasePrice"] != null) dgvProducts.Columns["PurchasePrice"].Width = 100;
+                if (dgvProducts.Columns["SellingPrice"] != null) dgvProducts.Columns["SellingPrice"].Width = 100;
+                if (dgvProducts.Columns["StockQuantity"] != null) dgvProducts.Columns["StockQuantity"].Width = 80;
+                if (dgvProducts.Columns["IsActive"] != null) dgvProducts.Columns["IsActive"].Width = 60;
+                
+                // Populate data
+                foreach (var product in _products)
+                {
+                    dgvProducts.Rows.Add(
+                        product.ProductCode ?? "",
+                        product.Name ?? "",
+                        product.Category ?? "",
+                        product.SKU ?? "",
+                        product.Unit ?? "",
+                        product.PurchasePrice.ToString("C"),
+                        product.SellingPrice.ToString("C"),
+                        product.StockQuantity.ToString(),
+                        product.IsActive ? "Yes" : "No"
+                    );
+                }
                 
                 lblStatus.Text = $"Loaded {_products.Count} products";
                 lblStatus.ForeColor = Color.Green;
@@ -378,13 +457,20 @@ namespace WinFormsApp1.Forms.Product
             btnRefresh.Enabled = hasCompany;
         }
 
-        private void lstProducts_SelectedIndexChanged(object? sender, EventArgs e)
+        private void dgvProducts_SelectionChanged(object? sender, EventArgs e)
         {
-            _selectedProduct = lstProducts.SelectedItem as ProductModel;
+            if (dgvProducts.CurrentRow != null && dgvProducts.CurrentRow.Index >= 0 && dgvProducts.CurrentRow.Index < _products.Count)
+            {
+                _selectedProduct = _products[dgvProducts.CurrentRow.Index];
+            }
+            else
+            {
+                _selectedProduct = null;
+            }
             UpdateButtonStates();
         }
 
-        private void lstProducts_DoubleClick(object? sender, EventArgs e)
+        private void dgvProducts_DoubleClick(object? sender, EventArgs e)
         {
             if (_selectedProduct != null)
             {
@@ -392,9 +478,9 @@ namespace WinFormsApp1.Forms.Product
             }
         }
 
-        private void lstProducts_KeyDown(object? sender, KeyEventArgs e)
+        private void dgvProducts_KeyDown(object? sender, KeyEventArgs e)
         {
-            Console.WriteLine($"lstProducts_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}");
+            Console.WriteLine($"dgvProducts_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}, Alt={e.Alt}, Control={e.Control}, Shift={e.Shift}");
             switch (e.KeyCode)
             {
                 case Keys.Enter:
@@ -432,7 +518,7 @@ namespace WinFormsApp1.Forms.Product
                     break;
                     
                 case Keys.Escape:
-                    Console.WriteLine("Escape key pressed in lstProducts_KeyDown");
+                    Console.WriteLine("Escape key pressed in dgvProducts_KeyDown");
                     // When closing with Escape, ensure navigation panel is shown
                     if (MdiParent is MainMDIForm mdiForm)
                     {
@@ -450,7 +536,7 @@ namespace WinFormsApp1.Forms.Product
 
         private void ProductForm_KeyDown(object? sender, KeyEventArgs e)
         {
-            Console.WriteLine($"ProductForm_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}");
+            Console.WriteLine($"ProductForm_KeyDown: KeyCode={e.KeyCode}, KeyData={e.KeyData}, Alt={e.Alt}, Control={e.Control}, Shift={e.Shift}");
             switch (e.KeyCode)
             {
                 case Keys.Escape:
@@ -557,8 +643,15 @@ namespace WinFormsApp1.Forms.Product
                 }
             }
 
+            // Validate company ID
+            if (!Guid.TryParse(_company.Id, out Guid companyId))
+            {
+                MessageBox.Show("Invalid company ID format. Please select a company again.", "Invalid Company", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            
             // Create new product edit form as MDI child
-            var productEditForm = new ProductEditForm(_productService, null, Guid.Parse(_company.Id))
+            var productEditForm = new ProductEditForm(_productService, null, companyId)
             {
                 MdiParent = this.MdiParent,
                 Text = "New Product",
@@ -594,8 +687,15 @@ namespace WinFormsApp1.Forms.Product
                     }
                 }
 
+                // Validate company ID
+                if (!Guid.TryParse(_company.Id, out Guid companyId))
+                {
+                    MessageBox.Show("Invalid company ID format. Please select a company again.", "Invalid Company", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                
                 // Create new product edit form as MDI child
-                var productEditForm = new ProductEditForm(_productService, _selectedProduct, Guid.Parse(_company.Id))
+                var productEditForm = new ProductEditForm(_productService, _selectedProduct, companyId)
                 {
                     MdiParent = this.MdiParent,
                     Text = $"Edit Product - {_selectedProduct.DisplayName}",
@@ -649,7 +749,14 @@ namespace WinFormsApp1.Forms.Product
                         lblStatus.Text = "Deleting product...";
                         lblStatus.ForeColor = Color.Blue;
                         
-                        var productId = Guid.Parse(_selectedProduct.Id);
+                        // Validate product ID
+                        if (!Guid.TryParse(_selectedProduct.Id, out Guid productId))
+                        {
+                            lblStatus.Text = "Invalid product ID format";
+                            lblStatus.ForeColor = Color.Red;
+                            return;
+                        }
+                        
                         var success = await _productService.DeleteProductAsync(productId);
                         
                         if (success)

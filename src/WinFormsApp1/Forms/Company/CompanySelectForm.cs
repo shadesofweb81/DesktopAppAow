@@ -337,24 +337,24 @@ namespace WinFormsApp1.Forms.Company
                 lblStatus.Text = "Loading companies...";
                 lblStatus.ForeColor = Color.Blue;
                 
-                // Try to load from cache first
-                var cachedCompanies = await _localStorageService.GetCompanyCacheAsync();
-                if (cachedCompanies != null && cachedCompanies.Any())
-                {
-                    // Convert cached Company objects to SelectCompanyModel
-                    _companies = cachedCompanies.Select(c => new SelectCompanyModel
-                    {
-                        Id = c.Id.ToString(),
-                        CompanyId = c.Id.ToString(),
-                        CompanyName = c.Name,
-                        CompanyCode = c.Code,
-                        IsActive = c.IsActive
-                    }).ToList();
-                }
-                else
-                {
-                    _companies = new List<SelectCompanyModel>();
-                }
+                //// Try to load from cache first
+                //var cachedCompanies = await _localStorageService.GetCompanyCacheAsync();
+                //if (cachedCompanies != null && cachedCompanies.Any())
+                //{
+                //    // Convert cached Company objects to SelectCompanyModel
+                //    _companies = cachedCompanies.Select(c => new SelectCompanyModel
+                //    {
+                //        Id = c.Id.ToString(),
+                //        CompanyId = c.Id.ToString(),
+                //        CompanyName = c.Name,
+                //        CompanyCode = c.Code,
+                //        IsActive = c.IsActive
+                //    }).ToList();
+                //}
+                //else
+                //{
+                //    _companies = new List<SelectCompanyModel>();
+                //}
                 
                 // If cache is empty or expired, load from API
                 if (!_companies.Any())
@@ -366,7 +366,7 @@ namespace WinFormsApp1.Forms.Company
                     {
                         var companiesForCache = _companies.Select(sc => new WinFormsApp1.Models.Company
                         {
-                            Id = sc.Id,
+                            Id = sc.CompanyId,
                             Name = sc.CompanyName,
                             Code = sc.CompanyCode,
                             IsActive = sc.IsActive
@@ -388,7 +388,9 @@ namespace WinFormsApp1.Forms.Company
                     // Try to select the currently stored company
                     if (_currentStoredCompany != null)
                     {
-                        var matchingCompany = _companies.FirstOrDefault(c => c.Id == _currentStoredCompany.Id.ToString());
+                        var matchingCompany = _companies.FirstOrDefault(c => 
+                            c.Id == _currentStoredCompany.Id.ToString() || 
+                            c.CompanyId == _currentStoredCompany.Id.ToString());
                         if (matchingCompany != null)
                         {
                             cmbCompanies.SelectedItem = matchingCompany;
@@ -549,21 +551,38 @@ namespace WinFormsApp1.Forms.Company
 
             try
             {
+                lblStatus.Text = "Fetching company details...";
+                lblStatus.ForeColor = Color.Blue;
+                
+                // Parse the company ID to GUID - use CompanyId as it contains the actual data
+                string companyIdString = !string.IsNullOrEmpty(_selectedCompany.Id) ? _selectedCompany.Id : _selectedCompany.CompanyId;
+                
+                Console.WriteLine($"Selected Company - Id: '{_selectedCompany.Id}', CompanyId: '{_selectedCompany.CompanyId}', Using: '{companyIdString}'");
+                
+                if (!Guid.TryParse(companyIdString, out Guid companyId))
+                {
+                    lblStatus.Text = "Invalid company ID format";
+                    lblStatus.ForeColor = Color.Red;
+                    return;
+                }
+                
+                // Fetch complete company details from API
+                var fullCompanyDetails = await _companyService.GetCompanyByIdAsync(companyId);
+                
+                if (fullCompanyDetails == null)
+                {
+                    lblStatus.Text = "Failed to fetch company details";
+                    lblStatus.ForeColor = Color.Red;
+                    return;
+                }
+                
                 lblStatus.Text = "Saving selected company...";
                 lblStatus.ForeColor = Color.Blue;
                 
-                // Convert SelectCompanyModel to Company for storage
-                var companyForStorage = new WinFormsApp1.Models.Company
-                {
-                    Id = _selectedCompany.Id,
-                    Name = _selectedCompany.CompanyName,
-                    Code = _selectedCompany.CompanyCode,
-                    IsActive = _selectedCompany.IsActive
-                };
+                // Save the complete company details to local storage
+                await _localStorageService.SaveSelectedCompanyAsync(fullCompanyDetails);
                 
-                await _localStorageService.SaveSelectedCompanyAsync(companyForStorage);
-                
-                lblStatus.Text = $"Company '{_selectedCompany.DisplayName}' selected successfully!";
+                lblStatus.Text = $"Company '{fullCompanyDetails.DisplayName}' selected successfully!";
                 lblStatus.ForeColor = Color.Green;
                 
                 // Close after a short delay
@@ -575,6 +594,7 @@ namespace WinFormsApp1.Forms.Company
             {
                 lblStatus.Text = $"Error saving selection: {ex.Message}";
                 lblStatus.ForeColor = Color.Red;
+                Console.WriteLine($"SelectCompany exception: {ex.Message}");
             }
         }
 
