@@ -7,6 +7,7 @@ namespace WinFormsApp1.Forms.FinancialYear
     {
         private readonly FinancialYearService _financialYearService;
         private readonly LocalStorageService _localStorageService;
+        private readonly MainMDIForm? _mainForm;
         private WinFormsApp1.Models.Company? _company;
         private DataGridView dgvFinancialYears = null!;
         private Button btnNew = null!;
@@ -20,10 +21,11 @@ namespace WinFormsApp1.Forms.FinancialYear
         private List<FinancialYearModel> _financialYears = new List<FinancialYearModel>();
         private FinancialYearModel? _selectedFinancialYear;
 
-        public FinancialYearListForm(FinancialYearService financialYearService)
+        public FinancialYearListForm(FinancialYearService financialYearService, MainMDIForm? mainForm = null)
         {
             _financialYearService = financialYearService;
             _localStorageService = new LocalStorageService();
+            _mainForm = mainForm;
             InitializeComponent();
             SetupForm();
             LoadCompanyAndFinancialYears();
@@ -683,26 +685,40 @@ namespace WinFormsApp1.Forms.FinancialYear
                         lblStatus.Text = "Setting active financial year...";
                         lblStatus.ForeColor = Color.Blue;
                         
-                        if (!Guid.TryParse(_company.Id, out Guid companyId))
+                        // Use MainMDIForm's method if available, otherwise use the service directly
+                        if (_mainForm != null)
                         {
-                            lblStatus.Text = "Invalid company ID format";
-                            lblStatus.ForeColor = Color.Red;
-                            return;
-                        }
-                        
-                        var success = await _financialYearService.SetActiveFinancialYearAsync(companyId, targetFinancialYear.Id);
-                        
-                        if (success)
-                        {
+                            await _mainForm.SetActiveFinancialYearAsync(targetFinancialYear);
                             lblStatus.Text = "Active financial year set successfully";
                             lblStatus.ForeColor = Color.Green;
-                            await LoadFinancialYears();
                         }
                         else
                         {
-                            lblStatus.Text = "Failed to set active financial year";
-                            lblStatus.ForeColor = Color.Red;
+                            // Fallback to direct service call
+                            if (!Guid.TryParse(_company.Id, out Guid companyId))
+                            {
+                                lblStatus.Text = "Invalid company ID format";
+                                lblStatus.ForeColor = Color.Red;
+                                return;
+                            }
+                            
+                            var success = await _financialYearService.SetActiveFinancialYearAsync(companyId, targetFinancialYear.Id);
+                            
+                            if (success)
+                            {
+                                // Save to local storage
+                                await _localStorageService.SaveSelectedFinancialYearAsync(targetFinancialYear);
+                                lblStatus.Text = "Active financial year set successfully";
+                                lblStatus.ForeColor = Color.Green;
+                            }
+                            else
+                            {
+                                lblStatus.Text = "Failed to set active financial year";
+                                lblStatus.ForeColor = Color.Red;
+                            }
                         }
+                        
+                        await LoadFinancialYears();
                     }
                     catch (Exception ex)
                     {

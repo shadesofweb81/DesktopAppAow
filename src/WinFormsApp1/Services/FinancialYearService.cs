@@ -83,6 +83,59 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<FinancialYearModel?> GetActiveFinancialYearAsync(Guid companyId)
+        {
+            try
+            {
+                SetAuthHeader();
+                var url = $"{_baseUrl}/active?companyId={companyId}";
+                
+                Console.WriteLine($"Fetching active financial year for company {companyId} from: {url}");
+
+                var response = await _httpClient.GetAsync(url);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var financialYear = JsonSerializer.Deserialize<FinancialYearModel>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        if (financialYear != null)
+                        {
+                            Console.WriteLine($"Successfully parsed active financial year: {financialYear.YearLabel}");
+                            return financialYear;
+                        }
+
+                        Console.WriteLine("Could not parse active financial year from response");
+                        return null;
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Raw response: {responseContent}");
+                        return null;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Get active financial year exception: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<FinancialYearModel?> GetFinancialYearByIdAsync(Guid financialYearId)
         {
             try

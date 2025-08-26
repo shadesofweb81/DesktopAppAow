@@ -216,16 +216,13 @@ namespace WinFormsApp1.Services
                         Console.WriteLine($"  - Attribute: {attribute.Name} (ID: {attribute.Id})");
                         Console.WriteLine($"    Description: {attribute.Description}");
                         Console.WriteLine($"    Required: {attribute.IsRequired}");
-                        Console.WriteLine($"    Active: {attribute.IsActive}");
-                        Console.WriteLine($"    Created: {attribute.CreatedOn} by {attribute.CreatedBy}");
-                        Console.WriteLine($"    Modified: {attribute.ModifiedOn} by {attribute.ModifiedBy}");
+                        Console.WriteLine($"    Active: {attribute.IsActive}");                   
                         Console.WriteLine($"    Options Count: {attribute.AttributeOptions.Count}");
                         
                         foreach (var option in attribute.AttributeOptions)
                         {
                             Console.WriteLine($"      - Option: {option.DisplayName} (Value: {option.Value})");
-                            Console.WriteLine($"        Attribute Name: {option.AttributeName}");
-                            Console.WriteLine($"        Created: {option.CreatedOn} by {option.CreatedBy}");
+                        
                         }
                     }
                 }
@@ -290,15 +287,13 @@ namespace WinFormsApp1.Services
                     Console.WriteLine($"New format test successful!");
                     var attribute = attributes.First();
                     Console.WriteLine($"  - Attribute: {attribute.Name}");
-                    Console.WriteLine($"  - Created: {attribute.CreatedOn} by {attribute.CreatedBy}");
-                    Console.WriteLine($"  - Modified: {attribute.ModifiedOn} by {attribute.ModifiedBy}");
+                
                     
                     if (attribute.AttributeOptions.Any())
                     {
                         var option = attribute.AttributeOptions.First();
                         Console.WriteLine($"  - Option: {option.DisplayName}");
-                        Console.WriteLine($"  - Attribute Name: {option.AttributeName}");
-                        Console.WriteLine($"  - Option Created: {option.CreatedOn} by {option.CreatedBy}");
+                     
                     }
                 }
                 else

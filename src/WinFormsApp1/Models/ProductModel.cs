@@ -119,6 +119,48 @@ namespace WinFormsApp1.Models
         public List<string> AttributeIds { get; set; } = new List<string>();
     }
 
+    public class UpdateProductRequest
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+        
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+        
+        [JsonPropertyName("code")]
+        public string Code { get; set; } = string.Empty;
+        
+        [JsonPropertyName("description")]
+        public string Description { get; set; } = string.Empty;
+        
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; } = string.Empty;
+        
+        [JsonPropertyName("sku")]
+        public string SKU { get; set; } = string.Empty;
+        
+        [JsonPropertyName("purchasePrice")]
+        public decimal PurchasePrice { get; set; }
+        
+        [JsonPropertyName("sellingPrice")]
+        public decimal SellingPrice { get; set; }
+        
+        [JsonPropertyName("stockQuantity")]
+        public int StockQuantity { get; set; }
+        
+        [JsonPropertyName("reorderLevel")]
+        public int? ReorderLevel { get; set; }
+        
+        [JsonPropertyName("companyId")]
+        public string CompanyId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("parentId")]
+        public string? ParentId { get; set; }
+        
+        [JsonPropertyName("attributeIds")]
+        public List<string> AttributeIds { get; set; } = new List<string>();
+    }
+
     public class ProductListResponse
     {
         public List<ProductModel> Products { get; set; } = new List<ProductModel>();

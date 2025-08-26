@@ -811,7 +811,23 @@ namespace WinFormsApp1.Forms.Product
                 
                 if (_isEditMode && _product != null)
                 {
-                    success = await _productService.UpdateProductAsync(_product.Id, request);
+                    // Update the product model with the form data
+                    _product.Name = request.Name;
+                    _product.ProductCode = request.ProductCode;
+                    _product.Category = request.Category;
+                    _product.Description = request.Description;
+                    _product.Unit = request.Unit;
+                    _product.SKU = request.SKU;
+                    _product.PurchasePrice = request.PurchasePrice;
+                    _product.SellingPrice = request.SellingPrice;
+                    _product.StockQuantity = request.StockQuantity;
+                    _product.ReorderLevel = request.ReorderLevel;
+                    _product.Barcode = request.Barcode;
+                    _product.IsActive = request.IsActive;
+                    _product.CompanyId = request.CompanyId;
+                    _product.AttributeIds = request.AttributeIds;
+                    
+                    success = await _productService.UpdateProductAsync(_product.Id, _product);
                 }
                 else
                 {

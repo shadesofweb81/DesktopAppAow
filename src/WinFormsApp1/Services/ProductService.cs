@@ -261,13 +261,30 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<bool> UpdateProductAsync(string productId, ProductCreateRequest request)
+        public async Task<bool> UpdateProductAsync(string productId, ProductModel product)
         {
             try
             {
                 SetAuthHeader();
 
-                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                var updateRequest = new UpdateProductRequest
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Code = product.ProductCode,
+                    Description = product.Description,
+                    Unit = product.Unit,
+                    SKU = product.SKU,
+                    PurchasePrice = product.PurchasePrice,
+                    SellingPrice = product.SellingPrice,
+                    StockQuantity = product.StockQuantity,
+                    ReorderLevel = product.ReorderLevel,
+                    CompanyId = product.CompanyId,
+                    ParentId = product.ParentId,
+                    AttributeIds = product.AttributeIds ?? new List<string>()
+                };
+
+                var json = JsonSerializer.Serialize(updateRequest, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = true
@@ -280,7 +297,7 @@ namespace WinFormsApp1.Services
                 var response = await _httpClient.PutAsync($"api/v1/product/{productId}", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Update product - Status: {response.StatusCode}");
+                Console.WriteLine($"Update product {productId} - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 return response.IsSuccessStatusCode;

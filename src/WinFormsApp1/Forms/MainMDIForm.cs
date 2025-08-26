@@ -12,6 +12,7 @@ namespace WinFormsApp1.Forms
         private readonly AuthService _authService;
         private readonly CompanyService _companyService;
         private readonly LocalStorageService _localStorageService;
+        private readonly FinancialYearService _financialYearService;
         private MenuStrip menuStrip = null!;
         private ToolStripMenuItem fileMenu = null!;
         private ToolStripMenuItem companyMenuItem = null!;
@@ -25,6 +26,7 @@ namespace WinFormsApp1.Forms
         private ToolStripMenuItem tileVerticalMenuItem = null!;
         private ToolStripMenuItem closeAllMenuItem = null!;
         private Label lblSelectedCompany = null!;
+        private Label lblActiveFinancialYear = null!;
 
         // Navigation Panel Controls
         private Panel navigationPanel = null!;
@@ -67,6 +69,7 @@ namespace WinFormsApp1.Forms
             _authService = authService;
             _companyService = new CompanyService(authService);
             _localStorageService = new LocalStorageService();
+            _financialYearService = new FinancialYearService(authService);
             InitializeComponent();
             SetupForm();
         }
@@ -86,6 +89,7 @@ namespace WinFormsApp1.Forms
             tileVerticalMenuItem = new ToolStripMenuItem();
             closeAllMenuItem = new ToolStripMenuItem();
             lblSelectedCompany = new Label();
+            lblActiveFinancialYear = new Label();
             navigationPanel = new Panel();
             mainNavigationGroupBox = new GroupBox();
             mastersLabel = new Label();
@@ -136,6 +140,22 @@ namespace WinFormsApp1.Forms
             lblSelectedCompany.BorderStyle = BorderStyle.FixedSingle;
             lblSelectedCompany.Padding = new Padding(8, 4, 8, 4);
             lblSelectedCompany.TextAlign = ContentAlignment.MiddleCenter;
+            
+            // 
+            // lblActiveFinancialYear
+            // 
+            lblActiveFinancialYear.AutoSize = true;
+            lblActiveFinancialYear.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            lblActiveFinancialYear.Location = new Point(360, 65);
+            lblActiveFinancialYear.Name = "lblActiveFinancialYear";
+            lblActiveFinancialYear.Size = new Size(300, 20);
+            lblActiveFinancialYear.TabIndex = 3;
+            lblActiveFinancialYear.Text = "No Financial Year Selected";
+            lblActiveFinancialYear.ForeColor = Color.Gray;
+            lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
+            lblActiveFinancialYear.BorderStyle = BorderStyle.FixedSingle;
+            lblActiveFinancialYear.Padding = new Padding(6, 2, 6, 2);
+            lblActiveFinancialYear.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // fileMenu
             // 
@@ -471,6 +491,7 @@ namespace WinFormsApp1.Forms
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(914, 800);
+            Controls.Add(lblActiveFinancialYear);
             Controls.Add(lblSelectedCompany);
             Controls.Add(navigationPanel);
             Controls.Add(menuStrip);
@@ -666,7 +687,7 @@ namespace WinFormsApp1.Forms
 
 
 
-        private void MainMDIForm_KeyDown(object? sender, KeyEventArgs e)
+        private async void MainMDIForm_KeyDown(object? sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
             {
@@ -687,6 +708,11 @@ namespace WinFormsApp1.Forms
 
                 case Keys.R when e.Alt: // Alt+R to focus Reports section
                     ShowNavigationAndFocusSection("reports");
+                    e.Handled = true;
+                    break;
+
+                case Keys.Y when e.Alt: // Alt+Y to refresh financial year display
+                    await RefreshFinancialYearDisplay();
                     e.Handled = true;
                     break;
 
@@ -962,7 +988,7 @@ namespace WinFormsApp1.Forms
 
             // Create new financial year list form
             var financialYearService = new FinancialYearService(_authService);
-            var financialYearListForm = new FinancialYearListForm(financialYearService)
+            var financialYearListForm = new FinancialYearListForm(financialYearService, this)
             {
                 MdiParent = this,
                 Text = "Financial Year Management",
@@ -1023,8 +1049,11 @@ namespace WinFormsApp1.Forms
                 var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
                 if (selectedCompany != null)
                 {
+                    // Clear the previous financial year when company changes
+                    await _localStorageService.ClearSelectedFinancialYearAsync();
+                    
                     // Show a brief message about the company change
-                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}",
+                    MessageBox.Show($"Company changed to: {selectedCompany.DisplayName}. Financial year will be updated automatically.",
                         "Company Changed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             };
@@ -1037,7 +1066,7 @@ namespace WinFormsApp1.Forms
                 var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
                 if (selectedCompany != null)
                 {
-                    this.Text = $"Main Application - {selectedCompany.DisplayName} - Alt+F=File Menu, Alt+S=Select Company, Alt+C=Manage Companies";
+                    this.Text = $"Main Application - {selectedCompany.DisplayName} - Alt+F=File Menu, Alt+S=Select Company, Alt+C=Manage Companies, Alt+Y=Refresh FY";
                     
                     // Update company display label if it exists
                     if (lblSelectedCompany != null)
@@ -1047,6 +1076,9 @@ namespace WinFormsApp1.Forms
                         lblSelectedCompany.BackColor = Color.FromArgb(240, 255, 240);
                         lblSelectedCompany.Visible = true;
                     }
+
+                    // Fetch and display active financial year
+                    await UpdateActiveFinancialYearDisplay(selectedCompany.Id);
                 }
                 else
                 {
@@ -1059,6 +1091,15 @@ namespace WinFormsApp1.Forms
                         lblSelectedCompany.ForeColor = Color.Orange;
                         lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
                         lblSelectedCompany.Visible = true;
+                    }
+
+                    // Clear financial year display
+                    if (lblActiveFinancialYear != null)
+                    {
+                        lblActiveFinancialYear.Text = "No Financial Year Selected";
+                        lblActiveFinancialYear.ForeColor = Color.Gray;
+                        lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
+                        lblActiveFinancialYear.Visible = true;
                     }
                 }
             }
@@ -1074,6 +1115,15 @@ namespace WinFormsApp1.Forms
                     lblSelectedCompany.ForeColor = Color.Red;
                     lblSelectedCompany.BackColor = Color.FromArgb(255, 240, 240);
                     lblSelectedCompany.Visible = true;
+                }
+
+                // Clear financial year display
+                if (lblActiveFinancialYear != null)
+                {
+                    lblActiveFinancialYear.Text = "Error loading financial year";
+                    lblActiveFinancialYear.ForeColor = Color.Red;
+                    lblActiveFinancialYear.BackColor = Color.FromArgb(255, 240, 240);
+                    lblActiveFinancialYear.Visible = true;
                 }
             }
         }
@@ -1091,6 +1141,11 @@ MAIN NAVIGATION:
 • Alt+F - Open File Menu
 • Alt+F4 - Exit Application
 • F1 - Show this help
+
+COMPANY & FINANCIAL YEAR:
+• Alt+S - Select Company
+• Alt+C - Manage Companies
+• Alt+Y - Refresh Financial Year Display
 
 MASTERS SECTION:
 • F2 - Products List
@@ -1119,8 +1174,6 @@ FORM MANAGEMENT:
 • Esc - Close active form (opens File menu)
 
 SYSTEM FUNCTIONS:
-• Alt+S - Select Company
-• Alt+C - Manage Companies
 • Alt+D - Dashboard
 
 NAVIGATION TIP:
@@ -1156,6 +1209,134 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             });
         }
 
+        public async Task RefreshFinancialYearDisplay()
+        {
+            try
+            {
+                var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
+                if (selectedCompany != null)
+                {
+                    await UpdateActiveFinancialYearDisplay(selectedCompany.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error refreshing financial year display: {ex.Message}");
+            }
+        }
+
+        public async Task SetActiveFinancialYearAsync(FinancialYearModel financialYear)
+        {
+            try
+            {
+                var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
+                if (selectedCompany == null)
+                {
+                    MessageBox.Show("No company selected. Please select a company first.", "No Company Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Set as active in the API
+                var success = await _financialYearService.SetActiveFinancialYearAsync(
+                    Guid.Parse(selectedCompany.Id), 
+                    financialYear.Id);
+
+                if (success)
+                {
+                    // Save to local storage
+                    await _localStorageService.SaveSelectedFinancialYearAsync(financialYear);
+                    
+                    // Update the display
+                    UpdateFinancialYearLabel(financialYear);
+                    
+                    // Show success message
+                    MessageBox.Show($"Financial Year '{financialYear.YearLabel}' has been set as active.", 
+                        "Financial Year Updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to set financial year as active. Please try again.", 
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting active financial year: {ex.Message}");
+                MessageBox.Show($"Error setting active financial year: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task UpdateActiveFinancialYearDisplay(string companyId)
+        {
+            try
+            {
+                if (Guid.TryParse(companyId, out Guid companyGuid))
+                {
+                    // First try to get from local storage
+                    var storedFinancialYear = await _localStorageService.GetSelectedFinancialYearAsync();
+                    
+                    // If we have a stored financial year, use it
+                    if (storedFinancialYear != null)
+                    {
+                        UpdateFinancialYearLabel(storedFinancialYear);
+                        return;
+                    }
+                    
+                    // Otherwise, fetch from API
+                    var activeFinancialYear = await _financialYearService.GetActiveFinancialYearAsync(companyGuid);
+                    
+                    if (activeFinancialYear != null)
+                    {
+                        // Save to local storage
+                        await _localStorageService.SaveSelectedFinancialYearAsync(activeFinancialYear);
+                        UpdateFinancialYearLabel(activeFinancialYear);
+                    }
+                    else
+                    {
+                        UpdateFinancialYearLabel(null);
+                    }
+                }
+                else
+                {
+                    UpdateFinancialYearLabel(null, "Invalid Company ID");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating financial year display: {ex.Message}");
+                UpdateFinancialYearLabel(null, "Error loading financial year");
+            }
+        }
+
+        private void UpdateFinancialYearLabel(FinancialYearModel? financialYear, string? errorMessage = null)
+        {
+            if (lblActiveFinancialYear != null)
+            {
+                if (financialYear != null)
+                {
+                    lblActiveFinancialYear.Text = $"Active Financial Year: {financialYear.YearLabel}";
+                    lblActiveFinancialYear.ForeColor = Color.DarkBlue;
+                    lblActiveFinancialYear.BackColor = Color.FromArgb(240, 248, 255);
+                    lblActiveFinancialYear.Visible = true;
+                }
+                else if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    lblActiveFinancialYear.Text = errorMessage;
+                    lblActiveFinancialYear.ForeColor = Color.Red;
+                    lblActiveFinancialYear.BackColor = Color.FromArgb(255, 240, 240);
+                    lblActiveFinancialYear.Visible = true;
+                }
+                else
+                {
+                    lblActiveFinancialYear.Text = "No Active Financial Year";
+                    lblActiveFinancialYear.ForeColor = Color.Orange;
+                    lblActiveFinancialYear.BackColor = Color.FromArgb(255, 255, 240);
+                    lblActiveFinancialYear.Visible = true;
+                }
+            }
+        }
+
 
 
         private void MainMDIForm_FormClosing(object? sender, FormClosingEventArgs e)
@@ -1163,6 +1344,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // If user is closing the main form, logout and exit
             _authService.Logout();
             _companyService?.Dispose();
+            _financialYearService?.Dispose();
         }
 
         // Navigation Helper Methods
