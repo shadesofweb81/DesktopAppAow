@@ -8,7 +8,7 @@ namespace WinFormsApp1.Services
     {
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
-
+        private readonly string _baseUrl = "api/v1/FinancialYear";
         public FinancialYearService(AuthService authService)
         {
             _authService = authService;
@@ -34,7 +34,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var url = $"api/financialyears/company/{companyId}";
+                var url = $"{_baseUrl}/all?companyId={companyId}";
                 
                 Console.WriteLine($"Fetching financial years for company {companyId} from: {url}");
 
@@ -88,7 +88,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var url = $"api/financialyears/{financialYearId}";
+                var url = $"{_baseUrl}/{financialYearId}";
                 
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -130,8 +130,8 @@ namespace WinFormsApp1.Services
                 SetAuthHeader();
                 var json = JsonSerializer.Serialize(financialYear);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                
-                var response = await _httpClient.PostAsync("api/financialyears", content);
+                var url = $"{_baseUrl}";
+                var response = await _httpClient.PostAsync(url, content);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -164,7 +164,7 @@ namespace WinFormsApp1.Services
                 var json = JsonSerializer.Serialize(financialYear);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PutAsync($"api/financialyears/{financialYearId}", content);
+                var response = await _httpClient.PutAsync($"{_baseUrl}/{financialYearId}", content);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -194,7 +194,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var response = await _httpClient.DeleteAsync($"api/financialyears/{financialYearId}");
+                var response = await _httpClient.DeleteAsync($"{_baseUrl}/{financialYearId}");
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -218,7 +218,11 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var response = await _httpClient.PutAsync($"api/financialyears/{companyId}/setactive/{financialYearId}", null);
+                var requestData = new { CompanyId = companyId, Id = financialYearId };
+                var json = JsonSerializer.Serialize(requestData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/set-active", content);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -226,7 +230,8 @@ namespace WinFormsApp1.Services
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to set active financial year. Status: {response.StatusCode}");
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to set active financial year. Status: {response.StatusCode}, Response: {responseContent}");
                     return false;
                 }
             }

@@ -57,8 +57,8 @@ namespace WinFormsApp1.Forms.FinancialYear
             // 
             lblInstructions.Location = new Point(12, 40);
             lblInstructions.Name = "lblInstructions";
-            lblInstructions.Size = new Size(600, 40);
-            lblInstructions.Text = "Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, Insert for new, Delete to remove, F5 to refresh, Esc to close | Uses selected company from local storage";
+            lblInstructions.Size = new Size(600, 50);
+            lblInstructions.Text = "Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, Insert for new, Delete to remove, F5 to refresh, Esc to close | Click 'Activate' button in Action column to set financial year as active | Uses selected company from local storage";
             lblInstructions.ForeColor = Color.Blue;
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
             
@@ -79,6 +79,7 @@ namespace WinFormsApp1.Forms.FinancialYear
             dgvFinancialYears.SelectionChanged += new EventHandler(dgvFinancialYears_SelectionChanged);
             dgvFinancialYears.DoubleClick += new EventHandler(dgvFinancialYears_DoubleClick);
             dgvFinancialYears.KeyDown += new KeyEventHandler(dgvFinancialYears_KeyDown);
+            dgvFinancialYears.CellClick += new DataGridViewCellEventHandler(dgvFinancialYears_CellClick);
             
             // 
             // btnNew
@@ -214,7 +215,7 @@ namespace WinFormsApp1.Forms.FinancialYear
             
             int buttonAreaWidth = 150;
             int availableWidth = clientWidth - buttonAreaWidth - 30;
-            int availableHeight = clientHeight - 150;
+            int availableHeight = clientHeight - 160;
             
             if (availableWidth < 600)
             {
@@ -234,7 +235,7 @@ namespace WinFormsApp1.Forms.FinancialYear
             lblStatus.Size = new Size(clientWidth - 24, 20);
             
             lblCompanyInfo.Size = new Size(clientWidth - 24, 25);
-            lblInstructions.Size = new Size(clientWidth - 24, 40);
+            lblInstructions.Size = new Size(clientWidth - 24, 50);
         }
 
         private void FinancialYearListForm_Resize(object? sender, EventArgs e)
@@ -365,19 +366,32 @@ namespace WinFormsApp1.Forms.FinancialYear
                 dgvFinancialYears.Columns.Add("EndDate", "End Date");
                 dgvFinancialYears.Columns.Add("IsActive", "Active");
                 
+                // Add button column for activation
+                var activateButtonColumn = new DataGridViewButtonColumn();
+                activateButtonColumn.Name = "ActivateButton";
+                activateButtonColumn.HeaderText = "Action";
+                activateButtonColumn.Text = "Activate";
+                activateButtonColumn.UseColumnTextForButtonValue = true;
+                dgvFinancialYears.Columns.Add(activateButtonColumn);
+                
                 if (dgvFinancialYears.Columns["YearLabel"] != null) dgvFinancialYears.Columns["YearLabel"].Width = 120;
                 if (dgvFinancialYears.Columns["StartDate"] != null) dgvFinancialYears.Columns["StartDate"].Width = 100;
                 if (dgvFinancialYears.Columns["EndDate"] != null) dgvFinancialYears.Columns["EndDate"].Width = 100;
                 if (dgvFinancialYears.Columns["IsActive"] != null) dgvFinancialYears.Columns["IsActive"].Width = 60;
+                if (dgvFinancialYears.Columns["ActivateButton"] != null) dgvFinancialYears.Columns["ActivateButton"].Width = 80;
                 
                 foreach (var financialYear in _financialYears)
                 {
-                    dgvFinancialYears.Rows.Add(
+                    int rowIndex = dgvFinancialYears.Rows.Add(
                         financialYear.YearLabel ?? "",
                         financialYear.StartDate.ToString("dd/MM/yyyy"),
                         financialYear.EndDate.ToString("dd/MM/yyyy"),
-                        financialYear.IsActive ? "Yes" : "No"
+                        financialYear.IsActive ? "Yes" : "No",
+                        financialYear.IsActive ? "" : "Activate"
                     );
+                    
+                    // Store the financial year ID in the row tag for easy access
+                    dgvFinancialYears.Rows[rowIndex].Tag = financialYear;
                 }
                 
                 lblStatus.Text = $"Loaded {_financialYears.Count} financial years";
@@ -397,10 +411,11 @@ namespace WinFormsApp1.Forms.FinancialYear
         {
             bool hasCompany = _company != null;
             bool hasSelection = _selectedFinancialYear != null;
+            bool isSelectedActive = _selectedFinancialYear?.IsActive ?? false;
             
             btnNew.Enabled = hasCompany;
             btnEdit.Enabled = hasCompany && hasSelection;
-            btnSetActive.Enabled = hasCompany && hasSelection;
+            btnSetActive.Enabled = hasCompany && hasSelection && !isSelectedActive;
             btnDelete.Enabled = hasCompany && hasSelection;
             btnRefresh.Enabled = hasCompany;
         }
@@ -471,6 +486,26 @@ namespace WinFormsApp1.Forms.FinancialYear
             }
         }
 
+        private async void dgvFinancialYears_CellClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && e.ColumnIndex == dgvFinancialYears.Columns["ActivateButton"].Index)
+            {
+                var row = dgvFinancialYears.Rows[e.RowIndex];
+                if (row.Tag is FinancialYearModel financialYear && !financialYear.IsActive)
+                {
+                    try
+                    {
+                        await SetActiveFinancialYear(financialYear);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error activating financial year: {ex.Message}", 
+                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
         private void FinancialYearListForm_KeyDown(object? sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
@@ -527,7 +562,7 @@ namespace WinFormsApp1.Forms.FinancialYear
             {
                 try
                 {
-                    await SetActiveFinancialYear();
+                    await SetActiveFinancialYear(_selectedFinancialYear);
                 }
                 catch (Exception ex)
                 {
@@ -623,7 +658,7 @@ namespace WinFormsApp1.Forms.FinancialYear
             }
         }
 
-        private async Task SetActiveFinancialYear()
+        private async Task SetActiveFinancialYear(FinancialYearModel? financialYear = null)
         {
             if (_company == null)
             {
@@ -631,10 +666,12 @@ namespace WinFormsApp1.Forms.FinancialYear
                 return;
             }
             
-            if (_selectedFinancialYear != null)
+            var targetFinancialYear = financialYear ?? _selectedFinancialYear;
+            
+            if (targetFinancialYear != null)
             {
                 var result = MessageBox.Show(
-                    $"Are you sure you want to set '{_selectedFinancialYear.YearLabel}' as the active financial year for company '{_company.DisplayName}'?",
+                    $"Are you sure you want to set '{targetFinancialYear.YearLabel}' as the active financial year for company '{_company.DisplayName}'?",
                     "Confirm Set Active",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Question);
@@ -653,7 +690,7 @@ namespace WinFormsApp1.Forms.FinancialYear
                             return;
                         }
                         
-                        var success = await _financialYearService.SetActiveFinancialYearAsync(companyId, _selectedFinancialYear.Id);
+                        var success = await _financialYearService.SetActiveFinancialYearAsync(companyId, targetFinancialYear.Id);
                         
                         if (success)
                         {
@@ -725,4 +762,5 @@ namespace WinFormsApp1.Forms.FinancialYear
         }
     }
 }
+
 
