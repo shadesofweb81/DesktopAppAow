@@ -6,9 +6,12 @@ namespace WinFormsApp1.Forms.Product
     public partial class ProductEditForm : Form
     {
         private readonly ProductService _productService;
+        private readonly AttributeService _attributeService;
         private readonly ProductModel? _product;
         private readonly bool _isEditMode;
-        private readonly Guid _companyId;
+        private readonly string _companyId;
+        private List<AttributeModel> _availableAttributes = new List<AttributeModel>();
+        private List<string> _productAttributeIds = new List<string>(); // Store product's associated attribute IDs
 
         // Public properties for MDI child form management
         public bool IsEditMode => _isEditMode;
@@ -30,10 +33,14 @@ namespace WinFormsApp1.Forms.Product
         private Button btnCancel = null!;
         private Label lblStatus = null!;
         private Label lblInstructions = null!;
+        private GroupBox grpAttributes = null!;
+        private FlowLayoutPanel flpAttributes = null!;
+        private Button btnLoadAttributes = null!;
 
-        public ProductEditForm(ProductService productService, ProductModel? product, Guid companyId)
+        public ProductEditForm(ProductService productService, AttributeService attributeService, ProductModel? product, string companyId)
         {
             _productService = productService;
+            _attributeService = attributeService;
             _product = product;
             _isEditMode = product != null;
             _companyId = companyId;
@@ -61,6 +68,9 @@ namespace WinFormsApp1.Forms.Product
             btnCancel = new Button();
             lblStatus = new Label();
             lblInstructions = new Label();
+            grpAttributes = new GroupBox();
+            flpAttributes = new FlowLayoutPanel();
+            btnLoadAttributes = new Button();
             SuspendLayout();
 
             // 
@@ -225,26 +235,53 @@ namespace WinFormsApp1.Forms.Product
             chkIsActive.UseVisualStyleBackColor = true;
             chkIsActive.Checked = true;
 
+            // Load Attributes Button (hidden since attributes load automatically)
+            btnLoadAttributes.Location = new Point(100, 320);
+            btnLoadAttributes.Name = "btnLoadAttributes";
+            btnLoadAttributes.Size = new Size(150, 30);
+            btnLoadAttributes.TabIndex = 12;
+            btnLoadAttributes.Text = "&Load Attributes";
+            btnLoadAttributes.UseVisualStyleBackColor = true;
+            btnLoadAttributes.Visible = false; // Hide the button since attributes load automatically
+            btnLoadAttributes.Click += new EventHandler(btnLoadAttributes_Click);
+
+            // Attributes Group Box
+            grpAttributes.Location = new Point(12, 360);
+            grpAttributes.Name = "grpAttributes";
+            grpAttributes.Size = new Size(800, 400);
+            grpAttributes.TabIndex = 13;
+            grpAttributes.Text = "Product Attributes";
+            grpAttributes.Visible = false;
+
+            // Attributes Flow Layout Panel
+            flpAttributes.Location = new Point(10, 20);
+            flpAttributes.Name = "flpAttributes";
+            flpAttributes.Size = new Size(780, 370);
+            flpAttributes.TabIndex = 0;
+            flpAttributes.AutoScroll = true;
+            flpAttributes.FlowDirection = FlowDirection.TopDown;
+            flpAttributes.WrapContents = false;
+
             // Save Button
-            btnSave.Location = new Point(200, 320);
+            btnSave.Location = new Point(200, 580);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(100, 30);
-            btnSave.TabIndex = 12;
+            btnSave.TabIndex = 14;
             btnSave.Text = "&Save";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += new EventHandler(btnSave_Click);
 
             // Cancel Button
-            btnCancel.Location = new Point(310, 320);
+            btnCancel.Location = new Point(310, 580);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(100, 30);
-            btnCancel.TabIndex = 13;
+            btnCancel.TabIndex = 15;
             btnCancel.Text = "&Cancel";
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += new EventHandler(btnCancel_Click);
 
             // Status Label
-            lblStatus.Location = new Point(12, 360);
+            lblStatus.Location = new Point(12, 620);
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(450, 20);
             lblStatus.Text = "Ready";
@@ -255,10 +292,12 @@ namespace WinFormsApp1.Forms.Product
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(480, 390);
+            ClientSize = new Size(480, 650);
             Controls.Add(lblStatus);
             Controls.Add(btnCancel);
             Controls.Add(btnSave);
+            Controls.Add(grpAttributes);
+            Controls.Add(btnLoadAttributes);
             Controls.Add(chkIsActive);
             Controls.Add(txtBarcode);
             Controls.Add(txtReorderLevel);
@@ -272,6 +311,9 @@ namespace WinFormsApp1.Forms.Product
             Controls.Add(txtName);
             Controls.Add(txtProductCode);
             Controls.Add(lblInstructions);
+            
+            // Add flow layout panel to group box
+            grpAttributes.Controls.Add(flpAttributes);
             FormBorderStyle = FormBorderStyle.Sizable;
             KeyPreview = true;
             MaximizeBox = true;
@@ -349,6 +391,28 @@ namespace WinFormsApp1.Forms.Product
             // Buttons at the bottom
             btnSave.Location = new Point(availableWidth - 200, clientHeight - 80);
             btnCancel.Location = new Point(availableWidth - 100, clientHeight - 80);
+            
+            // Adjust attributes group box position since load button is hidden
+            if (grpAttributes.Visible)
+            {
+                grpAttributes.Location = new Point(12, 360); // Keep original position
+            }
+            
+            // Resize attributes group box
+            if (grpAttributes.Visible)
+            {
+                // Calculate dynamic height based on number of attributes with smaller panels
+                int attributeCount = flpAttributes.Controls.Count;
+                int panelHeight = 120; // Smaller height per panel
+                int margin = 10; // 5px top + 5px bottom margin
+                int totalAttributeHeight = attributeCount * (panelHeight + margin);
+                
+                // Double the group box height and add some padding
+                int groupBoxHeight = Math.Min(Math.Max(totalAttributeHeight * 2 + 80, 800), availableHeight - 200);
+                int groupBoxWidth = Math.Min(availableWidth - 24, availableWidth - 24); // Use full available width
+                grpAttributes.Size = new Size(groupBoxWidth, groupBoxHeight);
+                flpAttributes.Size = new Size(grpAttributes.Width - 20, grpAttributes.Height - 30);
+            }
         }
 
         private void ProductEditForm_Resize(object? sender, EventArgs e)
@@ -415,16 +479,33 @@ namespace WinFormsApp1.Forms.Product
                     lblStatus.Text = "Loading product data...";
                     lblStatus.ForeColor = Color.Blue;
                     
-                    // Load the product data into the form
-                    LoadProductDataFromModel(_product);
+                    // Fetch fresh product data from the server
+                    var freshProduct = await _productService.GetProductByIdAsync(_product.Id);
                     
-                    lblStatus.Text = "Product data loaded successfully";
-                    lblStatus.ForeColor = Color.Green;
+                    if (freshProduct != null)
+                    {
+                        // Load the fresh product data into the form
+                        LoadProductDataFromModel(freshProduct);
+                        
+                        lblStatus.Text = "Product data loaded successfully";
+                        lblStatus.ForeColor = Color.Green;
+                    }
+                    else
+                    {
+                        // Fallback to the original product data if server fetch fails
+                        LoadProductDataFromModel(_product);
+                        
+                        lblStatus.Text = "Product data loaded (using cached data)";
+                        lblStatus.ForeColor = Color.Orange;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    lblStatus.Text = $"Error loading product data: {ex.Message}";
-                    lblStatus.ForeColor = Color.Red;
+                    // Fallback to the original product data if there's an error
+                    LoadProductDataFromModel(_product);
+                    
+                    lblStatus.Text = $"Error loading product data: {ex.Message} (using cached data)";
+                    lblStatus.ForeColor = Color.Orange;
                 }
             }
             else
@@ -434,6 +515,177 @@ namespace WinFormsApp1.Forms.Product
                 lblStatus.Text = "Ready to create new product";
                 lblStatus.ForeColor = Color.Green;
             }
+            
+            // Load attributes automatically after product data is loaded
+            await LoadAttributesAsync();
+        }
+
+        private async Task LoadAttributesAsync()
+        {
+            try
+            {
+                lblStatus.Text = "Loading attributes...";
+                lblStatus.ForeColor = Color.Blue;
+                
+                // Parse company ID
+                if (!Guid.TryParse(_companyId, out Guid companyId))
+                {
+                    lblStatus.Text = "Invalid company ID format";
+                    lblStatus.ForeColor = Color.Red;
+                    return;
+                }
+                
+                // Load attributes from the server
+                _availableAttributes = await _attributeService.GetAttributesByCompanyAsync(companyId);
+                
+                if (_availableAttributes.Any())
+                {
+                    // Log the product's associated attribute IDs for debugging
+                    Console.WriteLine($"Product has {_productAttributeIds.Count} associated attributes:");
+                    foreach (var attrId in _productAttributeIds)
+                    {
+                        Console.WriteLine($"  - Attribute ID: {attrId}");
+                    }
+                    
+                    Console.WriteLine($"Available attributes ({_availableAttributes.Count}):");
+                    foreach (var attr in _availableAttributes)
+                    {
+                        Console.WriteLine($"  - {attr.Name} (ID: {attr.Id})");
+                    }
+                    
+                    // Populate the attribute selection controls
+                    PopulateAttributeControls();
+                    
+                    // Show the attributes group box
+                    grpAttributes.Visible = true;
+                    
+                    lblStatus.Text = $"Loaded {_availableAttributes.Count} attributes";
+                    lblStatus.ForeColor = Color.Green;
+                }
+                else
+                {
+                    lblStatus.Text = "No attributes found for this company";
+                    lblStatus.ForeColor = Color.Orange;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Error loading attributes: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+            }
+        }
+
+        private void PopulateAttributeControls()
+        {
+            // Clear existing controls
+            flpAttributes.Controls.Clear();
+            
+            // Get the available width from the flow layout panel
+            int availableWidth = flpAttributes.Width - 20; // Account for margins
+            
+            foreach (var attribute in _availableAttributes.Where(a => a.IsActive))
+            {
+                // Create a panel for each attribute with smaller size
+                var attributePanel = new Panel
+                {
+                    Width = availableWidth, // Use full available width
+                    Height = 120, // Smaller height
+                    Margin = new Padding(5, 5, 5, 5), // Smaller margin
+                    BorderStyle = BorderStyle.FixedSingle
+                };
+                
+                // Create checkbox for the attribute
+                var chkAttribute = new CheckBox
+                {
+                    Text = attribute.Name,
+                    Location = new Point(10, 10),
+                    Width = 200,
+                    Font = new Font(Font.FontFamily, 9, FontStyle.Bold),
+                    Tag = attribute, // Store the attribute object in the tag
+                    Checked = _productAttributeIds.Contains(attribute.Id) // Pre-select if this attribute is associated with the product
+                };
+                
+                // Create label for description
+                var lblDescription = new Label
+                {
+                    Text = attribute.Description,
+                    Location = new Point(10, 30),
+                    Width = availableWidth - 20, // Use full width minus margins
+                    ForeColor = Color.Gray,
+                    Font = new Font(Font.FontFamily, 8)
+                };
+                
+                // Add controls to panel
+                attributePanel.Controls.Add(chkAttribute);
+                attributePanel.Controls.Add(lblDescription);
+                
+                // Add attribute options if they exist
+                if (attribute.AttributeOptions?.Any() == true)
+                {
+                    var lblOptions = new Label
+                    {
+                        Text = "Options:",
+                        Location = new Point(10, 50),
+                        Width = 60,
+                        ForeColor = Color.DarkBlue,
+                        Font = new Font(Font.FontFamily, 8, FontStyle.Bold)
+                    };
+                    attributePanel.Controls.Add(lblOptions);
+                    
+                    // Create a horizontal flow layout panel for options
+                    var optionsFlowPanel = new FlowLayoutPanel
+                    {
+                        Location = new Point(70, 50),
+                        Width = availableWidth - 80, // Use full width minus label and margins
+                        Height = 60, // Smaller height
+                        AutoScroll = true,
+                        FlowDirection = FlowDirection.LeftToRight,
+                        WrapContents = true, // Allow wrapping to next line
+                        Margin = new Padding(0, 0, 0, 0) // No margin to prevent clipping
+                    };
+                    
+                    // Add each option as a label in horizontal layout
+                    foreach (var option in attribute.AttributeOptions.Where(o => o.IsActive))
+                    {
+                        var lblOption = new Label
+                        {
+                            Text = $"{option.DisplayName}",
+                            AutoSize = true,
+                            ForeColor = Color.DarkGreen,
+                            Font = new Font(Font.FontFamily, 8),
+                            Margin = new Padding(3, 2, 3, 2),
+                            Padding = new Padding(2, 1, 2, 1)
+                        };
+                        optionsFlowPanel.Controls.Add(lblOption);
+                    }
+                    
+                    attributePanel.Controls.Add(optionsFlowPanel);
+                }
+                
+                // Add panel to flow layout
+                flpAttributes.Controls.Add(attributePanel);
+            }
+        }
+
+        private List<string> GetSelectedAttributeIds()
+        {
+            var selectedAttributeIds = new List<string>();
+            
+            foreach (Control control in flpAttributes.Controls)
+            {
+                if (control is Panel panel)
+                {
+                    foreach (Control panelControl in panel.Controls)
+                    {
+                        if (panelControl is CheckBox chk && chk.Checked && chk.Tag is AttributeModel attribute)
+                        {
+                            selectedAttributeIds.Add(attribute.Id);
+                        }
+                    }
+                }
+            }
+            
+            return selectedAttributeIds;
         }
 
         private void LoadProductDataFromModel(ProductModel product)
@@ -450,6 +702,9 @@ namespace WinFormsApp1.Forms.Product
             txtReorderLevel.Text = product.ReorderLevel?.ToString() ?? "";
             txtBarcode.Text = product.Barcode;
             chkIsActive.Checked = product.IsActive;
+            
+            // Store the product's associated attribute IDs
+            _productAttributeIds = product.AttributeIds ?? new List<string>();
         }
 
         private void ClearForm()
@@ -498,6 +753,11 @@ namespace WinFormsApp1.Forms.Product
             }
         }
 
+        private async void btnLoadAttributes_Click(object? sender, EventArgs e)
+        {
+            await LoadAttributesAsync();
+        }
+
         private async void btnSave_Click(object? sender, EventArgs e)
         {
             await SaveProduct();
@@ -543,14 +803,15 @@ namespace WinFormsApp1.Forms.Product
                     ReorderLevel = int.TryParse(txtReorderLevel.Text, out var reorderLevel) ? reorderLevel : null,
                     Barcode = txtBarcode.Text.Trim(),
                     IsActive = chkIsActive.Checked,
-                    CompanyId = _companyId
+                    CompanyId = _companyId,
+                    AttributeIds = GetSelectedAttributeIds()
                 };
 
                 bool success = false;
                 
                 if (_isEditMode && _product != null)
                 {
-                    success = await _productService.UpdateProductAsync(Guid.Parse(_product.Id), request);
+                    success = await _productService.UpdateProductAsync(_product.Id, request);
                 }
                 else
                 {

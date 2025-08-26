@@ -148,7 +148,7 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<ProductModel?> GetProductByIdAsync(Guid productId)
+        public async Task<ProductModel?> GetProductByIdAsync(string productId)
         {
             try
             {
@@ -164,18 +164,24 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        // Try to parse as ProductResponse first
-                        var productResponse = JsonSerializer.Deserialize<ProductResponse>(responseContent);
-
-                        if (productResponse != null)
+                        // Configure JSON options to handle the API response format
+                        var jsonOptions = new JsonSerializerOptions
                         {
-                            return productResponse.GetProduct();
+                            PropertyNameCaseInsensitive = true,
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        };
+
+                  
+                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent, jsonOptions);
+                        
+                        if (product != null)
+                        {
+                            Console.WriteLine($"Successfully parsed product: {product.Name} (ID: {product.Id})");
+                            return product;
                         }
 
-                        // If that doesn't work, try to parse as direct ProductModel object
-                        var product = JsonSerializer.Deserialize<ProductModel>(responseContent);
-
-                        return product;
+                        Console.WriteLine("Could not parse product from any expected format");
+                        return null;
                     }
                     catch (JsonException ex)
                     {
@@ -255,7 +261,7 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<bool> UpdateProductAsync(Guid productId, ProductCreateRequest request)
+        public async Task<bool> UpdateProductAsync(string productId, ProductCreateRequest request)
         {
             try
             {
@@ -286,7 +292,7 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<bool> DeleteProductAsync(Guid productId)
+        public async Task<bool> DeleteProductAsync(string productId)
         {
             try
             {
@@ -312,48 +318,88 @@ namespace WinFormsApp1.Services
             _httpClient?.Dispose();
         }
 
-        // Test method to verify JSON parsing
-        public static void TestJsonParsing()
+        // Test method to verify JSON parsing for GetProductByIdAsync response
+        public static void TestGetProductByIdJsonParsing()
         {
-            var testJson = @"[
-                {
-                    ""id"": ""0070e4be-0e34-434c-a64f-249188028b4d"",
-                    ""name"": ""3 pound carton box"",
-                    ""productCode"": """",
-                    ""category"": """",
-                    ""description"": """",
-                    ""unit"": """",
-                    ""sku"": """",
-                    ""purchasePrice"": 0.0,
-                    ""sellingPrice"": 0.0,
-                    ""stockQuantity"": 0,
-                    ""reorderLevel"": null,
-                    ""companyId"": ""e6a993e0-6229-4ced-94e1-bfa1bfb92c20"",
-                    ""parentId"": ""cd2c1069-4d46-4daa-b5ff-1f9af8b45fa1"",
-                    ""attributeIds"": [],
-                    ""productVariants"": []
-                }
-            ]";
+            var testJson = @"{
+                ""id"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                ""name"": ""Test Product"",
+                ""productCode"": ""TEST001"",
+                ""category"": ""Electronics"",
+                ""description"": ""A test product"",
+                ""unit"": ""PCS"",
+                ""sku"": ""SKU001"",
+                ""purchasePrice"": 10.50,
+                ""sellingPrice"": 15.00,
+                ""stockQuantity"": 100,
+                ""reorderLevel"": 10,
+                ""companyId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                ""parentId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                ""attributeIds"": [
+                    ""3fa85f64-5717-4562-b3fc-2c963f66afa6""
+                ],
+                ""productVariants"": [
+                    {
+                        ""id"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                        ""productId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                        ""variantCode"": ""VAR001"",
+                        ""name"": ""Test Variant"",
+                        ""description"": ""A test variant"",
+                        ""purchasePrice"": 12.00,
+                        ""sellingPrice"": 18.00,
+                        ""stockQuantity"": 50,
+                        ""sku"": ""SKU001-VAR"",
+                        ""isActive"": true,
+                        ""productVariantAttributes"": [
+                            {
+                                ""id"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                                ""productVariantId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                                ""attributeId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                                ""attributeName"": ""Color"",
+                                ""attributeOptionId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
+                                ""attributeOptionName"": ""Red"",
+                                ""isActive"": true
+                            }
+                        ]
+                    }
+                ]
+            }";
 
             try
             {
-                var products = JsonSerializer.Deserialize<List<ProductModel>>(testJson);
-                if (products != null && products.Any())
+                var jsonOptions = new JsonSerializerOptions
                 {
-                    Console.WriteLine($"Test parsing successful! Found {products.Count} products");
-                    foreach (var product in products)
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                var product = JsonSerializer.Deserialize<ProductModel>(testJson, jsonOptions);
+                if (product != null)
+                {
+                    Console.WriteLine($"Test GetProductById parsing successful!");
+                    Console.WriteLine($"  - Product: {product.Name} (ID: {product.Id})");
+                    Console.WriteLine($"  - Product Code: {product.ProductCode}");
+                    Console.WriteLine($"  - Category: {product.Category}");
+                    Console.WriteLine($"  - Company ID: {product.CompanyId}");
+                    Console.WriteLine($"  - Parent ID: {product.ParentId}");
+                    Console.WriteLine($"  - Attribute IDs Count: {product.AttributeIds.Count}");
+                    Console.WriteLine($"  - Product Variants Count: {product.ProductVariants.Count}");
+                    
+                    if (product.ProductVariants.Any())
                     {
-                        Console.WriteLine($"  - {product.Name} (ID: {product.Id})");
+                        var variant = product.ProductVariants.First();
+                        Console.WriteLine($"  - First Variant: {variant.Name} (Code: {variant.VariantCode})");
+                        Console.WriteLine($"  - Variant Attributes Count: {variant.ProductVariantAttributes.Count}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Test parsing failed - no products found");
+                    Console.WriteLine("Test GetProductById parsing failed - no product found");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Test parsing error: {ex.Message}");
+                Console.WriteLine($"Test GetProductById parsing error: {ex.Message}");
             }
         }
     }

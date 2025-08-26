@@ -6,6 +6,7 @@ namespace WinFormsApp1.Forms.Product
     public partial class ProductForm : Form
     {
         private readonly ProductService _productService;
+        private readonly AttributeService _attributeService;
         private readonly LocalStorageService _localStorageService;
         private WinFormsApp1.Models.Company? _company;
         private DataGridView dgvProducts = null!;
@@ -24,9 +25,10 @@ namespace WinFormsApp1.Forms.Product
         private int _totalCount = 0;
         private int _totalPages = 0;
 
-        public ProductForm(ProductService productService)
+        public ProductForm(ProductService productService, AttributeService attributeService)
         {
             _productService = productService;
+            _attributeService = attributeService;
             _localStorageService = new LocalStorageService();
             InitializeComponent();
             SetupForm();
@@ -651,7 +653,7 @@ namespace WinFormsApp1.Forms.Product
             }
             
             // Create new product edit form as MDI child
-            var productEditForm = new ProductEditForm(_productService, null, companyId)
+            var productEditForm = new ProductEditForm(_productService, _attributeService, null, companyId.ToString())
             {
                 MdiParent = this.MdiParent,
                 Text = "New Product",
@@ -695,7 +697,7 @@ namespace WinFormsApp1.Forms.Product
                 }
                 
                 // Create new product edit form as MDI child
-                var productEditForm = new ProductEditForm(_productService, _selectedProduct, companyId)
+                var productEditForm = new ProductEditForm(_productService, _attributeService, _selectedProduct, companyId.ToString())
                 {
                     MdiParent = this.MdiParent,
                     Text = $"Edit Product - {_selectedProduct.DisplayName}",
@@ -749,15 +751,7 @@ namespace WinFormsApp1.Forms.Product
                         lblStatus.Text = "Deleting product...";
                         lblStatus.ForeColor = Color.Blue;
                         
-                        // Validate product ID
-                        if (!Guid.TryParse(_selectedProduct.Id, out Guid productId))
-                        {
-                            lblStatus.Text = "Invalid product ID format";
-                            lblStatus.ForeColor = Color.Red;
-                            return;
-                        }
-                        
-                        var success = await _productService.DeleteProductAsync(productId);
+                        var success = await _productService.DeleteProductAsync(_selectedProduct.Id);
                         
                         if (success)
                         {

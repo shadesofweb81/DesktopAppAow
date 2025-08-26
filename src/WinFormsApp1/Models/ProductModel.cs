@@ -47,18 +47,18 @@ namespace WinFormsApp1.Models
         
         // Hierarchical structure
         [JsonPropertyName("parentId")]
-        public Guid? ParentId { get; set; }
+        public string? ParentId { get; set; }
         
         // Foreign keys
         [JsonPropertyName("companyId")]
-        public Guid CompanyId { get; set; }
+        public string CompanyId { get; set; } = string.Empty;
         
         // Arrays from API
         [JsonPropertyName("attributeIds")]
         public List<string> AttributeIds { get; set; } = new List<string>();
         
         [JsonPropertyName("productVariants")]
-        public List<object> ProductVariants { get; set; } = new List<object>();
+        public List<ProductVariantModel> ProductVariants { get; set; } = new List<ProductVariantModel>();
         
         // Navigation properties
         public ProductModel? Parent { get; set; }
@@ -110,10 +110,13 @@ namespace WinFormsApp1.Models
         public string Barcode { get; set; } = string.Empty;
         
         [JsonPropertyName("parentId")]
-        public Guid? ParentId { get; set; }
+        public string? ParentId { get; set; }
         
         [JsonPropertyName("companyId")]
-        public Guid CompanyId { get; set; }
+        public string CompanyId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attributeIds")]
+        public List<string> AttributeIds { get; set; } = new List<string>();
     }
 
     public class ProductListResponse
@@ -182,6 +185,66 @@ namespace WinFormsApp1.Models
         public ProductModel Product { get; set; } = null!;
         public Attribute Attribute { get; set; } = null!;
         public Company Company { get; set; } = null!;
+    }
+
+    public class ProductVariantModel
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+        
+        [JsonPropertyName("productId")]
+        public string ProductId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("variantCode")]
+        public string VariantCode { get; set; } = string.Empty;
+        
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+        
+        [JsonPropertyName("description")]
+        public string Description { get; set; } = string.Empty;
+        
+        [JsonPropertyName("purchasePrice")]
+        public decimal PurchasePrice { get; set; }
+        
+        [JsonPropertyName("sellingPrice")]
+        public decimal SellingPrice { get; set; }
+        
+        [JsonPropertyName("stockQuantity")]
+        public int StockQuantity { get; set; }
+        
+        [JsonPropertyName("sku")]
+        public string SKU { get; set; } = string.Empty;
+        
+        [JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = true;
+        
+        [JsonPropertyName("productVariantAttributes")]
+        public List<ProductVariantAttributeModel> ProductVariantAttributes { get; set; } = new List<ProductVariantAttributeModel>();
+    }
+
+    public class ProductVariantAttributeModel
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+        
+        [JsonPropertyName("productVariantId")]
+        public string ProductVariantId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attributeId")]
+        public string AttributeId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attributeName")]
+        public string AttributeName { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attributeOptionId")]
+        public string AttributeOptionId { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attributeOptionName")]
+        public string AttributeOptionName { get; set; } = string.Empty;
+        
+        [JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = true;
     }
 
     public class ProductVariant

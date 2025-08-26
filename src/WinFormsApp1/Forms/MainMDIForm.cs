@@ -933,7 +933,8 @@ namespace WinFormsApp1.Forms
 
             // Create new product form
             var productService = new ProductService(_authService);
-            var productForm = new ProductForm(productService)
+            var attributeService = new AttributeService(_authService);
+            var productForm = new ProductForm(productService, attributeService)
             {
                 MdiParent = this,
                 Text = "Product Management",
