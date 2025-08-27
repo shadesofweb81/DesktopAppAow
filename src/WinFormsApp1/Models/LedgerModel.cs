@@ -10,40 +10,33 @@ namespace WinFormsApp1.Models
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
-        [StringLength(50)]
         public string Category { get; set; } = string.Empty;  // e.g., "Customer", "Supplier", "Bank", etc.
 
-        [StringLength(50)]
+     
         public string Code { get; set; } = string.Empty;
 
-        [StringLength(200)]
+      
         public string? Address { get; set; }
 
-        [StringLength(100)]
+      
         public string? City { get; set; }
 
-        [StringLength(50)]
+      
         public string? State { get; set; }
 
-        [StringLength(20)]
+     
         public string? ZipCode { get; set; }
 
-        [StringLength(100)]
+       
         public string? Country { get; set; }
 
-        [StringLength(30)]
         public string? Phone { get; set; }
 
-        [StringLength(100)]
-        [EmailAddress]
+      
         public string? Email { get; set; }
 
-        [StringLength(100)]
-        [Url]
         public string? Website { get; set; }
 
-        [StringLength(50)]
         public string? TaxId { get; set; }
 
         public bool IsGroup { get; set; }
@@ -60,5 +53,43 @@ namespace WinFormsApp1.Models
         // Display property for list
         public string DisplayName => $"{Name} ({Category})";
        
+    }
+
+    public class UpdateLedgerModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        public string? Category { get; set; } = string.Empty;
+
+        public string? Code { get; set; } = string.Empty;
+
+        public string? Address { get; set; }
+
+        public string? City { get; set; }
+
+        public string? State { get; set; }
+
+        public string? ZipCode { get; set; }
+
+        public string? Country { get; set; }
+
+        public string? Phone { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? Website { get; set; }
+
+        public string? TaxId { get; set; }
+
+        public bool IsGroup { get; set; }
+        public bool? IsRegistered { get; set; }
+
+        // Parent-Child relationship
+        public Guid? ParentId { get; set; }
+
+        // Company ID is required for updates
+        public Guid CompanyId { get; set; }
     }
 } 

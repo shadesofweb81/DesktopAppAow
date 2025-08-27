@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using WinFormsApp1.Models;
@@ -134,7 +135,7 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<bool> UpdateLedgerAsync(Guid id, LedgerModel ledger)
+        public async Task<bool> UpdateLedgerAsync(Guid id, UpdateLedgerModel ledger)
         {
             try
             {
@@ -142,7 +143,7 @@ namespace WinFormsApp1.Services
                 var json = JsonSerializer.Serialize(ledger);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
+                var response = await _httpClient.PutAsJsonAsync($"{_baseUrl}/{id}", ledger);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Update Ledger Response Status: {response.StatusCode}");

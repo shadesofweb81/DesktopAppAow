@@ -383,7 +383,20 @@ namespace WinFormsApp1.Forms.Ledger
                 _ledger.Country = txtCountry.Text.Trim();
                 _ledger.Phone = txtPhone.Text.Trim();
                 _ledger.Email = txtEmail.Text.Trim();
-                _ledger.Website = txtWebsite.Text.Trim();
+                
+                // Format website URL to ensure it has a protocol
+                string websiteUrl = txtWebsite.Text.Trim();
+                if (!string.IsNullOrWhiteSpace(websiteUrl))
+                {
+                    if (!websiteUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                        !websiteUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && 
+                        !websiteUrl.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        websiteUrl = "https://" + websiteUrl;
+                    }
+                }
+                _ledger.Website = websiteUrl;
+                
                 _ledger.TaxId = txtTaxId.Text.Trim();
                 _ledger.IsGroup = chkIsGroup.Checked;
                 _ledger.IsRegistered = chkIsRegistered.Checked;
@@ -405,7 +418,28 @@ namespace WinFormsApp1.Forms.Ledger
                 }
                 else
                 {
-                    success = await _ledgerService.UpdateLedgerAsync(_ledger.Id, _ledger);
+                    // Create UpdateLedgerModel for update operation
+                    var updateModel = new UpdateLedgerModel
+                    {
+                        Name = _ledger.Name,
+                        Category = _ledger.Category,
+                        Code = _ledger.Code,
+                        Address = _ledger.Address,
+                        City = _ledger.City,
+                        State = _ledger.State,
+                        ZipCode = _ledger.ZipCode,
+                        Country = _ledger.Country,
+                        Phone = _ledger.Phone,
+                        Email = _ledger.Email,
+                        Website = _ledger.Website,
+                        TaxId = _ledger.TaxId,
+                        IsGroup = _ledger.IsGroup,
+                        IsRegistered = _ledger.IsRegistered,
+                        ParentId = _ledger.ParentId,
+                        CompanyId = _ledger.CompanyId
+                    };
+                    
+                    success = await _ledgerService.UpdateLedgerAsync(_ledger.Id, updateModel);
                 }
 
                 if (success)
@@ -453,7 +487,7 @@ namespace WinFormsApp1.Forms.Ledger
                 }
                 catch
                 {
-                    MessageBox.Show("Please enter a valid email address.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Please enter a valid email address (e.g., user@example.com).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtEmail.Focus();
                     return false;
                 }
@@ -461,9 +495,19 @@ namespace WinFormsApp1.Forms.Ledger
 
             if (!string.IsNullOrWhiteSpace(txtWebsite.Text))
             {
-                if (!Uri.TryCreate(txtWebsite.Text, UriKind.Absolute, out _))
+                // Ensure the URL has a protocol
+                string websiteUrl = txtWebsite.Text.Trim();
+                if (!websiteUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                    !websiteUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && 
+                    !websiteUrl.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase))
                 {
-                    MessageBox.Show("Please enter a valid website URL.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    websiteUrl = "https://" + websiteUrl;
+                }
+
+                if (!Uri.TryCreate(websiteUrl, UriKind.Absolute, out var uri) || 
+                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeFtp))
+                {
+                    MessageBox.Show("Please enter a valid website URL with protocol (e.g., https://www.example.com).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtWebsite.Focus();
                     return false;
                 }
