@@ -879,35 +879,14 @@ namespace WinFormsApp1.Forms.Product
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(txtProductCode.Text))
-            {
-                MessageBox.Show("Product code is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtProductCode.Focus();
-                return false;
-            }
+            //if (string.IsNullOrWhiteSpace(txtProductCode.Text))
+            //{
+            //    MessageBox.Show("Product code is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //    txtProductCode.Focus();
+            //    return false;
+            //}
 
-            // Validate numeric fields
-            if (!decimal.TryParse(txtPurchasePrice.Text, out _))
-            {
-                MessageBox.Show("Please enter a valid purchase price.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtPurchasePrice.Focus();
-                return false;
-            }
-
-            if (!decimal.TryParse(txtSellingPrice.Text, out _))
-            {
-                MessageBox.Show("Please enter a valid selling price.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtSellingPrice.Focus();
-                return false;
-            }
-
-            if (!int.TryParse(txtStockQuantity.Text, out _))
-            {
-                MessageBox.Show("Please enter a valid stock quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtStockQuantity.Focus();
-                return false;
-            }
-
+          
             return true;
         }
     }

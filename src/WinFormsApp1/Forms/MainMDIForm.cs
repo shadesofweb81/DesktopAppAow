@@ -1,6 +1,7 @@
 using WinFormsApp1.Forms.Company;
 using WinFormsApp1.Forms.Product;
 using WinFormsApp1.Forms.FinancialYear;
+using WinFormsApp1.Forms.Ledger;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -13,6 +14,7 @@ namespace WinFormsApp1.Forms
         private readonly CompanyService _companyService;
         private readonly LocalStorageService _localStorageService;
         private readonly FinancialYearService _financialYearService;
+        private readonly LedgerService _ledgerService;
         private MenuStrip menuStrip = null!;
         private ToolStripMenuItem fileMenu = null!;
         private ToolStripMenuItem companyMenuItem = null!;
@@ -70,6 +72,7 @@ namespace WinFormsApp1.Forms
             _companyService = new CompanyService(authService);
             _localStorageService = new LocalStorageService();
             _financialYearService = new FinancialYearService(authService);
+            _ledgerService = new LedgerService(authService);
             InitializeComponent();
             SetupForm();
         }
@@ -1016,6 +1019,48 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private void OpenLedgerListForm()
+        {
+            // Check if LedgerListForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is LedgerListForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new ledger list form
+            var ledgerListForm = new LedgerListForm(_ledgerService)
+            {
+                MdiParent = this,
+                Text = "Ledger Management",
+                WindowState = FormWindowState.Maximized
+            };
+
+            ledgerListForm.Show();
+            
+            // Hide navigation panel when LedgerListForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            ledgerListForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Clear all highlights and show navigation panel with first button focused
+                        ClearAllButtonHighlights();
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1416,14 +1461,16 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             else
             {
-                // Check if the active child form is a company/product-related form
+                // Check if the active child form is a company/product/ledger-related form
                 if (this.ActiveMdiChild is CompanyForm || 
                     this.ActiveMdiChild is CompanySelectForm || 
                     this.ActiveMdiChild is CompanyEditForm ||
                     this.ActiveMdiChild is ProductForm ||
-                    this.ActiveMdiChild is ProductEditForm)
+                    this.ActiveMdiChild is ProductEditForm ||
+                    this.ActiveMdiChild is LedgerListForm ||
+                    this.ActiveMdiChild is LedgerEditForm)
                 {
-                    // Hide navigation panel when company/product-related forms are active
+                    // Hide navigation panel when company/product/ledger-related forms are active
                     HideNavigationPanel();
                 }
                 else
@@ -1443,9 +1490,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is ProductEditForm ||
                 this.ActiveMdiChild is FinancialYearListForm ||
                 this.ActiveMdiChild is FinancialYearEditForm ||
-                this.ActiveMdiChild is FinancialYearSelectForm)
+                this.ActiveMdiChild is FinancialYearSelectForm ||
+                this.ActiveMdiChild is LedgerListForm ||
+                this.ActiveMdiChild is LedgerEditForm)
             {
-                // Hide navigation panel when company/product-related forms are active
+                // Hide navigation panel when company/product/ledger-related forms are active
                 HideNavigationPanel();
                 
                 // Ensure forms stay maximized when they're the active form
@@ -1674,7 +1723,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void accountsButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Accounts feature will be implemented here.", "Accounts", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenLedgerListForm();
         }
 
         // Transactions Section Button Handlers
