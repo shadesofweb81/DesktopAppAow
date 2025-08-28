@@ -68,15 +68,23 @@ namespace WinFormsApp1.Forms.Tax
             btnSave = new Button();
             btnCancel = new Button();
             lblStatus = new Label();
+            
+            // Create main panel for scrolling
+            var mainPanel = new Panel();
+            mainPanel.Dock = DockStyle.Fill;
+            mainPanel.AutoScroll = true;
+            mainPanel.Padding = new Padding(10);
+            
             SuspendLayout();
 
             // Form
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1000, 900);
+            ClientSize = new Size(1000, 700); // Reduced height for smaller screens
             Name = "TaxEditForm";
             Text = _isNewTax ? "New Tax" : "Edit Tax";
             StartPosition = FormStartPosition.CenterParent;
+            MinimumSize = new Size(800, 600); // Set minimum size
 
             // Labels and controls layout
             var y = 30;
@@ -92,8 +100,8 @@ namespace WinFormsApp1.Forms.Tax
             txtName.Location = new Point(controlX, y);
             txtName.Size = new Size(controlWidth, controlHeight);
             txtName.MaxLength = 100;
-            Controls.Add(lblName);
-            Controls.Add(txtName);
+            mainPanel.Controls.Add(lblName);
+            mainPanel.Controls.Add(txtName);
             y += spacing;
 
             // Description
@@ -101,8 +109,8 @@ namespace WinFormsApp1.Forms.Tax
             txtDescription.Location = new Point(controlX, y);
             txtDescription.Size = new Size(controlWidth, controlHeight);
             txtDescription.MaxLength = 500;
-            Controls.Add(lblDescription);
-            Controls.Add(txtDescription);
+            mainPanel.Controls.Add(lblDescription);
+            mainPanel.Controls.Add(txtDescription);
             y += spacing;
 
             // Category
@@ -110,8 +118,8 @@ namespace WinFormsApp1.Forms.Tax
             cmbCategory.Location = new Point(controlX, y);
             cmbCategory.Size = new Size(controlWidth, controlHeight);
             cmbCategory.DropDownStyle = ComboBoxStyle.DropDownList;
-            Controls.Add(lblCategory);
-            Controls.Add(cmbCategory);
+            mainPanel.Controls.Add(lblCategory);
+            mainPanel.Controls.Add(cmbCategory);
             y += spacing;
 
             // Default Rate
@@ -122,8 +130,8 @@ namespace WinFormsApp1.Forms.Tax
             nudDefaultRate.Minimum = 0;
             nudDefaultRate.Maximum = 100;
             nudDefaultRate.Increment = 0.01m;
-            Controls.Add(lblDefaultRate);
-            Controls.Add(nudDefaultRate);
+            mainPanel.Controls.Add(lblDefaultRate);
+            mainPanel.Controls.Add(nudDefaultRate);
             y += spacing;
 
             // HSN Code
@@ -131,8 +139,8 @@ namespace WinFormsApp1.Forms.Tax
             txtHSNCode.Location = new Point(controlX, y);
             txtHSNCode.Size = new Size(controlWidth, controlHeight);
             txtHSNCode.MaxLength = 50;
-            Controls.Add(lblHSNCode);
-            Controls.Add(txtHSNCode);
+            mainPanel.Controls.Add(lblHSNCode);
+            mainPanel.Controls.Add(txtHSNCode);
             y += spacing;
 
             // Section Code
@@ -140,8 +148,8 @@ namespace WinFormsApp1.Forms.Tax
             txtSectionCode.Location = new Point(controlX, y);
             txtSectionCode.Size = new Size(controlWidth, controlHeight);
             txtSectionCode.MaxLength = 50;
-            Controls.Add(lblSectionCode);
-            Controls.Add(txtSectionCode);
+            mainPanel.Controls.Add(lblSectionCode);
+            mainPanel.Controls.Add(txtSectionCode);
             y += spacing;
 
             // Return Form Number
@@ -149,8 +157,8 @@ namespace WinFormsApp1.Forms.Tax
             txtReturnFormNumber.Location = new Point(controlX, y);
             txtReturnFormNumber.Size = new Size(controlWidth, controlHeight);
             txtReturnFormNumber.MaxLength = 50;
-            Controls.Add(lblReturnFormNumber);
-            Controls.Add(txtReturnFormNumber);
+            mainPanel.Controls.Add(lblReturnFormNumber);
+            mainPanel.Controls.Add(txtReturnFormNumber);
             y += spacing;
 
             // Is Active
@@ -158,40 +166,40 @@ namespace WinFormsApp1.Forms.Tax
             chkIsActive.Size = new Size(200, controlHeight);
             chkIsActive.Text = "Is Active";
             chkIsActive.Checked = true;
-            Controls.Add(chkIsActive);
+            mainPanel.Controls.Add(chkIsActive);
             y += spacing;
 
             // Is Composite
             chkIsComposite.Location = new Point(controlX, y);
             chkIsComposite.Size = new Size(200, controlHeight);
             chkIsComposite.Text = "Is Composite";
-            Controls.Add(chkIsComposite);
+            mainPanel.Controls.Add(chkIsComposite);
             y += spacing;
 
             // Is Reverse Charge Applicable
             chkIsReverseChargeApplicable.Location = new Point(controlX, y);
             chkIsReverseChargeApplicable.Size = new Size(250, controlHeight);
             chkIsReverseChargeApplicable.Text = "Is Reverse Charge Applicable";
-            Controls.Add(chkIsReverseChargeApplicable);
+            mainPanel.Controls.Add(chkIsReverseChargeApplicable);
             y += spacing;
 
             // Is Deductible At Source
             chkIsDeductibleAtSource.Location = new Point(controlX, y);
             chkIsDeductibleAtSource.Size = new Size(200, controlHeight);
             chkIsDeductibleAtSource.Text = "Is Deductible At Source";
-            Controls.Add(chkIsDeductibleAtSource);
+            mainPanel.Controls.Add(chkIsDeductibleAtSource);
             y += spacing;
 
             // Is Collected At Source
             chkIsCollectedAtSource.Location = new Point(controlX, y);
             chkIsCollectedAtSource.Size = new Size(200, controlHeight);
             chkIsCollectedAtSource.Text = "Is Collected At Source";
-            Controls.Add(chkIsCollectedAtSource);
+            mainPanel.Controls.Add(chkIsCollectedAtSource);
             y += spacing + 20;
 
             // Components Section
             var lblComponents = new Label { Text = "Tax Components:", Location = new Point(labelX, y), Size = new Size(labelWidth, controlHeight), Font = new Font(Font, FontStyle.Bold) };
-            Controls.Add(lblComponents);
+            mainPanel.Controls.Add(lblComponents);
             y += spacing;
 
             // Components DataGridView
@@ -213,7 +221,7 @@ namespace WinFormsApp1.Forms.Tax
             dgvComponents.Columns.Add("LedgerCode", "Ledger Code");
             dgvComponents.Columns.Add("IsActive", "Active");
             
-            Controls.Add(dgvComponents);
+            mainPanel.Controls.Add(dgvComponents);
             y += 220;
 
             // Component buttons
@@ -221,41 +229,51 @@ namespace WinFormsApp1.Forms.Tax
             btnAddComponent.Size = new Size(100, 30);
             btnAddComponent.Text = "Add";
             btnAddComponent.Click += btnAddComponent_Click;
-            Controls.Add(btnAddComponent);
+            mainPanel.Controls.Add(btnAddComponent);
 
             btnEditComponent.Location = new Point(labelX + 110, y);
             btnEditComponent.Size = new Size(100, 30);
             btnEditComponent.Text = "Edit";
             btnEditComponent.Click += btnEditComponent_Click;
-            Controls.Add(btnEditComponent);
+            mainPanel.Controls.Add(btnEditComponent);
 
             btnDeleteComponent.Location = new Point(labelX + 220, y);
             btnDeleteComponent.Size = new Size(100, 30);
             btnDeleteComponent.Text = "Delete";
             btnDeleteComponent.Click += btnDeleteComponent_Click;
-            Controls.Add(btnDeleteComponent);
+            mainPanel.Controls.Add(btnDeleteComponent);
 
             y += 40;
 
-            // Buttons
-            btnSave.Location = new Point(controlX, y);
+            // Add some spacing before the main action buttons
+            y += 20;
+
+            // Main action buttons (Save/Cancel) - positioned on the right side
+            var buttonRightX = 650; // Position buttons on the right side
+            btnSave.Location = new Point(buttonRightX, y);
             btnSave.Size = new Size(100, 35);
             btnSave.Text = "Save";
             btnSave.Click += btnSave_Click;
-            Controls.Add(btnSave);
+            mainPanel.Controls.Add(btnSave);
 
-            btnCancel.Location = new Point(controlX + 120, y);
+            btnCancel.Location = new Point(buttonRightX + 120, y);
             btnCancel.Size = new Size(100, 35);
             btnCancel.Text = "Cancel";
             btnCancel.Click += btnCancel_Click;
-            Controls.Add(btnCancel);
+            mainPanel.Controls.Add(btnCancel);
 
             // Status label
             lblStatus.Location = new Point(labelX, y + 50);
             lblStatus.Size = new Size(700, 25);
             lblStatus.Text = "Ready";
             lblStatus.ForeColor = Color.Green;
-            Controls.Add(lblStatus);
+            mainPanel.Controls.Add(lblStatus);
+
+            // Set panel size to accommodate all controls
+            mainPanel.Size = new Size(980, y + 100);
+            
+            // Add panel to form
+            Controls.Add(mainPanel);
 
             ResumeLayout(false);
         }
@@ -460,16 +478,75 @@ namespace WinFormsApp1.Forms.Tax
 
         private void btnAddComponent_Click(object? sender, EventArgs e)
         {
-            // TODO: Implement add component functionality
-            MessageBox.Show("Add component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                var componentForm = new TaxComponentEditForm();
+                if (componentForm.ShowDialog() == DialogResult.OK)
+                {
+                    var newComponent = componentForm.GetComponent();
+                    if (newComponent != null)
+                    {
+                        // Set the tax ID for the new component
+                        newComponent.TaxId = _tax!.Id;
+                        
+                        // Add to the tax's components list
+                        if (_tax.Components == null)
+                            _tax.Components = new List<TaxComponent>();
+                        
+                        _tax.Components.Add(newComponent);
+                        
+                        // Refresh the components grid
+                        LoadComponents();
+                        
+                        lblStatus.Text = "Component added successfully";
+                        lblStatus.ForeColor = Color.Green;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Error adding component: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+                MessageBox.Show($"Error adding component: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnEditComponent_Click(object? sender, EventArgs e)
         {
             if (dgvComponents.SelectedRows.Count > 0)
             {
-                // TODO: Implement edit component functionality
-                MessageBox.Show("Edit component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                try
+                {
+                    var selectedIndex = dgvComponents.SelectedRows[0].Index;
+                    if (_tax?.Components != null)
+                    {
+                        var componentToEdit = _tax.Components.ElementAt(selectedIndex);
+                        var componentForm = new TaxComponentEditForm(componentToEdit);
+                        
+                        if (componentForm.ShowDialog() == DialogResult.OK)
+                        {
+                            var updatedComponent = componentForm.GetComponent();
+                            if (updatedComponent != null)
+                            {
+                                // Remove the old component and add the updated one
+                                _tax.Components.Remove(componentToEdit);
+                                _tax.Components.Add(updatedComponent);
+                                
+                                // Refresh the components grid
+                                LoadComponents();
+                                
+                                lblStatus.Text = "Component updated successfully";
+                                lblStatus.ForeColor = Color.Green;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lblStatus.Text = $"Error editing component: {ex.Message}";
+                    lblStatus.ForeColor = Color.Red;
+                    MessageBox.Show($"Error editing component: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             else
             {
@@ -483,8 +560,28 @@ namespace WinFormsApp1.Forms.Tax
             {
                 if (MessageBox.Show("Are you sure you want to delete this component?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
-                    // TODO: Implement delete component functionality
-                    MessageBox.Show("Delete component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    try
+                    {
+                                            var selectedIndex = dgvComponents.SelectedRows[0].Index;
+                    if (_tax?.Components != null)
+                    {
+                        var componentToDelete = _tax.Components.ElementAt(selectedIndex);
+                        // Remove the component from the list
+                        _tax.Components.Remove(componentToDelete);
+                        
+                        // Refresh the components grid
+                        LoadComponents();
+                        
+                        lblStatus.Text = "Component deleted successfully";
+                        lblStatus.ForeColor = Color.Green;
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                        lblStatus.Text = $"Error deleting component: {ex.Message}";
+                        lblStatus.ForeColor = Color.Red;
+                        MessageBox.Show($"Error deleting component: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
             else
