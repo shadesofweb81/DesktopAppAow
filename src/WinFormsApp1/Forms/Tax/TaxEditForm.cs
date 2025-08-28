@@ -24,6 +24,10 @@ namespace WinFormsApp1.Forms.Tax
         private CheckBox chkIsDeductibleAtSource = null!;
         private CheckBox chkIsCollectedAtSource = null!;
         private TextBox txtReturnFormNumber = null!;
+        private DataGridView dgvComponents = null!;
+        private Button btnAddComponent = null!;
+        private Button btnEditComponent = null!;
+        private Button btnDeleteComponent = null!;
         private Button btnSave = null!;
         private Button btnCancel = null!;
         private Label lblStatus = null!;
@@ -57,6 +61,10 @@ namespace WinFormsApp1.Forms.Tax
             chkIsDeductibleAtSource = new CheckBox();
             chkIsCollectedAtSource = new CheckBox();
             txtReturnFormNumber = new TextBox();
+            dgvComponents = new DataGridView();
+            btnAddComponent = new Button();
+            btnEditComponent = new Button();
+            btnDeleteComponent = new Button();
             btnSave = new Button();
             btnCancel = new Button();
             lblStatus = new Label();
@@ -65,7 +73,7 @@ namespace WinFormsApp1.Forms.Tax
             // Form
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 700);
+            ClientSize = new Size(1000, 900);
             Name = "TaxEditForm";
             Text = _isNewTax ? "New Tax" : "Edit Tax";
             StartPosition = FormStartPosition.CenterParent;
@@ -179,7 +187,55 @@ namespace WinFormsApp1.Forms.Tax
             chkIsCollectedAtSource.Size = new Size(200, controlHeight);
             chkIsCollectedAtSource.Text = "Is Collected At Source";
             Controls.Add(chkIsCollectedAtSource);
-            y += spacing + 10;
+            y += spacing + 20;
+
+            // Components Section
+            var lblComponents = new Label { Text = "Tax Components:", Location = new Point(labelX, y), Size = new Size(labelWidth, controlHeight), Font = new Font(Font, FontStyle.Bold) };
+            Controls.Add(lblComponents);
+            y += spacing;
+
+            // Components DataGridView
+            dgvComponents.Location = new Point(labelX, y);
+            dgvComponents.Size = new Size(900, 200);
+            dgvComponents.AllowUserToAddRows = false;
+            dgvComponents.AllowUserToDeleteRows = false;
+            dgvComponents.ReadOnly = true;
+            dgvComponents.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvComponents.MultiSelect = false;
+            dgvComponents.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvComponents.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            
+            // Add columns
+            dgvComponents.Columns.Add("Name", "Name");
+            dgvComponents.Columns.Add("Description", "Description");
+            dgvComponents.Columns.Add("Type", "Type");
+            dgvComponents.Columns.Add("Rate", "Rate (%)");
+            dgvComponents.Columns.Add("LedgerCode", "Ledger Code");
+            dgvComponents.Columns.Add("IsActive", "Active");
+            
+            Controls.Add(dgvComponents);
+            y += 220;
+
+            // Component buttons
+            btnAddComponent.Location = new Point(labelX, y);
+            btnAddComponent.Size = new Size(100, 30);
+            btnAddComponent.Text = "Add";
+            btnAddComponent.Click += btnAddComponent_Click;
+            Controls.Add(btnAddComponent);
+
+            btnEditComponent.Location = new Point(labelX + 110, y);
+            btnEditComponent.Size = new Size(100, 30);
+            btnEditComponent.Text = "Edit";
+            btnEditComponent.Click += btnEditComponent_Click;
+            Controls.Add(btnEditComponent);
+
+            btnDeleteComponent.Location = new Point(labelX + 220, y);
+            btnDeleteComponent.Size = new Size(100, 30);
+            btnDeleteComponent.Text = "Delete";
+            btnDeleteComponent.Click += btnDeleteComponent_Click;
+            Controls.Add(btnDeleteComponent);
+
+            y += 40;
 
             // Buttons
             btnSave.Location = new Point(controlX, y);
@@ -245,6 +301,9 @@ namespace WinFormsApp1.Forms.Tax
                     chkIsReverseChargeApplicable.Checked = _tax.IsReverseChargeApplicable;
                     chkIsDeductibleAtSource.Checked = _tax.IsDeductibleAtSource;
                     chkIsCollectedAtSource.Checked = _tax.IsCollectedAtSource;
+
+                    // Load components
+                    LoadComponents();
                 }
             }
             catch (Exception ex)
@@ -252,6 +311,26 @@ namespace WinFormsApp1.Forms.Tax
                 lblStatus.Text = $"Error loading data: {ex.Message}";
                 lblStatus.ForeColor = Color.Red;
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadComponents()
+        {
+            dgvComponents.Rows.Clear();
+            
+            if (_tax?.Components != null)
+            {
+                foreach (var component in _tax.Components)
+                {
+                    dgvComponents.Rows.Add(
+                        component.Name,
+                        component.Description,
+                        component.Type.ToString(),
+                        component.Rate.ToString("F2"),
+                        component.LedgerCode,
+                        component.IsActive ? "Yes" : "No"
+                    );
+                }
             }
         }
 
@@ -275,6 +354,12 @@ namespace WinFormsApp1.Forms.Tax
             chkIsReverseChargeApplicable.Enabled = false;
             chkIsDeductibleAtSource.Enabled = false;
             chkIsCollectedAtSource.Enabled = false;
+            
+            // Disable component controls
+            dgvComponents.Enabled = false;
+            btnAddComponent.Enabled = false;
+            btnEditComponent.Enabled = false;
+            btnDeleteComponent.Enabled = false;
         }
 
         private async void btnSave_Click(object? sender, EventArgs e)
@@ -370,6 +455,41 @@ namespace WinFormsApp1.Forms.Tax
             if (e.KeyCode == Keys.Escape)
             {
                 Close();
+            }
+        }
+
+        private void btnAddComponent_Click(object? sender, EventArgs e)
+        {
+            // TODO: Implement add component functionality
+            MessageBox.Show("Add component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void btnEditComponent_Click(object? sender, EventArgs e)
+        {
+            if (dgvComponents.SelectedRows.Count > 0)
+            {
+                // TODO: Implement edit component functionality
+                MessageBox.Show("Edit component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("Please select a component to edit", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void btnDeleteComponent_Click(object? sender, EventArgs e)
+        {
+            if (dgvComponents.SelectedRows.Count > 0)
+            {
+                if (MessageBox.Show("Are you sure you want to delete this component?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    // TODO: Implement delete component functionality
+                    MessageBox.Show("Delete component functionality will be implemented", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a component to delete", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 

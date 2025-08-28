@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace WinFormsApp1.Models
 {
@@ -12,6 +13,7 @@ namespace WinFormsApp1.Models
         [StringLength(500)]
         public string Description { get; set; } = string.Empty;
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public TaxType Type { get; set; }
 
         public decimal Rate { get; set; }
