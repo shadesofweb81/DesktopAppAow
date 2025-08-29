@@ -653,13 +653,52 @@ namespace WinFormsApp1.Forms
 
         private void logoutMenuItem_Click(object? sender, EventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login and require you to log in again next time.", "Logout",
+            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login and require you to log in again.", "Logout",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (result == DialogResult.Yes)
             {
+                PerformLogout();
+            }
+        }
+
+        private void PerformLogout()
+        {
+            try
+            {
+                // Close all child forms first
+                foreach (Form childForm in this.MdiChildren.ToList())
+                {
+                    childForm.Close();
+                }
+
+                // Logout from auth service
                 _authService.Logout();
-                this.Close();
+
+                // Hide the main form
+                this.Hide();
+
+                // Show login form
+                using var loginForm = new LoginForm(_authService);
+                var loginResult = loginForm.ShowDialog();
+
+                // If login was successful, show the main form again
+                if (loginResult == DialogResult.OK && _authService.IsAuthenticated)
+                {
+                    this.Show();
+                    this.WindowState = FormWindowState.Normal;
+                    this.Activate();
+                }
+                else
+                {
+                    // If login was cancelled or failed, close the application
+                    Application.Exit();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during logout: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Application.Exit();
             }
         }
 

@@ -8,7 +8,7 @@ namespace WinFormsApp1.Forms.Auth
         private TextBox txtUsername = null!;
         private TextBox txtPassword = null!;
         private Button btnLogin = null!;
-        private Button btnTestConnection = null!;
+        private Button btnRegister = null!;
         private Label lblUsername = null!;
         private Label lblPassword = null!;
         private Label lblStatus = null!;
@@ -25,7 +25,7 @@ namespace WinFormsApp1.Forms.Auth
             txtUsername = new TextBox();
             txtPassword = new TextBox();
             btnLogin = new Button();
-            btnTestConnection = new Button();
+            btnRegister = new Button();
             lblUsername = new Label();
             lblPassword = new Label();
             lblStatus = new Label();
@@ -72,20 +72,20 @@ namespace WinFormsApp1.Forms.Auth
             btnLogin.UseVisualStyleBackColor = true;
             btnLogin.Click += new EventHandler(btnLogin_Click);
             // 
-            // btnTestConnection
+            // btnRegister
             // 
-            btnTestConnection.Location = new Point(230, 130);
-            btnTestConnection.Name = "btnTestConnection";
-            btnTestConnection.Size = new Size(100, 30);
-            btnTestConnection.TabIndex = 3;
-            btnTestConnection.Text = "Test API";
-            btnTestConnection.UseVisualStyleBackColor = true;
-            btnTestConnection.Click += new EventHandler(btnTestConnection_Click);
+            btnRegister.Location = new Point(120, 170);
+            btnRegister.Name = "btnRegister";
+            btnRegister.Size = new Size(100, 30);
+            btnRegister.TabIndex = 4;
+            btnRegister.Text = "Register";
+            btnRegister.UseVisualStyleBackColor = true;
+            btnRegister.Click += new EventHandler(btnRegister_Click);
             // 
             // lblStatus
             // 
             lblStatus.AutoSize = true;
-            lblStatus.Location = new Point(120, 170);
+            lblStatus.Location = new Point(120, 210);
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(0, 15);
             lblStatus.ForeColor = Color.Red;
@@ -95,9 +95,9 @@ namespace WinFormsApp1.Forms.Auth
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(384, 250);
+            ClientSize = new Size(384, 290);
             Controls.Add(lblStatus);
-            Controls.Add(btnTestConnection);
+            Controls.Add(btnRegister);
             Controls.Add(btnLogin);
             Controls.Add(txtPassword);
             Controls.Add(lblPassword);
@@ -170,7 +170,7 @@ Fields:
 
 Buttons:
 • Login - Authenticate with the server
-• Test API - Check server connection
+• Register - Create a new account
 
 Press F1 anytime for this help.";
 
@@ -222,34 +222,17 @@ Press F1 anytime for this help.";
             }
         }
 
-        private async void btnTestConnection_Click(object? sender, EventArgs e)
+        private void btnRegister_Click(object? sender, EventArgs e)
         {
-            btnTestConnection.Enabled = false;
-            lblStatus.Text = "Testing API connection...";
-            lblStatus.ForeColor = Color.Blue;
-
             try
             {
-                var isConnected = await _authService.TestApiConnection();
-                if (isConnected)
-                {
-                    lblStatus.Text = "API connection successful!";
-                    lblStatus.ForeColor = Color.Green;
-                }
-                else
-                {
-                    lblStatus.Text = "API connection failed. Check console for details.";
-                    lblStatus.ForeColor = Color.Red;
-                }
+                var registerForm = new RegisterForm();
+                registerForm.ShowDialog();
             }
             catch (Exception ex)
             {
-                lblStatus.Text = $"Connection test failed: {ex.Message}";
-                lblStatus.ForeColor = Color.Red;
-            }
-            finally
-            {
-                btnTestConnection.Enabled = true;
+                MessageBox.Show($"Error opening registration form: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

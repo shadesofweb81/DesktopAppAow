@@ -123,6 +123,137 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<RegisterResponse> RegisterAsync(RegisterModel registerModel)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(registerModel, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                Console.WriteLine($"Sending register request to: {_authBaseUrl}/api/auth/User/register");
+                Console.WriteLine($"Request JSON: {json}");
+
+                var response = await _httpClient.PostAsync("/api/auth/User/register", content);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var registerResponse = JsonSerializer.Deserialize<RegisterResponse>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        if (registerResponse != null)
+                        {
+                            registerResponse.Success = true;
+                            return registerResponse;
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        return new RegisterResponse
+                        {
+                            Success = false,
+                            Message = $"Response parsing error: {ex.Message}. Raw response: {responseContent}"
+                        };
+                    }
+                }
+
+                // If we get here, the registration failed
+                return new RegisterResponse
+                {
+                    Success = false,
+                    Message = $"HTTP {(int)response.StatusCode}: {responseContent}"
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Registration exception: {ex.Message}");
+                return new RegisterResponse
+                {
+                    Success = false,
+                    Message = $"Registration failed: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<RegisterResponse> ResendVerificationAsync(string email)
+        {
+            try
+            {
+                var resendModel = new ResendVerificationModel { Email = email };
+                var json = JsonSerializer.Serialize(resendModel, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                Console.WriteLine($"Sending resend verification request to: {_authBaseUrl}/api/auth/User/resend-verification");
+                Console.WriteLine($"Request JSON: {json}");
+
+                var response = await _httpClient.PostAsync("/api/auth/User/resend-verification", content);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content: {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var resendResponse = JsonSerializer.Deserialize<RegisterResponse>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        if (resendResponse != null)
+                        {
+                            resendResponse.Success = true;
+                            return resendResponse;
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        return new RegisterResponse
+                        {
+                            Success = false,
+                            Message = $"Response parsing error: {ex.Message}. Raw response: {responseContent}"
+                        };
+                    }
+                }
+
+                // If we get here, the resend failed
+                return new RegisterResponse
+                {
+                    Success = false,
+                    Message = $"HTTP {(int)response.StatusCode}: {responseContent}"
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Resend verification exception: {ex.Message}");
+                return new RegisterResponse
+                {
+                    Success = false,
+                    Message = $"Resend verification failed: {ex.Message}"
+                };
+            }
+        }
+
         public async Task<bool> TestApiConnection()
         {
             try

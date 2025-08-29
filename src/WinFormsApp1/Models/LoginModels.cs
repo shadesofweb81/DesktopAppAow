@@ -59,4 +59,34 @@ namespace WinFormsApp1.Models
             return Success || IsSuccess || Status?.ToLower() == "success";
         }
     }
+
+    public class RegisterResponse
+    {
+        [JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
+
+        [JsonPropertyName("error")]
+        public string Error { get; set; } = string.Empty;
+
+        [JsonPropertyName("success")]
+        public bool Success { get; set; }
+
+        [JsonPropertyName("isSuccess")]
+        public bool IsSuccess { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("userId")]
+        public string UserId { get; set; } = string.Empty;
+
+        [JsonPropertyName("email")]
+        public string Email { get; set; } = string.Empty;
+
+        // Helper property to check if registration was successful
+        public bool IsRegistrationSuccessful()
+        {
+            return Success || IsSuccess || Status?.ToLower() == "success";
+        }
+    }
 }
