@@ -311,15 +311,36 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        // Try to parse as CompanyResponse first
-                        var companyResponse = JsonSerializer.Deserialize<CompanyResponse>(responseContent, new JsonSerializerOptions
+                        // First, try to parse as integer (company ID) - most common successful response
+                        if (int.TryParse(responseContent.Trim(), out int companyId))
                         {
-                            PropertyNameCaseInsensitive = true
-                        });
-
-                        if (companyResponse != null && companyResponse.Success)
-                        {
-                            return companyResponse.GetCompany();
+                            Console.WriteLine($"Successfully created company with ID: {companyId}");
+                            
+                            // Create a Company object with the ID and the data from the request
+                            var createdCompany = new Company
+                            {
+                                Id = companyId.ToString(),
+                                Name = request.Name,
+                                Code = request.Code,
+                                Address = request.Address,
+                                City = request.City,
+                                State = request.State,
+                                ZipCode = request.ZipCode,
+                                Country = request.Country,
+                                Phone = request.Phone,
+                                Email = request.Email,
+                                Website = request.Website,
+                                TaxId = request.TaxId,
+                                LogoUrl = request.LogoUrl,
+                                Currency = request.Currency,
+                                UserRole = request.UserRole,
+                                StartingFinancialYearDate = request.StartingFinancialYearDate,
+                                IsActive = request.IsActive,
+                                CreatedDate = DateTime.UtcNow,
+                                ModifiedDate = DateTime.UtcNow
+                            };
+                            
+                            return createdCompany;
                         }
 
                         // If that doesn't work, try to parse as direct Company object
@@ -328,11 +349,19 @@ namespace WinFormsApp1.Services
                             PropertyNameCaseInsensitive = true
                         });
 
-                        return company;
+                        if (company != null)
+                        {
+                            Console.WriteLine($"Successfully parsed direct Company object: ID={company.Id}, Name={company.Name}");
+                            return company;
+                        }
+
+                        Console.WriteLine($"Could not parse response as any expected format. Raw response: {responseContent}");
+                        return null;
                     }
                     catch (JsonException ex)
                     {
                         Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Raw response: {responseContent}");
                         return null;
                     }
                 }

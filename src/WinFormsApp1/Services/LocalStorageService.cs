@@ -306,6 +306,31 @@ namespace WinFormsApp1.Services
         }
 
         #endregion
+
+        #region Clear All Data
+
+        public async Task ClearAllDataAsync()
+        {
+            try
+            {
+                // Clear selected company
+                await ClearSelectedCompanyAsync();
+                
+                // Clear company cache
+                await ClearCompanyCacheAsync();
+                
+                // Clear selected financial year
+                await ClearSelectedFinancialYearAsync();
+                
+                Console.WriteLine("All local storage data cleared successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error clearing all local storage data: {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 
     public class CompanyCache

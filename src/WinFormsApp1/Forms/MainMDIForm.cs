@@ -651,18 +651,18 @@ namespace WinFormsApp1.Forms
             MessageBox.Show("Dashboard feature will be implemented in a future update.", "Dashboard", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void logoutMenuItem_Click(object? sender, EventArgs e)
+        private async void logoutMenuItem_Click(object? sender, EventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login and require you to log in again.", "Logout",
+            var result = MessageBox.Show("Are you sure you want to logout?\n\nThis will clear your saved login, company data, and require you to log in again.", "Logout",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (result == DialogResult.Yes)
             {
-                PerformLogout();
+                await PerformLogout();
             }
         }
 
-        private void PerformLogout()
+        private async Task PerformLogout()
         {
             try
             {
@@ -672,7 +672,10 @@ namespace WinFormsApp1.Forms
                     childForm.Close();
                 }
 
-                // Logout from auth service
+                // Clear all local storage data (company and user data)
+                await _localStorageService.ClearAllDataAsync();
+
+                // Logout from auth service (clears JWT token)
                 _authService.Logout();
 
                 // Hide the main form
@@ -1474,12 +1477,23 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
 
 
 
-        private void MainMDIForm_FormClosing(object? sender, FormClosingEventArgs e)
+        private async void MainMDIForm_FormClosing(object? sender, FormClosingEventArgs e)
         {
-            // If user is closing the main form, logout and exit
-            _authService.Logout();
-            _companyService?.Dispose();
-            _financialYearService?.Dispose();
+            // If user is closing the main form, clear all data and logout
+            try
+            {
+                await _localStorageService.ClearAllDataAsync();
+                _authService.Logout();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during form closing cleanup: {ex.Message}");
+            }
+            finally
+            {
+                _companyService?.Dispose();
+                _financialYearService?.Dispose();
+            }
         }
 
         // Navigation Helper Methods
