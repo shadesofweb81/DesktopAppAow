@@ -3,6 +3,24 @@ using WinFormsApp1.Services;
 
 namespace WinFormsApp1.Forms.Tax
 {
+    // Helper class for ledger dropdown items
+    public class LedgerDropdownItem
+    {
+        public Guid? Id { get; set; }
+        public string Name { get; set; }
+
+        public LedgerDropdownItem(Guid? id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+
     public partial class TaxComponentEditForm : Form
     {
         private TaxComponent? _component;
@@ -279,13 +297,16 @@ namespace WinFormsApp1.Forms.Tax
                 cmbReceivableLedger.Items.Clear();
                 cmbPayableLedger.Items.Clear();
 
+                // Add empty option for primary ledger
+                cmbLedger.Items.Add(new LedgerDropdownItem(null, "-- Select Primary Ledger --"));
+                
                 // Add empty option for optional ledgers
-                cmbReceivableLedger.Items.Add(new { Id = (Guid?)null, Name = "-- Select Receivable Ledger --" });
-                cmbPayableLedger.Items.Add(new { Id = (Guid?)null, Name = "-- Select Payable Ledger --" });
+                cmbReceivableLedger.Items.Add(new LedgerDropdownItem(null, "-- Select Receivable Ledger --"));
+                cmbPayableLedger.Items.Add(new LedgerDropdownItem(null, "-- Select Payable Ledger --"));
 
                 foreach (var ledger in ledgers)
                 {
-                    var item = new { Id = ledger.Id, Name = $"{ledger.Code} - {ledger.Name}" };
+                    var item = new LedgerDropdownItem(ledger.Id, ledger.Name);
                     cmbLedger.Items.Add(item);
                     cmbReceivableLedger.Items.Add(item);
                     cmbPayableLedger.Items.Add(item);
@@ -304,9 +325,7 @@ namespace WinFormsApp1.Forms.Tax
             {
                 for (int i = 0; i < comboBox.Items.Count; i++)
                 {
-                    var item = comboBox.Items[i];
-                    var idProperty = item.GetType().GetProperty("Id");
-                    if (idProperty != null && idProperty.GetValue(item)?.Equals(ledgerId.Value) == true)
+                    if (comboBox.Items[i] is LedgerDropdownItem item && item.Id == ledgerId.Value)
                     {
                         comboBox.SelectedIndex = i;
                         break;
@@ -317,13 +336,9 @@ namespace WinFormsApp1.Forms.Tax
 
         private Guid? GetSelectedLedgerId(ComboBox comboBox)
         {
-            if (comboBox.SelectedItem != null)
+            if (comboBox.SelectedItem is LedgerDropdownItem item)
             {
-                var idProperty = comboBox.SelectedItem.GetType().GetProperty("Id");
-                if (idProperty != null)
-                {
-                    return (Guid?)idProperty.GetValue(comboBox.SelectedItem);
-                }
+                return item.Id;
             }
             return null;
         }

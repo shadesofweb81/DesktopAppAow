@@ -3,6 +3,24 @@ using WinFormsApp1.Services;
 
 namespace WinFormsApp1.Forms.Tax
 {
+    // Helper class for displaying enum values in ComboBox
+    public class TaxCategoryDisplayItem
+    {
+        public TaxCategory Value { get; set; }
+        public string DisplayName { get; set; }
+
+        public TaxCategoryDisplayItem(TaxCategory value, string displayName)
+        {
+            Value = value;
+            DisplayName = displayName;
+        }
+
+        public override string ToString()
+        {
+            return DisplayName;
+        }
+    }
+
     public partial class TaxEditForm : Form
     {
         private readonly TaxService _taxService;
@@ -291,9 +309,18 @@ namespace WinFormsApp1.Forms.Tax
         {
             try
             {
-                // Load categories
+                // Load categories with display names
                 cmbCategory.Items.Clear();
-                cmbCategory.Items.AddRange(Enum.GetValues<TaxCategory>());
+                var categories = Enum.GetValues<TaxCategory>();
+                var displayItems = new List<TaxCategoryDisplayItem>();
+                
+                foreach (var category in categories)
+                {
+                    string displayName = GetCategoryDisplayName(category);
+                    displayItems.Add(new TaxCategoryDisplayItem(category, displayName));
+                }
+                
+                cmbCategory.Items.AddRange(displayItems.ToArray());
 
                 if (_isNewTax)
                 {
@@ -303,13 +330,38 @@ namespace WinFormsApp1.Forms.Tax
                     {
                         _tax.CompanyId = Guid.Parse(company.Id);
                     }
+                    
+                    // Set default category for new tax
+                    if (cmbCategory.Items.Count > 0)
+                    {
+                        cmbCategory.SelectedIndex = 0; // Select first category as default
+                    }
                 }
                 else
                 {
                     // Load existing tax data
                     txtName.Text = _tax!.Name;
                     txtDescription.Text = _tax.Description;
-                    cmbCategory.SelectedItem = _tax.Category;
+                    
+                    // Set category - find the matching display item
+                    if (cmbCategory.Items.Count > 0)
+                    {
+                        for (int i = 0; i < cmbCategory.Items.Count; i++)
+                        {
+                            if (cmbCategory.Items[i] is TaxCategoryDisplayItem item && item.Value == _tax.Category)
+                            {
+                                cmbCategory.SelectedIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        // If not found, set to first item as fallback
+                        if (cmbCategory.SelectedIndex == -1 && cmbCategory.Items.Count > 0)
+                        {
+                            cmbCategory.SelectedIndex = 0;
+                        }
+                    }
+                    
                     nudDefaultRate.Value = _tax.DefaultRate;
                     txtHSNCode.Text = _tax.HSNCode ?? "";
                     txtSectionCode.Text = _tax.SectionCode ?? "";
@@ -330,6 +382,21 @@ namespace WinFormsApp1.Forms.Tax
                 lblStatus.ForeColor = Color.Red;
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private string GetCategoryDisplayName(TaxCategory category)
+        {
+            return category switch
+            {
+                TaxCategory.GST => "GST - Goods and Services Tax",
+                TaxCategory.IncomeTax => "Income Tax - TDS, TCS",
+                TaxCategory.CustomsDuty => "Customs Duty - Import/Export",
+                TaxCategory.Cess => "Cess - Various Types",
+                TaxCategory.ServiceTax => "Service Tax",
+                TaxCategory.VAT => "VAT - Value Added Tax",
+                TaxCategory.Other => "Other - Miscellaneous Taxes",
+                _ => category.ToString()
+            };
         }
 
         private void LoadComponents()
@@ -395,7 +462,7 @@ namespace WinFormsApp1.Forms.Tax
                 // Update tax model
                 _tax!.Name = txtName.Text.Trim();
                 _tax.Description = txtDescription.Text.Trim();
-                _tax.Category = (TaxCategory)cmbCategory.SelectedItem;
+                _tax.Category = cmbCategory.SelectedItem is TaxCategoryDisplayItem item ? item.Value : TaxCategory.Other;
                 _tax.DefaultRate = nudDefaultRate.Value;
                 _tax.HSNCode = txtHSNCode.Text.Trim();
                 _tax.SectionCode = txtSectionCode.Text.Trim();
@@ -446,7 +513,7 @@ namespace WinFormsApp1.Forms.Tax
                 return false;
             }
 
-            if (cmbCategory.SelectedItem == null)
+            if (cmbCategory.SelectedItem == null || cmbCategory.SelectedItem is not TaxCategoryDisplayItem)
             {
                 MessageBox.Show("Category is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 cmbCategory.Focus();
