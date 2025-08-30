@@ -77,7 +77,7 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<Transaction?> GetTransactionByIdAsync(Guid id)
+        public async Task<TransactionByIdDto?> GetTransactionByIdAsync(Guid id)
         {
             try
             {
@@ -92,13 +92,13 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        var transaction = JsonSerializer.Deserialize<Transaction>(responseContent, new JsonSerializerOptions
+                        var transactionDto = JsonSerializer.Deserialize<TransactionByIdDto>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             Converters = { new JsonStringEnumConverter() }
                         });
 
-                        return transaction;
+                        return transactionDto;
                     }
                     catch (JsonException ex)
                     {
@@ -299,3 +299,4 @@ namespace WinFormsApp1.Services
         }
     }
 }
+

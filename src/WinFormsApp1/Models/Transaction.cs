@@ -174,4 +174,106 @@ namespace WinFormsApp1.Models
         public bool HasPreviousPage { get; set; }
         public bool HasNextPage { get; set; }
     }
+
+    // DTO for GetTransactionById API response
+    public class TransactionByIdDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string? TransactionType { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string? JournalEntryType { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal Total { get; set; }
+        public string? Notes { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public string? PartyLedgerId { get; set; }
+        public string? PartyName { get; set; }
+        public string? AccountLedgerId { get; set; }
+        public string? AccountName { get; set; }
+        public decimal Discount { get; set; }
+        public decimal Freight { get; set; }
+        public bool IsFreightIncluded { get; set; }
+        public decimal RoundOff { get; set; }
+        public List<TransactionItemDto> Items { get; set; } = new List<TransactionItemDto>();
+        public List<TransactionTaxDto> Taxes { get; set; } = new List<TransactionTaxDto>();
+        public List<TransactionLedgerEntryDto> LedgerEntries { get; set; } = new List<TransactionLedgerEntryDto>();
+    }
+
+    public class TransactionItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string ProductId { get; set; } = string.Empty;
+        public string? ProductName { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal DiscountRate { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal LineTotal { get; set; }
+        public decimal CurrentQuantity { get; set; }
+        public int SerialNumber { get; set; }
+        public List<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
+    }
+
+    public class ProductVariantDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string ProductVariantId { get; set; } = string.Empty;
+        public string? VariantCode { get; set; }
+        public string? VariantName { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal SellingPrice { get; set; }
+        public decimal CurrentQuantity { get; set; }
+        public int SerialNumber { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class TransactionTaxDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string TaxId { get; set; } = string.Empty;
+        public string? TaxName { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public string? CalculationMethod { get; set; }
+        public bool IsApplied { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public string? Description { get; set; }
+        public int SerialNumber { get; set; }
+        public List<TransactionTaxComponentDto> Components { get; set; } = new List<TransactionTaxComponentDto>();
+    }
+
+    public class TransactionTaxComponentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string TaxComponentId { get; set; } = string.Empty;
+        public string? ComponentName { get; set; }
+        public decimal Amount { get; set; }
+        public string? Description { get; set; }
+        public bool IsApplied { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public string? ReferenceNumber { get; set; }
+    }
+
+    public class TransactionLedgerEntryDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string LedgerId { get; set; } = string.Empty;
+        public string? LedgerName { get; set; }
+        public string? EntryType { get; set; }
+        public decimal Amount { get; set; }
+        public string? Description { get; set; }
+        public bool IsMainEntry { get; set; }
+        public bool IsSystemEntry { get; set; }
+    }
 }

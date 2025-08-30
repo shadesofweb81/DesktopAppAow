@@ -11,6 +11,7 @@ namespace WinFormsApp1.Forms.Transaction
         private readonly TaxService _taxService;
         private readonly LedgerService _ledgerService;
         private Models.Transaction? _transaction;
+        private Models.TransactionByIdDto? _transactionDto;
         private readonly Models.Company _selectedCompany;
         private readonly FinancialYearModel _selectedFinancialYear;
 
@@ -24,6 +25,10 @@ namespace WinFormsApp1.Forms.Transaction
         private ComboBox cmbStatus = null!;
         private TextBox txtReferenceNumber = null!;
         private TextBox txtNotes = null!;
+        
+        // Ledger Controls
+        private ComboBox cmbPartyLedger = null!;
+        private ComboBox cmbAccountLedger = null!;
 
         // Items Section
         private DataGridView dgvItems = null!;
@@ -55,6 +60,7 @@ namespace WinFormsApp1.Forms.Transaction
 
         private List<Models.ProductListDto> _availableProducts = new List<Models.ProductListDto>();
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
+        private List<Models.LedgerModel> _availableLedgers = new List<Models.LedgerModel>();
 
         // Wrapper classes for DataGridView display
         private class TransactionItemDisplay
@@ -165,13 +171,16 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
+  
+
         public TransactionEditForm(TransactionService transactionService, LocalStorageService localStorageService,
-            Models.Transaction? transaction, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear,
+            Models.TransactionByIdDto? transactionDto, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear,
             ProductService? productService = null, TaxService? taxService = null, LedgerService? ledgerService = null)
         {
             _transactionService = transactionService;
             _localStorageService = localStorageService;
-            _transaction = transaction;
+            _transactionDto = transactionDto;
+            _transaction = transactionDto != null ? ConvertDtoToTransaction(transactionDto) : null;
             _selectedCompany = selectedCompany;
             _selectedFinancialYear = selectedFinancialYear;
 
@@ -183,6 +192,69 @@ namespace WinFormsApp1.Forms.Transaction
             InitializeComponent();
             SetupForm();
             LoadData();
+        }
+
+        private Models.Transaction ConvertDtoToTransaction(Models.TransactionByIdDto dto)
+        {
+            var transaction = new Models.Transaction
+            {
+                Id = Guid.TryParse(dto.Id, out var id) ? id : Guid.NewGuid(),
+                TransactionNumber = dto.TransactionNumber,
+                InvoiceNumber = dto.InvoiceNumber,
+                TransactionDate = dto.TransactionDate,
+                DueDate = dto.DueDate,
+                Status = dto.Status,
+                Notes = dto.Notes,
+                ReferenceNumber = dto.ReferenceNumber,
+                PartyName = dto.PartyName,
+                SubTotal = dto.SubTotal,
+                TaxAmount = dto.TaxAmount,
+                Total = dto.Total,
+                Discount = dto.Discount,
+                Freight = dto.Freight,
+                IsFreightIncluded = dto.IsFreightIncluded,
+                RoundOff = dto.RoundOff
+            };
+
+            // Parse the type string
+            if (Enum.TryParse<TransactionType>(dto.Type, out var transactionType))
+            {
+                transaction.Type = transactionType;
+            }
+
+            // Convert items
+            transaction.Items = dto.Items.Select(itemDto => new TransactionItem
+            {
+                Id = Guid.TryParse(itemDto.Id, out var itemId) ? itemId : Guid.NewGuid(),
+                ProductId = Guid.TryParse(itemDto.ProductId, out var productId) ? productId : Guid.Empty,
+                Description = itemDto.Description,
+                Quantity = itemDto.Quantity,
+                UnitPrice = itemDto.UnitPrice,
+                TaxRate = itemDto.TaxRate,
+                TaxAmount = itemDto.TaxAmount,
+                DiscountRate = itemDto.DiscountRate,
+                DiscountAmount = itemDto.DiscountAmount,
+                LineTotal = itemDto.LineTotal,
+                CurrentQuantity = itemDto.CurrentQuantity,
+                SerialNumber = itemDto.SerialNumber
+            }).ToList();
+
+            // Convert taxes
+            transaction.Taxes = dto.Taxes.Select(taxDto => new TransactionTax
+            {
+                Id = Guid.TryParse(taxDto.Id, out var taxId) ? taxId : Guid.NewGuid(),
+                TaxId = Guid.TryParse(taxDto.TaxId, out var taxTypeId) ? taxTypeId : Guid.Empty,
+                TaxableAmount = taxDto.TaxableAmount,
+                TaxAmount = taxDto.TaxAmount,
+                CalculationMethod = taxDto.CalculationMethod ?? "",
+                IsApplied = taxDto.IsApplied,
+                AppliedDate = taxDto.AppliedDate,
+                ReferenceNumber = taxDto.ReferenceNumber,
+                Description = taxDto.Description,
+                SerialNumber = taxDto.SerialNumber
+            }).ToList();
+
+            return transaction;
         }
 
         private void InitializeComponent()
@@ -197,6 +269,9 @@ namespace WinFormsApp1.Forms.Transaction
             cmbStatus = new ComboBox();
             txtReferenceNumber = new TextBox();
             txtNotes = new TextBox();
+            
+            cmbPartyLedger = new ComboBox();
+            cmbAccountLedger = new ComboBox();
 
             dgvItems = new DataGridView();
             btnAddItem = new Button();
@@ -270,6 +345,11 @@ namespace WinFormsApp1.Forms.Transaction
             // Third Row - Reference Number, Notes
             AddLabelAndControl("Reference #:", txtReferenceNumber, leftMargin, yPosition, labelWidth, controlWidth);
             AddLabelAndControl("Notes:", txtNotes, leftMargin + 350, yPosition, labelWidth, 550);
+            yPosition += spaceBetweenRows;
+
+            // Fourth Row - Ledger Selection
+            AddLabelAndControl("Party Ledger:", cmbPartyLedger, leftMargin, yPosition, labelWidth, controlWidth + 50);
+            AddLabelAndControl("Account Ledger:", cmbAccountLedger, leftMargin + 350, yPosition, labelWidth, controlWidth + 50);
             yPosition += spaceBetweenRows + 10;
 
             // Items Section
@@ -479,6 +559,15 @@ namespace WinFormsApp1.Forms.Transaction
             cmbStatus.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbStatus.Items.AddRange(new[] { "Draft", "Pending", "Approved", "Rejected", "Completed", "Cancelled" });
             cmbStatus.SelectedIndex = 0; // Default to Draft
+
+            // Ledger ComboBoxes
+            cmbPartyLedger.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbPartyLedger.DisplayMember = "DisplayName";
+            cmbPartyLedger.ValueMember = "Id";
+
+            cmbAccountLedger.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbAccountLedger.DisplayMember = "DisplayName";
+            cmbAccountLedger.ValueMember = "Id";
         }
 
         private void SetupDataGridViews()
@@ -648,50 +737,12 @@ namespace WinFormsApp1.Forms.Transaction
 
         private async void LoadData()
         {
-            // Load product and tax lists first
-            await LoadProductAndTaxLists();
+            // Load product, tax, and ledger lists first
+            await LoadProductTaxAndLedgerLists();
 
             if (_transaction != null)
             {
-                // Load existing transaction data
-                cmbTransactionType.SelectedItem = _transaction.Type;
-                txtTransactionNumber.Text = _transaction.TransactionNumber;
-                txtInvoiceNumber.Text = _transaction.InvoiceNumber ?? "";
-                dtpTransactionDate.Value = _transaction.TransactionDate;
-                dtpDueDate.Value = _transaction.DueDate;
-                cmbStatus.SelectedItem = _transaction.Status;
-                txtReferenceNumber.Text = _transaction.ReferenceNumber ?? "";
-                txtNotes.Text = _transaction.Notes ?? "";
-
-                // Convert items to display format
-                var itemDisplays = _transaction.Items.Select(item => 
-                {
-                    var product = _availableProducts.FirstOrDefault(p => p.Id == item.ProductId.ToString());
-                    var productName = product?.DisplayName ?? "Unknown Product";
-                    return new TransactionItemDisplay(item, productName);
-                }).ToList();
-
-                // Convert taxes to display format
-                var taxDisplays = _transaction.Taxes.Select(tax => 
-                {
-                    var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
-                    var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
-                    var taxComponents = taxInfo?.Components != null && taxInfo.Components.Any() 
-                        ? string.Join(", ", taxInfo.Components.Select(c => c.DisplayName))
-                        : "No Components";
-                    return new TransactionTaxDisplay(tax, taxName, taxComponents);
-                }).ToList();
-
-                dgvItems.DataSource = itemDisplays;
-                dgvTaxes.DataSource = taxDisplays;
-
-                txtDiscountPercent.Text = _transaction.Discount.ToString("N2");
-                txtDiscountAmount.Text = "0.00"; // DiscountAmount property was removed from model
-                txtFreight.Text = _transaction.Freight.ToString("N2");
-                chkFreightIncluded.Checked = _transaction.IsFreightIncluded;
-                txtRoundOff.Text = _transaction.RoundOff.ToString("N2");
-
-                CalculateTotals();
+                await LoadExistingTransactionData();
             }
             else
             {
@@ -709,7 +760,168 @@ namespace WinFormsApp1.Forms.Transaction
             cmbTransactionType.Focus();
         }
 
-        private async Task LoadProductAndTaxLists()
+        private async Task LoadExistingTransactionData()
+        {
+            if (_transaction == null) return;
+
+            try
+            {
+                // Load full transaction details using the new DTO
+                _transactionDto = await _transactionService.GetTransactionByIdAsync(_transaction.Id);
+                
+                if (_transactionDto != null)
+                {
+                    // Load form data from DTO
+                    if (Enum.TryParse<TransactionType>(_transactionDto.Type, out var transactionType))
+                    {
+                        cmbTransactionType.SelectedItem = transactionType;
+                    }
+                    
+                    txtTransactionNumber.Text = _transactionDto.TransactionNumber;
+                    txtInvoiceNumber.Text = _transactionDto.InvoiceNumber ?? "";
+                    dtpTransactionDate.Value = _transactionDto.TransactionDate;
+                    dtpDueDate.Value = _transactionDto.DueDate;
+                    cmbStatus.SelectedItem = _transactionDto.Status;
+                    txtReferenceNumber.Text = _transactionDto.ReferenceNumber ?? "";
+                    txtNotes.Text = _transactionDto.Notes ?? "";
+
+                    // Set ledger selections
+                    if (!string.IsNullOrEmpty(_transactionDto.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var partyLedgerId))
+                    {
+                        cmbPartyLedger.SelectedValue = partyLedgerId;
+                    }
+                    
+                    if (!string.IsNullOrEmpty(_transactionDto.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var accountLedgerId))
+                    {
+                        cmbAccountLedger.SelectedValue = accountLedgerId;
+                    }
+
+                    // Convert items to display format using DTO
+                    var itemDisplays = _transactionDto.Items.Select(item => CreateTransactionItemDisplay(item)).ToList();
+
+                    // Convert taxes to display format using DTO
+                    var taxDisplays = _transactionDto.Taxes.Select(tax => CreateTransactionTaxDisplay(tax)).ToList();
+
+                    dgvItems.DataSource = itemDisplays;
+                    dgvTaxes.DataSource = taxDisplays;
+
+                    txtDiscountPercent.Text = _transactionDto.Discount.ToString("N2");
+                    txtDiscountAmount.Text = "0.00"; // Calculated field
+                    txtFreight.Text = _transactionDto.Freight.ToString("N2");
+                    chkFreightIncluded.Checked = _transactionDto.IsFreightIncluded;
+                    txtRoundOff.Text = _transactionDto.RoundOff.ToString("N2");
+
+                    CalculateTotals();
+                }
+                else
+                {
+                    // Fallback to original transaction data if DTO load fails
+                    LoadFallbackTransactionData();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading transaction details: {ex.Message}");
+                LoadFallbackTransactionData();
+            }
+        }
+
+        private void LoadFallbackTransactionData()
+        {
+            if (_transaction == null) return;
+
+            cmbTransactionType.SelectedItem = _transaction.Type;
+            txtTransactionNumber.Text = _transaction.TransactionNumber;
+            txtInvoiceNumber.Text = _transaction.InvoiceNumber ?? "";
+            dtpTransactionDate.Value = _transaction.TransactionDate;
+            dtpDueDate.Value = _transaction.DueDate;
+            cmbStatus.SelectedItem = _transaction.Status;
+            txtReferenceNumber.Text = _transaction.ReferenceNumber ?? "";
+            txtNotes.Text = _transaction.Notes ?? "";
+
+            // Convert items to display format
+            var itemDisplays = _transaction.Items.Select(item => 
+            {
+                var product = _availableProducts.FirstOrDefault(p => p.Id == item.ProductId.ToString());
+                var productName = product?.DisplayName ?? "Unknown Product";
+                return new TransactionItemDisplay(item, productName);
+            }).ToList();
+
+            // Convert taxes to display format
+            var taxDisplays = _transaction.Taxes.Select(tax => 
+            {
+                var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
+                var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
+                var taxComponents = taxInfo?.Components != null && taxInfo.Components.Any() 
+                    ? string.Join(", ", taxInfo.Components.Select(c => c.DisplayName))
+                    : "No Components";
+                return new TransactionTaxDisplay(tax, taxName, taxComponents);
+            }).ToList();
+
+            dgvItems.DataSource = itemDisplays;
+            dgvTaxes.DataSource = taxDisplays;
+
+            txtDiscountPercent.Text = _transaction.Discount.ToString("N2");
+            txtDiscountAmount.Text = "0.00";
+            txtFreight.Text = _transaction.Freight.ToString("N2");
+            chkFreightIncluded.Checked = _transaction.IsFreightIncluded;
+            txtRoundOff.Text = _transaction.RoundOff.ToString("N2");
+
+            CalculateTotals();
+        }
+
+        private TransactionItemDisplay CreateTransactionItemDisplay(TransactionItemDto itemDto)
+        {
+            var productName = itemDto.ProductName ?? "Unknown Product";
+            
+            // Convert DTO to TransactionItem for the display wrapper
+            var transactionItem = new TransactionItem
+            {
+                Id = Guid.TryParse(itemDto.Id, out var itemId) ? itemId : Guid.NewGuid(),
+                TransactionId = Guid.Empty, // Will be set when saving
+                ProductId = Guid.TryParse(itemDto.ProductId, out var productId) ? productId : Guid.Empty,
+                Description = itemDto.Description,
+                Quantity = itemDto.Quantity,
+                UnitPrice = itemDto.UnitPrice,
+                TaxRate = itemDto.TaxRate,
+                TaxAmount = itemDto.TaxAmount,
+                DiscountRate = itemDto.DiscountRate,
+                DiscountAmount = itemDto.DiscountAmount,
+                LineTotal = itemDto.LineTotal,
+                CurrentQuantity = itemDto.CurrentQuantity,
+                SerialNumber = itemDto.SerialNumber
+            };
+
+            return new TransactionItemDisplay(transactionItem, productName);
+        }
+
+        private TransactionTaxDisplay CreateTransactionTaxDisplay(TransactionTaxDto taxDto)
+        {
+            var taxName = taxDto.TaxName ?? "Unknown Tax";
+            var taxComponents = taxDto.Components.Any() 
+                ? string.Join(", ", taxDto.Components.Select(c => c.ComponentName))
+                : "No Components";
+            
+            // Convert DTO to TransactionTax for the display wrapper
+            var transactionTax = new TransactionTax
+            {
+                Id = Guid.TryParse(taxDto.Id, out var taxId) ? taxId : Guid.NewGuid(),
+                TransactionId = Guid.Empty, // Will be set when saving
+                TaxId = Guid.TryParse(taxDto.TaxId, out var taxTypeId) ? taxTypeId : Guid.Empty,
+                TaxableAmount = taxDto.TaxableAmount,
+                TaxAmount = taxDto.TaxAmount,
+                CalculationMethod = taxDto.CalculationMethod ?? "",
+                IsApplied = taxDto.IsApplied,
+                AppliedDate = taxDto.AppliedDate,
+                ReferenceNumber = taxDto.ReferenceNumber,
+                Description = taxDto.Description,
+                SerialNumber = taxDto.SerialNumber
+            };
+
+            return new TransactionTaxDisplay(transactionTax, taxName, taxComponents);
+        }
+
+        private async Task LoadProductTaxAndLedgerLists()
         {
             try
             {
@@ -733,11 +945,19 @@ namespace WinFormsApp1.Forms.Transaction
                 // Load taxes
                 _availableTaxes = await _taxService.GetTaxListForTransactionAsync(companyId);
                 Console.WriteLine($"Loaded {_availableTaxes.Count} taxes for transaction");
+
+                // Load ledgers
+                _availableLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
+                Console.WriteLine($"Loaded {_availableLedgers.Count} ledgers for transaction");
+
+                // Populate ledger combo boxes
+                cmbPartyLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
+                cmbAccountLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading product and tax lists: {ex.Message}");
-                MessageBox.Show($"Error loading product and tax lists: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Error loading data lists: {ex.Message}");
+                MessageBox.Show($"Error loading data lists: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -804,18 +1024,20 @@ Field Order:
 6. Status (dropdown)
 7. Reference Number
 8. Notes
-9. Transaction Items (DataGrid)
-10. Transaction Taxes (DataGrid)
-11. Subtotal (read-only)
-12. Discount Percent
-13. Discount Amount
-14. Freight
-15. Freight Included (checkbox)
-16. Tax Amount (read-only)
-17. Round Off
-18. Total (read-only)
-19. Save Button
-20. Cancel Button
+9. Party Ledger (dropdown)
+10. Account Ledger (dropdown)
+11. Transaction Items (DataGrid)
+12. Transaction Taxes (DataGrid)
+13. Subtotal (read-only)
+14. Discount Percent
+15. Discount Amount
+16. Freight
+17. Freight Included (checkbox)
+18. Tax Amount (read-only)
+19. Round Off
+20. Total (read-only)
+21. Save Button
+22. Cancel Button
 
 Tips:
 • Use Tab/Backspace for fast field navigation
@@ -1114,6 +1336,12 @@ Tips:
 
             transaction.CompanyId = Guid.Parse(_selectedCompany.Id);
             transaction.FinancialYearId = _selectedFinancialYear.Id;
+
+            // Set party name from selected ledger
+            if (cmbPartyLedger.SelectedItem is LedgerModel selectedPartyLedger)
+            {
+                transaction.PartyName = selectedPartyLedger.Name;
+            }
 
             // Parse summary fields
             decimal.TryParse(txtSubTotal.Text, out var subtotal);

@@ -471,13 +471,13 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 // Load the full transaction details
-                var transaction = await LoadFullTransaction(_selectedTransaction.Id);
-                if (transaction != null)
+                var transactionDto = await LoadFullTransaction(_selectedTransaction.Id);
+                if (transactionDto != null)
                 {
                     var transactionEditForm = new TransactionEditForm(
                         _transactionService, 
                         _localStorageService, 
-                        transaction, 
+                        transactionDto, 
                         _selectedCompany!, 
                         _selectedFinancialYear!,
                         _productService,
@@ -508,13 +508,13 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 // Load the full transaction details
-                var transaction = await LoadFullTransaction(_selectedTransaction.Id);
-                if (transaction != null)
+                var transactionDto = await LoadFullTransaction(_selectedTransaction.Id);
+                if (transactionDto != null)
                 {
                     var transactionEditForm = new TransactionEditForm(
                         _transactionService, 
                         _localStorageService, 
-                        transaction, 
+                        transactionDto, 
                         _selectedCompany!, 
                         _selectedFinancialYear!,
                         _productService,
@@ -573,7 +573,7 @@ namespace WinFormsApp1.Forms.Transaction
                                 await LoadTransactions();
         }
 
-        private async Task<Models.Transaction?> LoadFullTransaction(Guid transactionId)
+        private async Task<Models.TransactionByIdDto?> LoadFullTransaction(Guid transactionId)
         {
             try
             {
@@ -917,13 +917,13 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 // Load the full transaction details
-                var transaction = await LoadFullTransaction(_selectedTransaction.Id);
-                if (transaction != null)
+                var transactionDto = await LoadFullTransaction(_selectedTransaction.Id);
+                if (transactionDto != null)
                 {
                     var transactionEditForm = new TransactionEditForm(
                         _transactionService, 
                         _localStorageService, 
-                        transaction, 
+                        transactionDto, 
                         _selectedCompany!, 
                         _selectedFinancialYear!,
                         _productService,
@@ -960,13 +960,13 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 // Load the full transaction details
-                var transaction = await LoadFullTransaction(_selectedTransaction.Id);
-                if (transaction != null)
+                var transactionDto = await LoadFullTransaction(_selectedTransaction.Id);
+                if (transactionDto != null)
                 {
                     var transactionEditForm = new TransactionEditForm(
                         _transactionService, 
                         _localStorageService, 
-                        transaction, 
+                        transactionDto, 
                         _selectedCompany!, 
                         _selectedFinancialYear!,
                         _productService,
@@ -1021,3 +1021,4 @@ namespace WinFormsApp1.Forms.Transaction
         }
     }
 }
+
