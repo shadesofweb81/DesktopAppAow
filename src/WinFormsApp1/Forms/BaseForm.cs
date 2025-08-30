@@ -49,6 +49,16 @@ namespace WinFormsApp1.Forms
 
         private void BaseForm_KeyDown(object? sender, KeyEventArgs e)
         {
+            // Allow arrow keys to work normally for DataGridView and other list controls
+            if (ActiveControl is DataGridView || ActiveControl is ListBox || ActiveControl is ListView)
+            {
+                // Let arrow keys pass through for list controls
+                if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
+                {
+                    return; // Don't handle arrow keys for list controls
+                }
+            }
+
             switch (e.KeyCode)
             {
                 case Keys.Tab:
