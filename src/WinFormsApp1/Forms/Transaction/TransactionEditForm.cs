@@ -704,6 +704,9 @@ namespace WinFormsApp1.Forms.Transaction
                 dgvItems.DataSource = new List<TransactionItemDisplay>();
                 dgvTaxes.DataSource = new List<TransactionTaxDisplay>();
             }
+
+            // Set focus to the first field (Transaction Type dropdown)
+            cmbTransactionType.Focus();
         }
 
         private async Task LoadProductAndTaxLists()
