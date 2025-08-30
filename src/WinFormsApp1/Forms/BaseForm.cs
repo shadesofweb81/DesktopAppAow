@@ -64,9 +64,28 @@ namespace WinFormsApp1.Forms
                 case Keys.Back:
                     if (!e.Control && !e.Alt)
                     {
-                        // Backspace - Move to previous control
-                        NavigateToPreviousControl();
-                        e.Handled = true;
+                        // Check if the current control is a text input control that's being edited
+                        if (IsTextInputControl(ActiveControl))
+                        {
+                            // For text input controls, check if there are characters to delete
+                            if (HasCharactersToDelete(ActiveControl))
+                            {
+                                // Let the default Backspace behavior work (delete characters)
+                                return; // Don't handle the key, let it bubble up
+                            }
+                            else
+                            {
+                                // No characters to delete, move to previous control
+                                NavigateToPreviousControl();
+                                e.Handled = true;
+                            }
+                        }
+                        else
+                        {
+                            // Backspace - Move to previous control (for non-text controls)
+                            NavigateToPreviousControl();
+                            e.Handled = true;
+                        }
                     }
                     break;
 
@@ -157,6 +176,57 @@ namespace WinFormsApp1.Forms
         }
 
         /// <summary>
+        /// Determines if a control is a text input control that should allow default Backspace behavior
+        /// </summary>
+        private bool IsTextInputControl(Control? control)
+        {
+            if (control == null) return false;
+
+            // Text input controls that should allow default Backspace behavior
+            return control is TextBox ||
+                   control is RichTextBox ||
+                   control is MaskedTextBox ||
+                   control is NumericUpDown ||
+                   (control is ComboBox comboBox && comboBox.DropDownStyle == ComboBoxStyle.DropDown);
+        }
+
+        /// <summary>
+        /// Determines if a text input control has characters that can be deleted
+        /// </summary>
+        private bool HasCharactersToDelete(Control? control)
+        {
+            if (control == null) return false;
+
+            if (control is TextBox textBox)
+            {
+                // Check if there's text and cursor is not at the beginning
+                return !string.IsNullOrEmpty(textBox.Text) && textBox.SelectionStart > 0;
+            }
+            else if (control is RichTextBox richTextBox)
+            {
+                // Check if there's text and cursor is not at the beginning
+                return !string.IsNullOrEmpty(richTextBox.Text) && richTextBox.SelectionStart > 0;
+            }
+            else if (control is MaskedTextBox maskedTextBox)
+            {
+                // Check if there's text and cursor is not at the beginning
+                return !string.IsNullOrEmpty(maskedTextBox.Text) && maskedTextBox.SelectionStart > 0;
+            }
+            else if (control is NumericUpDown numericUpDown)
+            {
+                // For NumericUpDown, check if value is not at minimum
+                return numericUpDown.Value > numericUpDown.Minimum;
+            }
+            else if (control is ComboBox comboBox && comboBox.DropDownStyle == ComboBoxStyle.DropDown)
+            {
+                // Check if there's text and cursor is not at the beginning
+                return !string.IsNullOrEmpty(comboBox.Text) && comboBox.SelectionStart > 0;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Navigate to the next control in the list
         /// </summary>
         private void NavigateToNextControl()
@@ -181,10 +251,34 @@ namespace WinFormsApp1.Forms
         {
             if (_navigableControls.Count == 0) return;
 
-            _currentControlIndex = _currentControlIndex == 0 
-                ? _navigableControls.Count - 1 
-                : _currentControlIndex - 1;
+            // Find the current control in the list
+            var currentControl = ActiveControl;
+            var currentIndex = -1;
             
+            for (int i = 0; i < _navigableControls.Count; i++)
+            {
+                if (_navigableControls[i] == currentControl)
+                {
+                    currentIndex = i;
+                    break;
+                }
+            }
+            
+            // If current control not found, use the stored index
+            if (currentIndex == -1)
+            {
+                currentIndex = _currentControlIndex;
+            }
+            
+            // Calculate previous index (don't wrap around)
+            int previousIndex = currentIndex - 1;
+            if (previousIndex < 0)
+            {
+                // Stay at the first control instead of wrapping to the last
+                previousIndex = 0;
+            }
+            
+            _currentControlIndex = previousIndex;
             var previousControl = _navigableControls[_currentControlIndex];
             
             // Ensure the control is visible and focusable
