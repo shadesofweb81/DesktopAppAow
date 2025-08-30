@@ -87,6 +87,7 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTransactions.RowHeadersVisible = false;
             dgvTransactions.ReadOnly = true;
             dgvTransactions.SelectionChanged += DgvTransactions_SelectionChanged;
+            dgvTransactions.KeyDown += DgvTransactions_KeyDown;
 
             // Setup columns
             SetupDataGridViewColumns();
@@ -277,8 +278,21 @@ namespace WinFormsApp1.Forms.Transaction
                 dgvTransactions.DataSource = _transactions;
                 lblStatus.Text = $"Loaded {_transactions.Count} transactions";
 
+                // Select first row if transactions exist
+                if (_transactions.Count > 0)
+                {
+                    dgvTransactions.Rows[0].Selected = true;
+                    _selectedTransaction = _transactions[0];
+                }
+
                 // Update button states
                 UpdateButtonStates();
+
+                // Focus edit button if a transaction is selected
+                if (_selectedTransaction != null)
+                {
+                    btnEdit.Focus();
+                }
             }
             catch (Exception ex)
             {
@@ -306,6 +320,15 @@ namespace WinFormsApp1.Forms.Transaction
                 _selectedTransaction = null;
             }
             UpdateButtonStates();
+        }
+
+        private void DgvTransactions_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && _selectedTransaction != null)
+            {
+                e.Handled = true; // Prevent default behavior
+                BtnEdit_Click(sender, e);
+            }
         }
 
         private void BtnNew_Click(object? sender, EventArgs e)

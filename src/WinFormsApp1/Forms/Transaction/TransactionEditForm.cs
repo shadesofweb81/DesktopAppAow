@@ -78,7 +78,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 Id = item.Id;
                 TransactionId = item.TransactionId;
-                ProductId = Guid.Parse(item.ProductId); // Convert string to Guid
+                ProductId = item.ProductId; // Convert string to Guid
                 ProductName = productName;
                 Description = item.Description;
                 Quantity = item.Quantity;
@@ -98,7 +98,7 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     Id = Id,
                     TransactionId = TransactionId,
-                    ProductId = ProductId.ToString(), // Convert Guid to string
+                    ProductId = ProductId, // Convert Guid to string
                     Description = Description,
                     Quantity = Quantity,
                     UnitPrice = UnitPrice,
@@ -133,7 +133,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 Id = tax.Id;
                 TransactionId = tax.TransactionId;
-                TaxId = Guid.Parse(tax.TaxId); // Convert string to Guid
+                TaxId = tax.TaxId; // Convert string to Guid
                 TaxName = taxName;
                 TaxComponents = taxComponents;
                 TaxableAmount = tax.TaxableAmount;
@@ -152,7 +152,7 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     Id = Id,
                     TransactionId = TransactionId,
-                    TaxId = TaxId.ToString(), // Convert Guid to string
+                    TaxId = TaxId, // Convert Guid to string
                     TaxableAmount = TaxableAmount,
                     TaxAmount = TaxAmount,
                     CalculationMethod = CalculationMethod,
@@ -713,7 +713,18 @@ namespace WinFormsApp1.Forms.Transaction
                 var companyId = Guid.Parse(_selectedCompany.Id);
                 
                 // Load products
-                _availableProducts = await _productService.GetProductListForTransactionAsync(companyId);
+                var products = await _productService.GetProductsByCompanyAsync(companyId);
+                _availableProducts = products.Select(p => new ProductListDto
+                {
+                    Id = p.Id,
+                    ProductCode = p.ProductCode,
+                    Name = p.Name,
+                    Category = p.Category,
+                    Unit = p.Unit,
+                    SellingPrice = p.SellingPrice,
+                    StockQuantity = p.StockQuantity,
+                    IsActive = p.IsActive
+                }).ToList();
                 Console.WriteLine($"Loaded {_availableProducts.Count} products for transaction");
 
                 // Load taxes
@@ -1081,7 +1092,15 @@ Tips:
         {
             var transaction = _transaction ?? new Models.Transaction();
 
-            transaction.Type = cmbTransactionType.SelectedItem?.ToString() ?? string.Empty;
+            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString() ?? string.Empty;
+            if (Enum.TryParse<TransactionType>(transactionTypeString, out var transactionType))
+            {
+                transaction.Type = transactionType;
+            }
+            else
+            {
+                transaction.Type = TransactionType.SaleInvoice; // Default fallback
+            }
             transaction.TransactionNumber = txtTransactionNumber.Text.Trim();
             transaction.InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim();
             transaction.TransactionDate = dtpTransactionDate.Value;

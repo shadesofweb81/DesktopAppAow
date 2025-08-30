@@ -15,9 +15,7 @@ namespace WinFormsApp1.Models
         public string? InvoiceNumber { get; set; }
 
         [Required]
-        public string Type { get; set; } = string.Empty; // Changed to string to match API
-
-        public string? TransactionType { get; set; } // Additional field from API
+        public TransactionType Type { get; set; }
 
         public DateTime TransactionDate { get; set; }
         public DateTime DueDate { get; set; }
@@ -26,7 +24,13 @@ namespace WinFormsApp1.Models
         public string? Notes { get; set; }
 
         public decimal SubTotal { get; set; }
+        public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
+        public decimal Discount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal Freight { get; set; }
+        public bool IsFreightIncluded { get; set; }
+        public decimal RoundOff { get; set; }
         public decimal Total { get; set; }
         
         public decimal? PaidAmount { get; set; }
@@ -42,16 +46,7 @@ namespace WinFormsApp1.Models
         public string? PartyName { get; set; } // Party name (customer/supplier)
 
         // Journal voucher subtype (applies when Type == TransactionType.JournalEntry)
-        public string? JournalEntryType { get; set; } // Changed to string to match API
-
-        // Additional fields from API
-        public Guid? PartyLedgerId { get; set; }
-        public string? AccountLedgerId { get; set; }
-        public string? AccountName { get; set; }
-        public decimal Discount { get; set; }
-        public decimal Freight { get; set; }
-        public bool IsFreightIncluded { get; set; }
-        public decimal RoundOff { get; set; }
+        public JournalEntryType? JournalEntryType { get; set; }
 
         // Navigation properties
         public Guid? CompanyId { get; set; }
@@ -96,41 +91,23 @@ namespace WinFormsApp1.Models
         public Guid TransactionId { get; set; }
         public Transaction Transaction { get; set; } = null!;
 
-        public string ProductId { get; set; } = string.Empty; // Changed to string to match API
-
-        public string? ProductName { get; set; } // Additional field from API
+        public Guid ProductId { get; set; }
 
         [Required]
         public string Description { get; set; } = string.Empty;
 
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-        public decimal DiscountRate { get; set; }
-        public decimal DiscountAmount { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
+        public decimal DiscountRate { get; set; }
+        public decimal DiscountAmount { get; set; }
         public decimal LineTotal { get; set; }
         public decimal CurrentQuantity { get; set; }
 
         public int SerialNumber { get; set; } // Serial number for ordering transaction items
 
-        // Additional field from API - variants
-        public ICollection<TransactionItemVariant> Variants { get; set; } = new HashSet<TransactionItemVariant>();
 
-    }
-
-    public class TransactionItemVariant
-    {
-        public Guid Id { get; set; }
-        public string ProductVariantId { get; set; } = string.Empty;
-        public string? VariantCode { get; set; }
-        public string? VariantName { get; set; }
-        public decimal Quantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal SellingPrice { get; set; }
-        public decimal CurrentQuantity { get; set; }
-        public int SerialNumber { get; set; }
-        public string? Description { get; set; }
     }
 
     public class TransactionLedger 
@@ -139,12 +116,10 @@ namespace WinFormsApp1.Models
         public Guid TransactionId { get; set; }
         public Transaction Transaction { get; set; } = null!;
 
-        public string LedgerId { get; set; } = string.Empty; // Changed to string to match API
-
-        public string? LedgerName { get; set; } // Additional field from API
+        public Guid LedgerId { get; set; }      
 
         [Required]
-        public string EntryType { get; set; } = string.Empty; // Changed to string to match API
+        public TransactionLedgerType Type { get; set; }
 
         public decimal Amount { get; set; }
 
@@ -172,10 +147,10 @@ namespace WinFormsApp1.Models
         public Guid Id { get; set; }
         public string TransactionNumber { get; set; } = string.Empty;
         public string? InvoiceNumber { get; set; }
-        public string Type { get; set; } = string.Empty; // Changed to string to handle API response
+        public TransactionType Type { get; set; }
         public DateTime TransactionDate { get; set; }
         public DateTime DueDate { get; set; }
-        public string? Description { get; set; } // Changed from Notes to match API response
+        public string? Notes { get; set; }
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal Total { get; set; }

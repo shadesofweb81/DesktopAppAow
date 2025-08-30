@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WinFormsApp1.Models;
 
 namespace WinFormsApp1.Services
@@ -51,7 +52,8 @@ namespace WinFormsApp1.Services
                     {
                         var paginatedResponse = JsonSerializer.Deserialize<PaginatedTransactionListResponse>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
+                            PropertyNameCaseInsensitive = true,
+                            Converters = { new JsonStringEnumConverter() }
                         });
 
                         return paginatedResponse?.Items ?? new List<Transaction>();
@@ -92,7 +94,8 @@ namespace WinFormsApp1.Services
                     {
                         var transaction = JsonSerializer.Deserialize<Transaction>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
+                            PropertyNameCaseInsensitive = true,
+                            Converters = { new JsonStringEnumConverter() }
                         });
 
                         return transaction;
@@ -144,7 +147,8 @@ namespace WinFormsApp1.Services
                     {
                         var createdTransaction = JsonSerializer.Deserialize<Transaction>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
+                            PropertyNameCaseInsensitive = true,
+                            Converters = { new JsonStringEnumConverter() }
                         });
 
                         return createdTransaction;
@@ -254,7 +258,8 @@ namespace WinFormsApp1.Services
                         
                         var paginatedResponse = JsonSerializer.Deserialize<PaginatedTransactionListDtoResponse>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
+                            PropertyNameCaseInsensitive = true,
+                            Converters = { new JsonStringEnumConverter() }
                         });
 
                         if (paginatedResponse != null)

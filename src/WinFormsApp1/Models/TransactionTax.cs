@@ -8,9 +8,7 @@ namespace WinFormsApp1.Models
         public Guid TransactionId { get; set; }
         public Transaction Transaction { get; set; } = null!;
 
-        public string TaxId { get; set; } = string.Empty; // Changed to string to match API
-
-        public string? TaxName { get; set; } // Additional field from API
+        public Guid TaxId { get; set; }      
 
         public decimal TaxableAmount { get; set; }
 
@@ -40,9 +38,8 @@ namespace WinFormsApp1.Models
         public Guid TransactionTaxId { get; set; }
         public TransactionTax TransactionTax { get; set; } = null!;
 
-        public string TaxComponentId { get; set; } = string.Empty; // Changed to string to match API
-
-        public string? ComponentName { get; set; } // Additional field from API
+        public Guid TaxComponentId { get; set; }
+        public TaxComponent TaxComponent { get; set; } = null!;
 
         public decimal Amount { get; set; }
 
