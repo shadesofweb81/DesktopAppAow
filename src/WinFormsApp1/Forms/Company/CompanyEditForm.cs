@@ -3,7 +3,7 @@ using WinFormsApp1.Services;
 
 namespace WinFormsApp1.Forms.Company
 {
-    public partial class CompanyEditForm : Form
+    public partial class CompanyEditForm : BaseForm
     {
         private readonly CompanyService _companyService;
         private readonly CountryService _countryService;
@@ -349,7 +349,7 @@ namespace WinFormsApp1.Forms.Company
             StartPosition = FormStartPosition.CenterParent;
             Text = _isEditMode ? "Edit Company" : "New Company";
             WindowState = FormWindowState.Maximized;
-            KeyDown += new KeyEventHandler(CompanyEditForm_KeyDown);
+            // KeyDown is handled by BaseForm
             Load += new EventHandler(CompanyEditForm_Load);
             Resize += new EventHandler(CompanyEditForm_Resize);
             Activated += new EventHandler(CompanyEditForm_Activated);
@@ -367,8 +367,7 @@ namespace WinFormsApp1.Forms.Company
             // Load country dropdown
             LoadCountryDropdown();
             
-            // Focus on name field
-            txtName.Focus();
+            // Focus on name field - BaseForm will handle this automatically
         }
 
         private void CompanyEditForm_Load(object? sender, EventArgs e)
@@ -658,34 +657,89 @@ namespace WinFormsApp1.Forms.Company
             chkIsActive.Checked = true;
         }
 
-        private void CompanyEditForm_KeyDown(object? sender, KeyEventArgs e)
+        protected override bool HandleEnterKey()
         {
-            switch (e.KeyCode)
+            // Ctrl+Enter to save
+            if (ModifierKeys.HasFlag(Keys.Control))
             {
-                case Keys.Escape:
-                    // Check if this is an MDI child form
-                    if (MdiParent != null)
-                    {
-                        // This is an MDI child form - just close it
-                        Close();
-                    }
-                    else
-                    {
-                        // This is a dialog - set result and close
-                        DialogResult = DialogResult.Cancel;
-                        Close();
-                    }
-                    e.Handled = true;
-                    break;
-                    
-                case Keys.Enter:
-                    if (e.Control) // Ctrl+Enter to save
-                    {
-                        SaveCompany();
-                        e.Handled = true;
-                    }
-                    break;
+                SaveCompany();
+                return true;
             }
+            
+            // Enter on save button
+            if (ActiveControl == btnSave)
+            {
+                SaveCompany();
+                return true;
+            }
+            
+            // Enter on cancel button
+            if (ActiveControl == btnCancel)
+            {
+                Close();
+                return true;
+            }
+            
+            return false; // Let BaseForm handle navigation
+        }
+
+        protected override void HandleEscapeKey()
+        {
+            // Check if this is an MDI child form
+            if (MdiParent != null)
+            {
+                // This is an MDI child form - just close it
+                Close();
+            }
+            else
+            {
+                // This is a dialog - set result and close
+                DialogResult = DialogResult.Cancel;
+                Close();
+            }
+        }
+
+        protected override void ShowHelp()
+        {
+            var helpMessage = @"Company Edit Form - Keyboard Navigation Help:
+
+Navigation:
+• Tab - Move to next field
+• Backspace - Move to previous field
+• Enter - Confirm action or move to next field
+• Ctrl+Enter - Save company
+• Escape - Close form or go back
+• F1 - Show this help
+
+Field Order:
+1. Company Name (required)
+2. Company Code (required)
+3. Address
+4. City
+5. State
+6. Zip Code
+7. Country (dropdown)
+8. Phone
+9. Email
+10. Website
+11. Tax ID
+12. Logo URL
+13. Currency (auto-filled from country)
+14. User Role
+15. Financial Year Start Date
+16. Is Active (checkbox)
+17. Save Button
+18. Cancel Button
+
+Tips:
+• Use Tab/Backspace for fast field navigation
+• Ctrl+Enter to save from any field
+• Escape to cancel and close
+• All fields are highlighted when focused
+• Country selection auto-updates currency";
+
+            MessageBox.Show(helpMessage, "Company Edit Form Help", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private async void btnSave_Click(object? sender, EventArgs e)

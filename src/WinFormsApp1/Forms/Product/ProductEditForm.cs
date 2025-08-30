@@ -3,7 +3,7 @@ using WinFormsApp1.Services;
 
 namespace WinFormsApp1.Forms.Product
 {
-    public partial class ProductEditForm : Form
+    public partial class ProductEditForm : BaseForm
     {
         private readonly ProductService _productService;
         private readonly AttributeService _attributeService;
@@ -322,7 +322,7 @@ namespace WinFormsApp1.Forms.Product
             StartPosition = FormStartPosition.CenterParent;
             Text = _isEditMode ? "Edit Product" : "New Product";
             WindowState = FormWindowState.Maximized;
-            KeyDown += new KeyEventHandler(ProductEditForm_KeyDown);
+            // KeyDown is handled by BaseForm
             Load += new EventHandler(ProductEditForm_Load);
             Resize += new EventHandler(ProductEditForm_Resize);
             Activated += new EventHandler(ProductEditForm_Activated);
@@ -337,8 +337,7 @@ namespace WinFormsApp1.Forms.Product
             AcceptButton = btnSave;
             CancelButton = btnCancel;
             
-            // Focus on product code field
-            txtProductCode.Focus();
+            // Focus on product code field - BaseForm will handle this automatically
         }
 
         private void ProductEditForm_Load(object? sender, EventArgs e)
@@ -723,34 +722,86 @@ namespace WinFormsApp1.Forms.Product
             chkIsActive.Checked = true;
         }
 
-        private void ProductEditForm_KeyDown(object? sender, KeyEventArgs e)
+        protected override bool HandleEnterKey()
         {
-            switch (e.KeyCode)
+            // Ctrl+Enter to save
+            if (ModifierKeys.HasFlag(Keys.Control))
             {
-                case Keys.Escape:
-                    // Check if this is an MDI child form
-                    if (MdiParent != null)
-                    {
-                        // This is an MDI child form - just close it
-                        Close();
-                    }
-                    else
-                    {
-                        // This is a dialog - set result and close
-                        DialogResult = DialogResult.Cancel;
-                        Close();
-                    }
-                    e.Handled = true;
-                    break;
-                    
-                case Keys.Enter:
-                    if (e.Control) // Ctrl+Enter to save
-                    {
-                        SaveProduct();
-                        e.Handled = true;
-                    }
-                    break;
+                SaveProduct();
+                return true;
             }
+            
+            // Enter on save button
+            if (ActiveControl == btnSave)
+            {
+                SaveProduct();
+                return true;
+            }
+            
+            // Enter on cancel button
+            if (ActiveControl == btnCancel)
+            {
+                Close();
+                return true;
+            }
+            
+            return false; // Let BaseForm handle navigation
+        }
+
+        protected override void HandleEscapeKey()
+        {
+            // Check if this is an MDI child form
+            if (MdiParent != null)
+            {
+                // This is an MDI child form - just close it
+                Close();
+            }
+            else
+            {
+                // This is a dialog - set result and close
+                DialogResult = DialogResult.Cancel;
+                Close();
+            }
+        }
+
+        protected override void ShowHelp()
+        {
+            var helpMessage = @"Product Edit Form - Keyboard Navigation Help:
+
+Navigation:
+• Tab - Move to next field
+• Backspace - Move to previous field
+• Enter - Confirm action or move to next field
+• Ctrl+Enter - Save product
+• Escape - Close form or go back
+• F1 - Show this help
+
+Field Order:
+1. Product Code
+2. Product Name (required)
+3. Category
+4. Description
+5. Unit
+6. SKU
+7. Purchase Price
+8. Selling Price
+9. Stock Quantity
+10. Reorder Level
+11. Barcode
+12. Is Active (checkbox)
+13. Product Attributes (if available)
+14. Save Button
+15. Cancel Button
+
+Tips:
+• Use Tab/Backspace for fast field navigation
+• Ctrl+Enter to save from any field
+• Escape to cancel and close
+• All fields are highlighted when focused
+• Product attributes load automatically";
+
+            MessageBox.Show(helpMessage, "Product Edit Form Help", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private async void btnLoadAttributes_Click(object? sender, EventArgs e)

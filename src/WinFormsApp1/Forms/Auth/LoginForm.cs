@@ -1,4 +1,5 @@
 using WinFormsApp1.Services;
+using WinFormsApp1.Forms.Company;
 
 namespace WinFormsApp1.Forms.Auth
 {
@@ -195,13 +196,11 @@ Press F1 anytime for this help.";
                 
                 if (result.Success)
                 {
-                    lblStatus.Text = "Login successful!";
+                    lblStatus.Text = "Login successful! Checking companies...";
                     lblStatus.ForeColor = Color.Green;
                     
-                    // Close the login form after a short delay
-                    await Task.Delay(1000);
-                    DialogResult = DialogResult.OK;
-                    Close();
+                    // Check if user has any companies
+                    await CheckAndHandleCompanySelection();
                 }
                 else
                 {
@@ -219,6 +218,72 @@ Press F1 anytime for this help.";
             finally
             {
                 btnLogin.Enabled = true;
+            }
+        }
+
+        private async Task CheckAndHandleCompanySelection()
+        {
+            try
+            {
+                // Create services needed for company operations
+                var companyService = new CompanyService(_authService);
+                var localStorageService = new LocalStorageService();
+
+                // Get user's companies
+                var companies = await companyService.GetAllCompaniesAsync();
+                
+                if (companies == null || companies.Count == 0)
+                {
+                    // No companies exist - show company creation form
+                    lblStatus.Text = "No companies found. Creating new company...";
+                    
+                    var companyEditForm = new CompanyEditForm(companyService, new CountryService(), null);
+                    var result = companyEditForm.ShowDialog();
+                    
+                    if (result == DialogResult.OK)
+                    {
+                        // Company created successfully
+                        lblStatus.Text = "Company created successfully!";
+                        await Task.Delay(1000);
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                    else
+                    {
+                        // User cancelled company creation
+                        lblStatus.Text = "Company creation cancelled.";
+                        lblStatus.ForeColor = Color.Orange;
+                    }
+                }
+                else
+                {
+                    // Companies exist - show company selection form
+                    lblStatus.Text = "Companies found. Please select a company...";
+                    
+                    var companySelectForm = new CompanySelectForm(companyService, localStorageService);
+                    var result = companySelectForm.ShowDialog();
+                    
+                    if (result == DialogResult.OK)
+                    {
+                        // Company selected successfully
+                        lblStatus.Text = "Company selected successfully!";
+                        await Task.Delay(1000);
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                    else
+                    {
+                        // User cancelled company selection
+                        lblStatus.Text = "Company selection cancelled.";
+                        lblStatus.ForeColor = Color.Orange;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Error checking companies: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+                Console.WriteLine($"Error in CheckAndHandleCompanySelection: {ex.Message}");
             }
         }
 

@@ -179,6 +179,95 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<List<TaxListDto>> GetTaxListForTransactionAsync(Guid companyId)
+        {
+            try
+            {
+                SetAuthHeader();
+                var url = $"api/v1/tax/GetTaxesForSelect/{companyId}";
+                
+                Console.WriteLine($"Fetching tax list for transaction from: {url}");
+
+                var response = await _httpClient.GetAsync(url);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        // Try to parse as direct array first
+                        var taxesArray = JsonSerializer.Deserialize<List<TaxListDto>>(responseContent);
+
+                        if (taxesArray != null)
+                        {
+                            Console.WriteLine($"Successfully parsed {taxesArray.Count} taxes as direct array");
+                            return taxesArray;
+                        }
+
+                        // If that doesn't work, try to parse as response wrapper
+                        Console.WriteLine("Direct array parsing failed, trying response wrapper...");
+                        var responseWrapper = JsonSerializer.Deserialize<dynamic>(responseContent);
+                        
+                        if (responseWrapper != null)
+                        {
+                            // Try to extract taxes from various possible properties
+                            if (responseWrapper.Taxes != null)
+                            {
+                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Taxes.ToString());
+                                if (taxes != null)
+                                {
+                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Taxes property");
+                                    return taxes;
+                                }
+                            }
+                            
+                            if (responseWrapper.Data != null)
+                            {
+                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Data.ToString());
+                                if (taxes != null)
+                                {
+                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Data property");
+                                    return taxes;
+                                }
+                            }
+                            
+                            if (responseWrapper.Items != null)
+                            {
+                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Items.ToString());
+                                if (taxes != null)
+                                {
+                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Items property");
+                                    return taxes;
+                                }
+                            }
+                        }
+
+                        Console.WriteLine("Could not parse tax list from any expected format");
+                        return new List<TaxListDto>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Raw response: {responseContent}");
+                        return new List<TaxListDto>();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
+                    return new List<TaxListDto>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Get tax list for transaction exception: {ex.Message}");
+                return new List<TaxListDto>();
+            }
+        }
+
         public void Dispose()
         {
             _httpClient?.Dispose();

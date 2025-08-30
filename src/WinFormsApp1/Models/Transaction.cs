@@ -1,4 +1,4 @@
-using AccountingERP.Infrastructure.Entities;
+
 using System.ComponentModel.DataAnnotations;
 
 namespace WinFormsApp1.Models
@@ -15,7 +15,9 @@ namespace WinFormsApp1.Models
         public string? InvoiceNumber { get; set; }
 
         [Required]
-        public TransactionType Type { get; set; }
+        public string Type { get; set; } = string.Empty; // Changed to string to match API
+
+        public string? TransactionType { get; set; } // Additional field from API
 
         public DateTime TransactionDate { get; set; }
         public DateTime DueDate { get; set; }
@@ -24,13 +26,7 @@ namespace WinFormsApp1.Models
         public string? Notes { get; set; }
 
         public decimal SubTotal { get; set; }
-        public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
-        public decimal Discount { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal Freight { get; set; }
-        public bool IsFreightIncluded { get; set; }
-        public decimal RoundOff { get; set; }
         public decimal Total { get; set; }
         
         public decimal? PaidAmount { get; set; }
@@ -41,9 +37,21 @@ namespace WinFormsApp1.Models
         
         public string? ReferenceNumber { get; set; }
         public string? PaymentMethod { get; set; }
+        
+        [StringLength(200)]
+        public string? PartyName { get; set; } // Party name (customer/supplier)
 
         // Journal voucher subtype (applies when Type == TransactionType.JournalEntry)
-        public JournalEntryType? JournalEntryType { get; set; }
+        public string? JournalEntryType { get; set; } // Changed to string to match API
+
+        // Additional fields from API
+        public Guid? PartyLedgerId { get; set; }
+        public string? AccountLedgerId { get; set; }
+        public string? AccountName { get; set; }
+        public decimal Discount { get; set; }
+        public decimal Freight { get; set; }
+        public bool IsFreightIncluded { get; set; }
+        public decimal RoundOff { get; set; }
 
         // Navigation properties
         public Guid? CompanyId { get; set; }
@@ -61,11 +69,7 @@ namespace WinFormsApp1.Models
         // Collection of taxes applied to the transaction
         public ICollection<TransactionTax> Taxes { get; set; } = new HashSet<TransactionTax>();
         
-        // Collection of payments received (for invoices/bills)
-        public ICollection<TransactionPayment> ReceivedPayments { get; set; } = new HashSet<TransactionPayment>();
-        
-        // Collection of payments made (for payment transactions)
-        public ICollection<TransactionPayment> PaymentsMade { get; set; } = new HashSet<TransactionPayment>();
+
     }
 
     public enum JournalEntryType
@@ -78,16 +82,7 @@ namespace WinFormsApp1.Models
         Expense,
         OpeningBalance
     }
-    public enum TransactionType
-    {
-        Invoice,
-        Bill,
-        PaymentReceived,
-        PaymentMade,
-        JournalEntry,
-        CreditNote,
-        DebitNote
-    }
+
 
     public enum TransactionLedgerType
     {
@@ -101,23 +96,41 @@ namespace WinFormsApp1.Models
         public Guid TransactionId { get; set; }
         public Transaction Transaction { get; set; } = null!;
 
-        public Guid ProductId { get; set; }
+        public string ProductId { get; set; } = string.Empty; // Changed to string to match API
+
+        public string? ProductName { get; set; } // Additional field from API
 
         [Required]
         public string Description { get; set; } = string.Empty;
 
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-        public decimal TaxRate { get; set; }
-        public decimal TaxAmount { get; set; }
         public decimal DiscountRate { get; set; }
         public decimal DiscountAmount { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
         public decimal LineTotal { get; set; }
         public decimal CurrentQuantity { get; set; }
 
         public int SerialNumber { get; set; } // Serial number for ordering transaction items
 
+        // Additional field from API - variants
+        public ICollection<TransactionItemVariant> Variants { get; set; } = new HashSet<TransactionItemVariant>();
 
+    }
+
+    public class TransactionItemVariant
+    {
+        public Guid Id { get; set; }
+        public string ProductVariantId { get; set; } = string.Empty;
+        public string? VariantCode { get; set; }
+        public string? VariantName { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal SellingPrice { get; set; }
+        public decimal CurrentQuantity { get; set; }
+        public int SerialNumber { get; set; }
+        public string? Description { get; set; }
     }
 
     public class TransactionLedger 
@@ -126,10 +139,12 @@ namespace WinFormsApp1.Models
         public Guid TransactionId { get; set; }
         public Transaction Transaction { get; set; } = null!;
 
-        public Guid LedgerId { get; set; }      
+        public string LedgerId { get; set; } = string.Empty; // Changed to string to match API
+
+        public string? LedgerName { get; set; } // Additional field from API
 
         [Required]
-        public TransactionLedgerType Type { get; set; }
+        public string EntryType { get; set; } = string.Empty; // Changed to string to match API
 
         public decimal Amount { get; set; }
 
@@ -137,5 +152,51 @@ namespace WinFormsApp1.Models
         public string? Description { get; set; }
         public bool? IsMainEntry { get; set; } // For primary ledger (customer/supplier)
         public bool? IsSystemEntry { get; set; } // For system generated entries (sales/purchase account)
+    }
+
+    // Paginated response model for transactions
+    public class PaginatedTransactionListResponse
+    {
+        public List<Transaction> Items { get; set; } = new List<Transaction>();
+        public int TotalItems { get; set; }
+        public int PageSize { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+    }
+
+    // DTO for transaction list display (lightweight version)
+    public class TransactionListDto
+    {
+        public Guid Id { get; set; }
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
+        public string Type { get; set; } = string.Empty; // Changed to string to handle API response
+        public DateTime TransactionDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public string? Description { get; set; } // Changed from Notes to match API response
+        public decimal SubTotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal Total { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public decimal? BalanceDue { get; set; }
+        public bool IsPaid { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string? ReferenceNumber { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? PartyName { get; set; }
+    }
+
+    // Paginated response model for transaction list DTOs
+    public class PaginatedTransactionListDtoResponse
+    {
+        public List<TransactionListDto> Items { get; set; } = new List<TransactionListDto>();
+        public int TotalItems { get; set; }
+        public int PageSize { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
     }
 }

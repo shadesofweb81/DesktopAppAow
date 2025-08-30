@@ -1,12 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AccountingERP.Infrastructure.Entities
+namespace WinFormsApp1.Models
 {
-    public class TransactionTypeSettings : BaseEntity
+    public class TransactionTypeSettings
     {
-       
-        public Guid CompanyId { get; set; }
-        public Company Company { get; set; } = null!;
+        public Guid Id { get; set; }
+        public Guid CompanyId { get; set; }      
 
         [Required]
         public TransactionType TransactionType { get; set; }

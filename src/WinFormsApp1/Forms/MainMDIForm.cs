@@ -3,6 +3,7 @@ using WinFormsApp1.Forms.Product;
 using WinFormsApp1.Forms.FinancialYear;
 using WinFormsApp1.Forms.Ledger;
 using WinFormsApp1.Forms.Tax;
+using WinFormsApp1.Forms.Transaction;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -17,6 +18,7 @@ namespace WinFormsApp1.Forms
         private readonly FinancialYearService _financialYearService;
         private readonly LedgerService _ledgerService;
         private readonly TaxService _taxService;
+        private readonly TransactionService _transactionService;
         private MenuStrip menuStrip = null!;
         private ToolStripMenuItem fileMenu = null!;
         private ToolStripMenuItem companyMenuItem = null!;
@@ -24,6 +26,8 @@ namespace WinFormsApp1.Forms
         private ToolStripMenuItem debugApiMenuItem = null!;
         private ToolStripMenuItem logoutMenuItem = null!;
         private ToolStripMenuItem exitMenuItem = null!;
+        private ToolStripMenuItem transactionsMenu = null!;
+        private ToolStripMenuItem transactionListMenuItem = null!;
         private ToolStripMenuItem windowMenu = null!;
         private ToolStripMenuItem cascadeMenuItem = null!;
         private ToolStripMenuItem tileHorizontalMenuItem = null!;
@@ -77,6 +81,7 @@ namespace WinFormsApp1.Forms
             _financialYearService = new FinancialYearService(authService);
             _ledgerService = new LedgerService(authService);
             _taxService = new TaxService(authService);
+            _transactionService = new TransactionService(authService);
             InitializeComponent();
             SetupForm();
         }
@@ -90,6 +95,8 @@ namespace WinFormsApp1.Forms
             debugApiMenuItem = new ToolStripMenuItem();
             logoutMenuItem = new ToolStripMenuItem();
             exitMenuItem = new ToolStripMenuItem();
+            transactionsMenu = new ToolStripMenuItem();
+            transactionListMenuItem = new ToolStripMenuItem();
             windowMenu = new ToolStripMenuItem();
             cascadeMenuItem = new ToolStripMenuItem();
             tileHorizontalMenuItem = new ToolStripMenuItem();
@@ -126,7 +133,7 @@ namespace WinFormsApp1.Forms
             // menuStrip
             // 
             menuStrip.ImageScalingSize = new Size(20, 20);
-            menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, windowMenu });
+            menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, transactionsMenu, windowMenu });
             menuStrip.Location = new Point(0, 0);
             menuStrip.Name = "menuStrip";
             menuStrip.Padding = new Padding(7, 3, 0, 3);
@@ -204,6 +211,20 @@ namespace WinFormsApp1.Forms
             exitMenuItem.Size = new Size(224, 26);
             exitMenuItem.Text = "Exit";
             exitMenuItem.Click += exitMenuItem_Click;
+            // 
+            // transactionsMenu
+            // 
+            transactionsMenu.DropDownItems.AddRange(new ToolStripItem[] { transactionListMenuItem });
+            transactionsMenu.Name = "transactionsMenu";
+            transactionsMenu.Size = new Size(106, 24);
+            transactionsMenu.Text = "&Transactions";
+            // 
+            // transactionListMenuItem
+            // 
+            transactionListMenuItem.Name = "transactionListMenuItem";
+            transactionListMenuItem.Size = new Size(224, 26);
+            transactionListMenuItem.Text = "&Transaction List";
+            transactionListMenuItem.Click += transactionListMenuItem_Click;
             // 
             // windowMenu
             // 
@@ -739,6 +760,11 @@ namespace WinFormsApp1.Forms
             }
         }
 
+        private void transactionListMenuItem_Click(object? sender, EventArgs e)
+        {
+            OpenTransactionListForm();
+        }
+
 
 
         private async void MainMDIForm_KeyDown(object? sender, KeyEventArgs e)
@@ -1154,6 +1180,48 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private void OpenTransactionListForm()
+        {
+            // Check if TransactionListForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is TransactionListForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new transaction list form
+            var transactionListForm = new TransactionListForm(_transactionService, _localStorageService)
+            {
+                MdiParent = this,
+                Text = "Transaction Management",
+                WindowState = FormWindowState.Maximized
+            };
+
+            transactionListForm.Show();
+            
+            // Hide navigation panel when TransactionListForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            transactionListForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Clear all highlights and show navigation panel with first button focused
+                        ClearAllButtonHighlights();
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1202,67 +1270,104 @@ namespace WinFormsApp1.Forms
             try
             {
                 var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
+                
+                // Ensure UI updates happen on the UI thread
+                this.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        if (selectedCompany != null)
+                        {
+                            this.Text = $"Main Application - {selectedCompany.DisplayName} - Alt+F=File Menu, Alt+S=Select Company, Alt+C=Manage Companies, Alt+Y=Refresh FY";
+                            
+                            // Update company display label if it exists
+                            if (lblSelectedCompany != null)
+                            {
+                                lblSelectedCompany.Text = $"Selected Company: {selectedCompany.DisplayName}";
+                                lblSelectedCompany.ForeColor = Color.DarkGreen;
+                                lblSelectedCompany.BackColor = Color.FromArgb(240, 255, 240);
+                                lblSelectedCompany.Visible = true;
+                            }
+                        }
+                        else
+                        {
+                            this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
+                            
+                            // Update company display label if it exists
+                            if (lblSelectedCompany != null)
+                            {
+                                lblSelectedCompany.Text = "No Company Selected";
+                                lblSelectedCompany.ForeColor = Color.Orange;
+                                lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
+                                lblSelectedCompany.Visible = true;
+                            }
+
+                            // Clear financial year display
+                            if (lblActiveFinancialYear != null)
+                            {
+                                lblActiveFinancialYear.Text = "No Financial Year Selected";
+                                lblActiveFinancialYear.ForeColor = Color.Gray;
+                                lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
+                                lblActiveFinancialYear.Visible = true;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error updating UI in UpdateTitleWithSelectedCompany: {ex.Message}");
+                        // If there's an error, just use the default title
+                        this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
+                        
+                        // Update company display label if it exists
+                        if (lblSelectedCompany != null)
+                        {
+                            lblSelectedCompany.Text = "Error loading company";
+                            lblSelectedCompany.ForeColor = Color.Red;
+                            lblSelectedCompany.BackColor = Color.FromArgb(255, 240, 240);
+                            lblSelectedCompany.Visible = true;
+                        }
+
+                        // Clear financial year display
+                        if (lblActiveFinancialYear != null)
+                        {
+                            lblActiveFinancialYear.Text = "Error loading financial year";
+                            lblActiveFinancialYear.ForeColor = Color.Red;
+                            lblActiveFinancialYear.BackColor = Color.FromArgb(255, 240, 240);
+                            lblActiveFinancialYear.Visible = true;
+                        }
+                    }
+                }));
+
+                // Fetch and display active financial year (if company exists)
                 if (selectedCompany != null)
                 {
-                    this.Text = $"Main Application - {selectedCompany.DisplayName} - Alt+F=File Menu, Alt+S=Select Company, Alt+C=Manage Companies, Alt+Y=Refresh FY";
-                    
-                    // Update company display label if it exists
-                    if (lblSelectedCompany != null)
-                    {
-                        lblSelectedCompany.Text = $"Selected Company: {selectedCompany.DisplayName}";
-                        lblSelectedCompany.ForeColor = Color.DarkGreen;
-                        lblSelectedCompany.BackColor = Color.FromArgb(240, 255, 240);
-                        lblSelectedCompany.Visible = true;
-                    }
-
-                    // Fetch and display active financial year
                     await UpdateActiveFinancialYearDisplay(selectedCompany.Id);
                 }
-                else
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in UpdateTitleWithSelectedCompany: {ex.Message}");
+                // Ensure UI updates happen on the UI thread even for errors
+                this.BeginInvoke(new Action(() =>
                 {
                     this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
                     
-                    // Update company display label if it exists
                     if (lblSelectedCompany != null)
                     {
-                        lblSelectedCompany.Text = "No Company Selected";
-                        lblSelectedCompany.ForeColor = Color.Orange;
-                        lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
+                        lblSelectedCompany.Text = "Error loading company";
+                        lblSelectedCompany.ForeColor = Color.Red;
+                        lblSelectedCompany.BackColor = Color.FromArgb(255, 240, 240);
                         lblSelectedCompany.Visible = true;
                     }
 
-                    // Clear financial year display
                     if (lblActiveFinancialYear != null)
                     {
-                        lblActiveFinancialYear.Text = "No Financial Year Selected";
-                        lblActiveFinancialYear.ForeColor = Color.Gray;
-                        lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
+                        lblActiveFinancialYear.Text = "Error loading financial year";
+                        lblActiveFinancialYear.ForeColor = Color.Red;
+                        lblActiveFinancialYear.BackColor = Color.FromArgb(255, 240, 240);
                         lblActiveFinancialYear.Visible = true;
                     }
-                }
-            }
-            catch
-            {
-                // If there's an error, just use the default title
-                this.Text = "Main Application - Alt+F=File Menu, Alt+D=Dashboard, Alt+S=Select Company, Alt+C=Manage Companies, Alt+F4=Exit, F1=Help";
-                
-                // Update company display label if it exists
-                if (lblSelectedCompany != null)
-                {
-                    lblSelectedCompany.Text = "Error loading company";
-                    lblSelectedCompany.ForeColor = Color.Red;
-                    lblSelectedCompany.BackColor = Color.FromArgb(255, 240, 240);
-                    lblSelectedCompany.Visible = true;
-                }
-
-                // Clear financial year display
-                if (lblActiveFinancialYear != null)
-                {
-                    lblActiveFinancialYear.Text = "Error loading financial year";
-                    lblActiveFinancialYear.ForeColor = Color.Red;
-                    lblActiveFinancialYear.BackColor = Color.FromArgb(255, 240, 240);
-                    lblActiveFinancialYear.Visible = true;
-                }
+                }));
             }
         }
 
@@ -1341,8 +1446,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
 
         public async Task RefreshCompanyDisplay()
         {
-            await Task.Run(() => 
+            await Task.Run(async () => 
             {
+                await Task.Delay(100); // Small delay to ensure UI is ready
                 this.BeginInvoke(new Action(() => UpdateTitleWithSelectedCompany()));
             });
         }
@@ -1417,7 +1523,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     // If we have a stored financial year, use it
                     if (storedFinancialYear != null)
                     {
-                        UpdateFinancialYearLabel(storedFinancialYear);
+                        this.BeginInvoke(new Action(() => UpdateFinancialYearLabel(storedFinancialYear)));
                         return;
                     }
                     
@@ -1428,22 +1534,22 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     {
                         // Save to local storage
                         await _localStorageService.SaveSelectedFinancialYearAsync(activeFinancialYear);
-                        UpdateFinancialYearLabel(activeFinancialYear);
+                        this.BeginInvoke(new Action(() => UpdateFinancialYearLabel(activeFinancialYear)));
                     }
                     else
                     {
-                        UpdateFinancialYearLabel(null);
+                        this.BeginInvoke(new Action(() => UpdateFinancialYearLabel(null)));
                     }
                 }
                 else
                 {
-                    UpdateFinancialYearLabel(null, "Invalid Company ID");
+                    this.BeginInvoke(new Action(() => UpdateFinancialYearLabel(null, "Invalid Company ID")));
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating financial year display: {ex.Message}");
-                UpdateFinancialYearLabel(null, "Error loading financial year");
+                this.BeginInvoke(new Action(() => UpdateFinancialYearLabel(null, "Error loading financial year")));
             }
         }
 
@@ -1513,6 +1619,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             {
                 HighlightButton(productsListButton);
                 productsListButton.Focus();
+                
+                // Ensure the button is visible in the viewport
+                productsListButton.BringToFront();
             }
         }
 
@@ -1664,12 +1773,23 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var currentFocused = this.ActiveControl as Button;
             if (currentFocused == null) return false;
 
-            var currentIndex = Array.IndexOf(mastersButtons, currentFocused);
+            // Create a combined array of all navigation buttons
+            var allButtons = new[]
+            {
+                // Masters buttons
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton, taxButton,
+                // Transactions buttons
+                saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
+                // Reports buttons
+                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+            };
+
+            var currentIndex = Array.IndexOf(allButtons, currentFocused);
             if (currentIndex == -1) return false;
 
             // Move to previous button in the entire list, wrap around to last if at first
-            var previousIndex = currentIndex == 0 ? mastersButtons.Length - 1 : currentIndex - 1;
-            var previousButton = mastersButtons[previousIndex];
+            var previousIndex = currentIndex == 0 ? allButtons.Length - 1 : currentIndex - 1;
+            var previousButton = allButtons[previousIndex];
 
             HighlightButton(previousButton);
             previousButton.Focus();
@@ -1682,12 +1802,23 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var currentFocused = this.ActiveControl as Button;
             if (currentFocused == null) return false;
 
-            var currentIndex = Array.IndexOf(mastersButtons, currentFocused);
+            // Create a combined array of all navigation buttons
+            var allButtons = new[]
+            {
+                // Masters buttons
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton, taxButton,
+                // Transactions buttons
+                saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
+                // Reports buttons
+                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+            };
+
+            var currentIndex = Array.IndexOf(allButtons, currentFocused);
             if (currentIndex == -1) return false;
 
             // Move to next button in the entire list, wrap around to first if at last
-            var nextIndex = currentIndex == mastersButtons.Length - 1 ? 0 : currentIndex + 1;
-            var nextButton = mastersButtons[nextIndex];
+            var nextIndex = currentIndex == allButtons.Length - 1 ? 0 : currentIndex + 1;
+            var nextButton = allButtons[nextIndex];
 
             HighlightButton(nextButton);
             nextButton.Focus();
@@ -1716,7 +1847,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton, taxButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1738,6 +1869,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 btn.MouseEnter += Button_MouseEnter;
                 btn.MouseLeave += Button_MouseLeave;
                 btn.GotFocus += Button_GotFocus;
+                btn.Click += Button_Click; // Add click event for highlighting
             }
         }
 
@@ -1746,11 +1878,16 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Clear previous highlights first
             ClearAllButtonHighlights();
 
-            // Highlight the selected button
-            button.BackColor = Color.FromArgb(0, 120, 215);
+            // Highlight the selected button with more prominent styling
+            button.BackColor = Color.FromArgb(0, 102, 204); // Brighter blue
             button.ForeColor = Color.White;
-            button.FlatAppearance.BorderColor = Color.FromArgb(0, 84, 153);
+            button.FlatAppearance.BorderColor = Color.FromArgb(0, 70, 140); // Darker border
+            button.FlatAppearance.BorderSize = 2; // Thicker border
             button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            
+            // Add a subtle glow effect
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 102, 204);
+            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 84, 168);
         }
 
         private void ClearAllButtonHighlights()
@@ -1758,7 +1895,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             var allButtons = new[]
             {
                 // Masters buttons
-                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton,
+                productsListButton, companyListButton, selectCompanyButton, financialYearListButton, accountsButton, taxButton,
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
@@ -1770,6 +1907,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 btn.BackColor = Color.White;
                 btn.ForeColor = Color.Black;
                 btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
+                btn.FlatAppearance.BorderSize = 1; // Reset border size
                 btn.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
             }
         }
@@ -1801,6 +1939,15 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
         }
 
+        private void Button_Click(object? sender, EventArgs e)
+        {
+            if (sender is Button btn)
+            {
+                HighlightButton(btn);
+                btn.Focus(); // Ensure focus stays on the clicked button
+            }
+        }
+
         // Masters Section Button Handlers
         private void productsListButton_Click(object? sender, EventArgs e)
         {
@@ -1819,8 +1966,6 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             if (sender is Button btn) HighlightButton(btn);
             OpenCompanySelectForm();
         }
-
-
 
         private void financialYearListButton_Click(object? sender, EventArgs e)
         {
@@ -1844,31 +1989,31 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void saleButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Sale transaction feature will be implemented here.", "Sale", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTransactionListForm();
         }
 
         private void purchaseButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Purchase transaction feature will be implemented here.", "Purchase", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTransactionListForm();
         }
 
         private void receiptButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Receipt transaction feature will be implemented here.", "Receipt", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTransactionListForm();
         }
 
         private void paymentButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Payment transaction feature will be implemented here.", "Payment", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTransactionListForm();
         }
 
         private void journalButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            MessageBox.Show("Journal entry feature will be implemented here.", "Journal", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTransactionListForm();
         }
 
         // Reports Section Button Handlers
