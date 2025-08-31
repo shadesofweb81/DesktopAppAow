@@ -799,11 +799,13 @@ namespace WinFormsApp1.Forms.Transaction
                     // Convert items to display format using DTO
                     var itemDisplays = _transactionDto.Items.Select(item => CreateTransactionItemDisplay(item)).ToList();
 
-                    // Convert taxes to display format using DTO
-                    var taxDisplays = _transactionDto.Taxes.Select(tax => CreateTransactionTaxDisplay(tax)).ToList();
+                                         // Convert taxes to display format using DTO
+                     Console.WriteLine($"Processing {_transactionDto.Taxes.Count()} taxes from DTO");
+                     var taxDisplays = _transactionDto.Taxes.Select(tax => CreateTransactionTaxDisplay(tax)).ToList();
+                     Console.WriteLine($"Created {taxDisplays.Count} tax displays");
 
-                    dgvItems.DataSource = itemDisplays;
-                    dgvTaxes.DataSource = taxDisplays;
+                     dgvItems.DataSource = itemDisplays;
+                     dgvTaxes.DataSource = taxDisplays;
 
                     txtDiscountPercent.Text = _transactionDto.Discount.ToString("N2");
                     txtDiscountAmount.Text = "0.00"; // Calculated field
@@ -895,31 +897,68 @@ namespace WinFormsApp1.Forms.Transaction
             return new TransactionItemDisplay(transactionItem, productName);
         }
 
-        private TransactionTaxDisplay CreateTransactionTaxDisplay(TransactionTaxDto taxDto)
-        {
-            var taxName = taxDto.TaxName ?? "Unknown Tax";
-            var taxComponents = taxDto.Components.Any() 
-                ? string.Join(", ", taxDto.Components.Select(c => c.ComponentName))
-                : "No Components";
-            
-            // Convert DTO to TransactionTax for the display wrapper
-            var transactionTax = new TransactionTax
-            {
-                Id = Guid.TryParse(taxDto.Id, out var taxId) ? taxId : Guid.NewGuid(),
-                TransactionId = Guid.Empty, // Will be set when saving
-                TaxId = Guid.TryParse(taxDto.TaxId, out var taxTypeId) ? taxTypeId : Guid.Empty,
-                TaxableAmount = taxDto.TaxableAmount,
-                TaxAmount = taxDto.TaxAmount,
-                CalculationMethod = taxDto.CalculationMethod ?? "",
-                IsApplied = taxDto.IsApplied,
-                AppliedDate = taxDto.AppliedDate,
-                ReferenceNumber = taxDto.ReferenceNumber,
-                Description = taxDto.Description,
-                SerialNumber = taxDto.SerialNumber
-            };
+                 private TransactionTaxDisplay CreateTransactionTaxDisplay(TransactionTaxDto taxDto)
+         {
+             // Try to get tax information from available taxes list first
+             string taxName = "Unknown Tax";
+             string taxComponents = "No Components";
+             
+             Console.WriteLine($"Processing tax DTO - TaxId: {taxDto.TaxId}, TaxName: {taxDto.TaxName}");
+             Console.WriteLine($"Available taxes count: {_availableTaxes.Count}");
+             
+             if (Guid.TryParse(taxDto.TaxId, out var taxId))
+             {
+                 var availableTax = _availableTaxes.FirstOrDefault(t => t.Id == taxId.ToString());
+                 Console.WriteLine($"Looking for tax with ID: {taxId}, Found: {availableTax != null}");
+                 
+                 if (availableTax != null)
+                 {
+                     taxName = availableTax.DisplayName;
+                     Console.WriteLine($"Using available tax name: {taxName}");
+                     
+                     if (availableTax.Components != null && availableTax.Components.Any())
+                     {
+                         taxComponents = string.Join(", ", availableTax.Components.Select(c => c.DisplayName));
+                         Console.WriteLine($"Using available tax components: {taxComponents}");
+                     }
+                 }
+                 else
+                 {
+                     // Fallback to DTO data if not found in available taxes
+                     taxName = taxDto.TaxName ?? "Unknown Tax";
+                     Console.WriteLine($"Using DTO tax name: {taxName}");
+                     
+                     if (taxDto.Components != null && taxDto.Components.Any())
+                     {
+                         taxComponents = string.Join(", ", taxDto.Components.Select(c => c.ComponentName));
+                         Console.WriteLine($"Using DTO tax components: {taxComponents}");
+                     }
+                 }
+             }
+             else
+             {
+                 Console.WriteLine($"Failed to parse TaxId: {taxDto.TaxId}");
+             }
+             
+             // Convert DTO to TransactionTax for the display wrapper
+             var transactionTax = new TransactionTax
+             {
+                 Id = Guid.TryParse(taxDto.Id, out var itemId) ? itemId : Guid.NewGuid(),
+                 TransactionId = Guid.Empty, // Will be set when saving
+                 TaxId = Guid.TryParse(taxDto.TaxId, out var taxTypeId) ? taxTypeId : Guid.Empty,
+                 TaxableAmount = taxDto.TaxableAmount,
+                 TaxAmount = taxDto.TaxAmount,
+                 CalculationMethod = taxDto.CalculationMethod ?? "",
+                 IsApplied = taxDto.IsApplied,
+                 AppliedDate = taxDto.AppliedDate,
+                 ReferenceNumber = taxDto.ReferenceNumber,
+                 Description = taxDto.Description,
+                 SerialNumber = taxDto.SerialNumber
+             };
 
-            return new TransactionTaxDisplay(transactionTax, taxName, taxComponents);
-        }
+             Console.WriteLine($"Created TransactionTaxDisplay - TaxName: {taxName}, Components: {taxComponents}");
+             return new TransactionTaxDisplay(transactionTax, taxName, taxComponents);
+         }
 
         private async Task LoadProductTaxAndLedgerLists()
         {
