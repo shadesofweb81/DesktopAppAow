@@ -1,7 +1,10 @@
+using System.Net;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WinFormsApp1.Models;
+using AccountingERP.WebApi.Models.Requests;
 
 namespace WinFormsApp1.Services
 {
@@ -133,9 +136,14 @@ namespace WinFormsApp1.Services
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                Console.WriteLine($"Creating transaction with data: {json}");
+                var subPath = transaction.Type.ToString().StartsWith("Purchase", StringComparison.OrdinalIgnoreCase) ? "purchase"
+                    : transaction.Type.ToString().StartsWith("Sale", StringComparison.OrdinalIgnoreCase) ? "sale"
+                    : string.Empty;
+                var url = string.IsNullOrEmpty(subPath) ? _baseUrl : $"{_baseUrl}/{subPath}";
 
-                var response = await _httpClient.PostAsync(_baseUrl, content);
+                Console.WriteLine($"Creating transaction ({transaction.Type}) via: {url} with data: {json}");
+
+                var response = await _httpClient.PostAsync(url, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Create transaction - Status: {response.StatusCode}");
@@ -170,15 +178,15 @@ namespace WinFormsApp1.Services
                 Console.WriteLine($"Create transaction exception: {ex.Message}");
                 return null;
             }
-        }
+        }        
 
-        public async Task<bool> UpdateTransactionAsync(Guid id, Transaction transaction)
+        public async Task<bool> UpdateTransactionAsync(Guid id, UpdateTransactionRequest updateRequest)
         {
             try
             {
                 SetAuthHeader();
 
-                var json = JsonSerializer.Serialize(transaction, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(updateRequest, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = true
@@ -186,9 +194,22 @@ namespace WinFormsApp1.Services
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                Console.WriteLine($"Updating transaction {id} with data: {json}");
+                var typeString = updateRequest.TransactionType ?? string.Empty;
+                var url = $"{_baseUrl}/";
+                if (typeString.StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
+                {
+                    url = $"{_baseUrl}/purchase";
+                }
+                else if (typeString.StartsWith("Sale", StringComparison.OrdinalIgnoreCase))
+                {
+                    url = $"{_baseUrl}/sale";
+                }
 
-                var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
+                url = $"{url}/{id}";
+
+                Console.WriteLine($"Updating transaction {id} ({typeString}) via: {url} with data: {json}");
+
+                var response = await _httpClient.PutAsync(url, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Update transaction {id} - Status: {response.StatusCode}");
@@ -296,6 +317,110 @@ namespace WinFormsApp1.Services
         public void Dispose()
         {
             _httpClient?.Dispose();
+        }
+
+        private UpdateTransactionRequest BuildUpdateTransactionRequest(Transaction transaction)
+        {
+            var companyId = transaction.CompanyId ?? Guid.Empty;
+
+            // Derive payment term days from dates if possible
+            var paymentTermDays = 30;
+            try
+            {
+                if (transaction.DueDate != default && transaction.TransactionDate != default)
+                {
+                    var span = (transaction.DueDate - transaction.TransactionDate).Days;
+                    if (span >= 0)
+                    {
+                        paymentTermDays = span;
+                    }
+                }
+            }
+            catch { }
+
+            // Attempt to infer ledger ids from ledger entries if available
+            Guid partyLedgerId = Guid.Empty;
+            Guid accountLedgerId = Guid.Empty;
+
+            if (transaction.LedgerEntries != null && transaction.LedgerEntries.Any())
+            {
+                var mainEntry = transaction.LedgerEntries.FirstOrDefault(le => le.IsMainEntry == true);
+                if (mainEntry != null)
+                {
+                    partyLedgerId = mainEntry.LedgerId;
+                }
+
+                var systemEntry = transaction.LedgerEntries.FirstOrDefault(le => le.IsSystemEntry == true);
+                if (systemEntry != null)
+                {
+                    accountLedgerId = systemEntry.LedgerId;
+                }
+
+                if (accountLedgerId == Guid.Empty)
+                {
+                    var nonMain = transaction.LedgerEntries.FirstOrDefault(le => le.IsMainEntry != true);
+                    if (nonMain != null)
+                    {
+                        accountLedgerId = nonMain.LedgerId;
+                    }
+                }
+            }
+
+            var items = (transaction.Items ?? Array.Empty<TransactionItem>())
+                .OrderBy(i => i.SerialNumber)
+                .Select(i => new UpdateTransactionItemRequest
+                {
+                    Id = i.Id == Guid.Empty ? null : i.Id,
+                    ProductId = i.ProductId,
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    DiscountRate = i.DiscountRate,
+                    DiscountAmount = i.DiscountAmount,
+                    CurrentQuantity = i.CurrentQuantity,
+                    SerialNumber = i.SerialNumber,
+                    IsDeleted = false,
+                    Variants = new List<UpdateTransactionItemVariantRequest>()
+                })
+                .ToList();
+
+            var taxes = (transaction.Taxes ?? Array.Empty<TransactionTax>())
+                .OrderBy(t => t.SerialNumber)
+                .Select(t => new UpdateTransactionTaxRequest
+                {
+                    Id = t.Id == Guid.Empty ? null : t.Id,
+                    TaxId = t.TaxId,
+                    TaxableAmount = t.TaxableAmount,
+                    Amount = t.TaxAmount,
+                    CalculationMethod = string.IsNullOrWhiteSpace(t.CalculationMethod) ? "ItemSubtotal" : t.CalculationMethod,
+                    IsApplied = t.IsApplied,
+                    AppliedDate = t.AppliedDate,
+                    ReferenceNumber = t.ReferenceNumber,
+                    Description = t.Description,
+                    IsDeleted = false,
+                    SerialNumber = t.SerialNumber,
+                    Components = null
+                })
+                .ToList();
+
+            return new UpdateTransactionRequest
+            {
+                CompanyId = companyId,
+                PartyLedgerId = partyLedgerId,
+                AccountLedgerId = accountLedgerId,
+                InvoiceNumber = transaction.InvoiceNumber,
+                TransactionType = transaction.Type.ToString(),
+                TransactionDate = transaction.TransactionDate,
+                PaymentTermDays = paymentTermDays,
+                Status = transaction.Status,
+                Notes = transaction.Notes ?? string.Empty,
+                Discount = transaction.Discount,
+                Freight = transaction.Freight,
+                IsFreightIncluded = transaction.IsFreightIncluded,
+                RoundOff = transaction.RoundOff,
+                Items = items,
+                Taxes = taxes
+            };
         }
     }
 }

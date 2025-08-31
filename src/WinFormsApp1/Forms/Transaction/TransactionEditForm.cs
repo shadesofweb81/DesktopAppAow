@@ -1,5 +1,7 @@
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
+using AccountingERP.WebApi.Models.Requests;
+using System.Linq;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -1345,7 +1347,8 @@ Tips:
                     }
                     else
                     {
-                        var success = await _transactionService.UpdateTransactionAsync(_transaction.Id, transaction);
+                        var updateRequest = CreateUpdateRequestFromForm();
+                        var success = await _transactionService.UpdateTransactionAsync(_transaction.Id, updateRequest);
                         result = success ? transaction : null;
                     }
 
@@ -1365,6 +1368,161 @@ Tips:
             {
                 MessageBox.Show($"Error saving transaction: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private UpdateTransactionRequest CreateUpdateRequestFromForm()
+        {
+            var companyId = Guid.Parse(_selectedCompany.Id);
+
+            var partyLedgerId = Guid.Empty;
+            var accountLedgerId = Guid.Empty;
+
+            if (cmbPartyLedger.SelectedValue is Guid pId)
+            {
+                partyLedgerId = pId;
+            }
+            if (cmbAccountLedger.SelectedValue is Guid aId)
+            {
+                accountLedgerId = aId;
+            }
+
+            if (partyLedgerId == Guid.Empty && !string.IsNullOrWhiteSpace(_transactionDto?.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var dtoParty))
+            {
+                partyLedgerId = dtoParty;
+            }
+            if (accountLedgerId == Guid.Empty && !string.IsNullOrWhiteSpace(_transactionDto?.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var dtoAccount))
+            {
+                accountLedgerId = dtoAccount;
+            }
+
+            var paymentTermDays = Math.Max(0, (dtpDueDate.Value.Date - dtpTransactionDate.Value.Date).Days);
+
+            decimal.TryParse(txtDiscountPercent.Text, out var discountPercent);
+            decimal.TryParse(txtFreight.Text, out var freight);
+            decimal.TryParse(txtRoundOff.Text, out var roundOff);
+
+            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
+
+            var dtoItemsById = (_transactionDto?.Items ?? new List<TransactionItemDto>())
+                .Select(d => new { D = d, Id = Guid.TryParse(d.Id, out var gid) ? gid : Guid.Empty })
+                .Where(x => x.Id != Guid.Empty)
+                .ToDictionary(x => x.Id, x => x.D);
+
+            var items = itemDisplays
+                .OrderBy(i => i.SerialNumber)
+                .Select(i =>
+                {
+                    var req = new UpdateTransactionItemRequest
+                    {
+                        Id = i.Id == Guid.Empty ? (Guid?)null : i.Id,
+                        ProductId = i.ProductId,
+                        Description = i.Description,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        DiscountRate = i.DiscountRate,
+                        DiscountAmount = i.DiscountAmount,
+                        CurrentQuantity = i.CurrentQuantity,
+                        SerialNumber = i.SerialNumber,
+                        IsDeleted = false,
+                        Variants = new List<UpdateTransactionItemVariantRequest>()
+                    };
+
+                    if (dtoItemsById.TryGetValue(i.Id, out var dtoItem) && dtoItem.Variants != null && dtoItem.Variants.Any())
+                    {
+                        req.Variants = dtoItem.Variants
+                            .OrderBy(v => v.SerialNumber)
+                            .Select(v => new UpdateTransactionItemVariantRequest
+                            {
+                                Id = Guid.TryParse(v.Id, out var vid) ? (Guid?)vid : null,
+                                ProductVariantId = Guid.TryParse(v.ProductVariantId, out var pvid) ? pvid : Guid.Empty,
+                                VariantCode = v.VariantCode ?? string.Empty,
+                                VariantName = v.VariantName ?? string.Empty,
+                                Quantity = v.Quantity,
+                                UnitPrice = v.UnitPrice,
+                                SellingPrice = v.SellingPrice,
+                                CurrentQuantity = v.CurrentQuantity,
+                                SerialNumber = v.SerialNumber,
+                                Description = v.Description,
+                                IsDeleted = false
+                            })
+                            .ToList();
+                    }
+
+                    return req;
+                })
+                .ToList();
+
+            var dtoTaxesById = (_transactionDto?.Taxes ?? new List<TransactionTaxDto>())
+                .Select(d => new { D = d, Id = Guid.TryParse(d.Id, out var gid) ? gid : Guid.Empty })
+                .Where(x => x.Id != Guid.Empty)
+                .ToDictionary(x => x.Id, x => x.D);
+
+            var taxes = taxDisplays
+                .OrderBy(t => t.SerialNumber)
+                .Select(t =>
+                {
+                    var req = new UpdateTransactionTaxRequest
+                    {
+                        Id = t.Id == Guid.Empty ? (Guid?)null : t.Id,
+                        TaxId = t.TaxId,
+                        TaxableAmount = t.TaxableAmount,
+                        Amount = t.TaxAmount,
+                        CalculationMethod = string.IsNullOrWhiteSpace(t.CalculationMethod) ? "ItemSubtotal" : t.CalculationMethod,
+                        IsApplied = t.IsApplied,
+                        AppliedDate = t.AppliedDate,
+                        ReferenceNumber = t.ReferenceNumber,
+                        Description = t.Description,
+                        IsDeleted = false,
+                        SerialNumber = t.SerialNumber,
+                        Components = null
+                    };
+
+                    if (dtoTaxesById.TryGetValue(t.Id, out var dtoTax) && dtoTax.Components != null && dtoTax.Components.Any())
+                    {
+                        req.Components = dtoTax.Components
+                            .Select(c => new UpdateTransactionTaxComponentRequest
+                            {
+                                Id = Guid.TryParse(c.Id, out var cid) ? (Guid?)cid : null,
+                                TaxComponentId = Guid.TryParse(c.TaxComponentId, out var tcid) ? tcid : Guid.Empty,
+                                Name = c.ComponentName ?? string.Empty,
+                                Amount = c.Amount,
+                                Description = c.Description,
+                                IsApplied = c.IsApplied,
+                                AppliedDate = c.AppliedDate,
+                                ReferenceNumber = c.ReferenceNumber,
+                                PayableLedgerId = null,
+                                IsDeleted = false
+                            })
+                            .ToList();
+                    }
+
+                    return req;
+                })
+                .ToList();
+
+            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
+                ?? _transactionDto?.Type
+                ?? TransactionType.SaleInvoice.ToString();
+
+            return new UpdateTransactionRequest
+            {
+                CompanyId = companyId,
+                PartyLedgerId = partyLedgerId,
+                AccountLedgerId = accountLedgerId,
+                InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim(),
+                TransactionType = transactionTypeString,
+                TransactionDate = dtpTransactionDate.Value,
+                PaymentTermDays = paymentTermDays,
+                Status = cmbStatus.SelectedItem?.ToString(),
+                Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? string.Empty : txtNotes.Text.Trim(),
+                Discount = discountPercent,
+                Freight = freight,
+                IsFreightIncluded = chkFreightIncluded.Checked,
+                RoundOff = roundOff,
+                Items = items,
+                Taxes = taxes
+            };
         }
 
         private bool ValidateForm()
