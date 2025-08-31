@@ -59,6 +59,11 @@ namespace WinFormsApp1.Forms.Transaction
         // Action Buttons
         private Button btnSave = null!;
         private Button btnCancel = null!;
+        
+        // Group Boxes
+        private GroupBox itemsGroupBox = null!;
+        private GroupBox taxGroupBox = null!;
+        private GroupBox summaryGroupBox = null!;
 
         private List<Models.ProductListDto> _availableProducts = new List<Models.ProductListDto>();
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
@@ -298,6 +303,10 @@ namespace WinFormsApp1.Forms.Transaction
 
             btnSave = new Button();
             btnCancel = new Button();
+            
+            itemsGroupBox = new GroupBox();
+            taxGroupBox = new GroupBox();
+            summaryGroupBox = new GroupBox();
 
             SuspendLayout();
 
@@ -306,7 +315,7 @@ namespace WinFormsApp1.Forms.Transaction
             Size = new Size(1200, 800);
             StartPosition = FormStartPosition.CenterParent;
             WindowState = FormWindowState.Maximized;
-            // KeyPreview is handled by BaseForm
+            KeyPreview = true; // Ensure form can handle key events
 
             SetupLayout();
 
@@ -355,13 +364,10 @@ namespace WinFormsApp1.Forms.Transaction
             yPosition += spaceBetweenRows + 10;
 
             // Items Section
-            var itemsGroupBox = new GroupBox
-            {
-                Text = "Transaction Items",
-                Location = new Point(leftMargin, yPosition),
-                Size = new Size(1140, 250),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-            };
+            itemsGroupBox.Text = "Transaction Items";
+            itemsGroupBox.Location = new Point(leftMargin, yPosition);
+            itemsGroupBox.Size = new Size(1140, 250);
+            itemsGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             dgvItems.Location = new Point(10, 25);
             dgvItems.Size = new Size(1020, 180);
@@ -375,6 +381,9 @@ namespace WinFormsApp1.Forms.Transaction
             btnAddItem.Location = new Point(1040, 65);
             btnAddItem.Size = new Size(90, 30);
             btnAddItem.Text = "Add Item";
+            btnAddItem.UseVisualStyleBackColor = true;
+            btnAddItem.Visible = true;
+            btnAddItem.Enabled = true;
             btnAddItem.Click += BtnAddItem_Click;
 
             btnEditItem.Location = new Point(1040, 105);
@@ -391,13 +400,10 @@ namespace WinFormsApp1.Forms.Transaction
             yPosition += 260;
 
             // Tax Section
-            var taxGroupBox = new GroupBox
-            {
-                Text = "Transaction Taxes",
-                Location = new Point(leftMargin, yPosition),
-                Size = new Size(1140, 180),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-            };
+            taxGroupBox.Text = "Transaction Taxes";
+            taxGroupBox.Location = new Point(leftMargin, yPosition);
+            taxGroupBox.Size = new Size(1140, 180);
+            taxGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             dgvTaxes.Location = new Point(10, 25);
             dgvTaxes.Size = new Size(1020, 110);
@@ -427,14 +433,11 @@ namespace WinFormsApp1.Forms.Transaction
             yPosition += 190;
 
             // Summary Section - Improved Layout
-            var summaryGroupBox = new GroupBox
-            {
-                Text = "Transaction Summary",
-                Location = new Point(leftMargin, yPosition),
-                Size = new Size(1140, 140),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-            };
+            summaryGroupBox.Text = "Transaction Summary";
+            summaryGroupBox.Location = new Point(leftMargin, yPosition);
+            summaryGroupBox.Size = new Size(1140, 140);
+            summaryGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            summaryGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
 
             // First Row - Subtotal and Discount
             var summaryYPos = 30;
@@ -496,6 +499,39 @@ namespace WinFormsApp1.Forms.Transaction
             btnCancel.Text = "&Cancel";
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += BtnCancel_Click;
+            
+            // Test: Add a visible test button for Add Item functionality
+            var testAddItemBtn = new Button
+            {
+                Location = new Point(900, yPosition),
+                Size = new Size(90, 35),
+                Text = "Test Add Item",
+                UseVisualStyleBackColor = true,
+                BackColor = Color.LightGreen
+            };
+            testAddItemBtn.Click += (s, e) => {
+                Console.WriteLine("Test Add Item button clicked!");
+                ShowItemSelectionDialog();
+            };
+            Controls.Add(testAddItemBtn);
+
+            // Debug: Verify controls are properly set up before adding
+            Console.WriteLine($"Adding controls to form:");
+            Console.WriteLine($"  lblCompanyInfo: {lblCompanyInfo != null}");
+            Console.WriteLine($"  itemsGroupBox: {itemsGroupBox != null}, Controls count: {itemsGroupBox?.Controls.Count}");
+            Console.WriteLine($"  taxGroupBox: {taxGroupBox != null}");
+            Console.WriteLine($"  summaryGroupBox: {summaryGroupBox != null}");
+            Console.WriteLine($"  btnSave: {btnSave != null}");
+            Console.WriteLine($"  btnCancel: {btnCancel != null}");
+            
+            if (itemsGroupBox != null)
+            {
+                Console.WriteLine($"  Items GroupBox children:");
+                foreach (Control ctrl in itemsGroupBox.Controls)
+                {
+                    Console.WriteLine($"    - {ctrl.GetType().Name}: '{ctrl.Text}' at {ctrl.Location}");
+                }
+            }
 
             Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnCancel });
         }
@@ -546,6 +582,11 @@ namespace WinFormsApp1.Forms.Transaction
             SetupComboBoxes();
             SetupDataGridViews();
             SetupEventHandlers();
+            
+            // Debug: Check if buttons are properly set up
+            Console.WriteLine($"Button setup debug:");
+            Console.WriteLine($"btnAddItem: Visible={btnAddItem.Visible}, Enabled={btnAddItem.Enabled}, Text='{btnAddItem.Text}'");
+            Console.WriteLine($"btnAddItem.Parent: {btnAddItem.Parent?.GetType().Name}");
         }
 
         private void SetupComboBoxes()
@@ -586,6 +627,12 @@ namespace WinFormsApp1.Forms.Transaction
             dgvItems.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvItems.MultiSelect = false;
             dgvItems.RowHeadersVisible = false;
+            dgvItems.EditMode = DataGridViewEditMode.EditOnEnter;
+            
+            // Add event handlers for keyboard navigation and editing
+            dgvItems.KeyDown += DgvItems_KeyDown;
+            dgvItems.CellDoubleClick += DgvItems_CellDoubleClick;
+            dgvItems.CellEndEdit += DgvItems_CellEndEdit;
 
             // Serial Number Column (First Column)
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -603,7 +650,8 @@ namespace WinFormsApp1.Forms.Transaction
                 Name = "ProductName",
                 HeaderText = "Product",
                 DataPropertyName = "ProductName",
-                Width = 200
+                Width = 200,
+                ReadOnly = true // Product selection via dialog only
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -611,7 +659,8 @@ namespace WinFormsApp1.Forms.Transaction
                 Name = "Description",
                 HeaderText = "Description",
                 DataPropertyName = "Description",
-                Width = 200
+                Width = 200,
+                ReadOnly = false // Editable
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -620,7 +669,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Qty",
                 DataPropertyName = "Quantity",
                 Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = false // Editable
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -629,7 +679,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Unit Price",
                 DataPropertyName = "UnitPrice",
                 Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = false // Editable
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -638,7 +689,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Disc %",
                 DataPropertyName = "DiscountRate",
                 Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = false // Editable
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -647,7 +699,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Disc Amt",
                 DataPropertyName = "DiscountAmount",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = true // Calculated field
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -656,7 +709,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Tax %",
                 DataPropertyName = "TaxRate",
                 Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = false // Editable
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -665,7 +719,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Tax Amt",
                 DataPropertyName = "TaxAmount",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = true // Calculated field
             });
 
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -674,7 +729,8 @@ namespace WinFormsApp1.Forms.Transaction
                 HeaderText = "Line Total",
                 DataPropertyName = "LineTotal",
                 Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
+                ReadOnly = true // Calculated field
             });
         }
 
@@ -761,15 +817,19 @@ namespace WinFormsApp1.Forms.Transaction
 
         private async void LoadData()
         {
+            Console.WriteLine("LoadData called - starting to load data...");
+            
             // Load product, tax, and ledger lists first
             await LoadProductTaxAndLedgerLists();
 
             if (_transaction != null)
             {
+                Console.WriteLine("Loading existing transaction data...");
                 await LoadExistingTransactionData();
             }
             else
             {
+                Console.WriteLine("Setting up new transaction defaults...");
                 // New transaction defaults
                 cmbTransactionType.SelectedIndex = 0;
                 dtpTransactionDate.Value = DateTime.Now;
@@ -780,8 +840,12 @@ namespace WinFormsApp1.Forms.Transaction
                 dgvTaxes.DataSource = new List<TransactionTaxDisplay>();
             }
 
+            Console.WriteLine("LoadData completed - setting focus...");
             // Set focus to the first field (Transaction Type dropdown)
             cmbTransactionType.Focus();
+            
+            // Final debug: Check if Add Item button is visible after everything is loaded
+            Console.WriteLine($"Final check - btnAddItem: Visible={btnAddItem.Visible}, Enabled={btnAddItem.Enabled}, Parent={btnAddItem.Parent?.GetType().Name}");
         }
 
         private async Task LoadExistingTransactionData()
@@ -1065,7 +1129,66 @@ namespace WinFormsApp1.Forms.Transaction
                 return true;
             }
             
+            // Enter on items grid - enter edit mode
+            if (ActiveControl == dgvItems && dgvItems.SelectedRows.Count > 0)
+            {
+                dgvItems.BeginEdit(true);
+                return true;
+            }
+            
             return false; // Let BaseForm handle navigation
+        }
+        
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            Console.WriteLine($"ProcessCmdKey called with key: {keyData}, ActiveControl: {ActiveControl?.GetType().Name}");
+            
+            switch (keyData)
+            {
+                case Keys.F2:
+                    Console.WriteLine("F2 key pressed - calling ShowItemSelectionDialog");
+                    ShowItemSelectionDialog();
+                    return true;
+                case Keys.F3:
+                    Console.WriteLine("F3 key pressed - calling BtnSelectTaxes_Click");
+                    BtnSelectTaxes_Click(null, EventArgs.Empty);
+                    return true;
+                case Keys.F10:
+                    Console.WriteLine("F10 key pressed - calling BtnSave_Click");
+                    BtnSave_Click(null, EventArgs.Empty);
+                    return true;
+                case Keys.Delete:
+                    if (ActiveControl == dgvItems && dgvItems.SelectedRows.Count > 0)
+                    {
+                        Console.WriteLine("Delete key pressed on items grid");
+                        BtnDeleteItem_Click(null, EventArgs.Empty);
+                        return true;
+                    }
+                    if (ActiveControl == dgvTaxes && dgvTaxes.SelectedRows.Count > 0)
+                    {
+                        Console.WriteLine("Delete key pressed on taxes grid");
+                        BtnDeleteTax_Click(null, EventArgs.Empty);
+                        return true;
+                    }
+                    break;
+            }
+            
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+        
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            Console.WriteLine($"OnKeyDown called with key: {e.KeyCode}");
+            
+            if (e.KeyCode == Keys.F2)
+            {
+                Console.WriteLine("F2 detected in OnKeyDown - calling ShowItemSelectionDialog");
+                ShowItemSelectionDialog();
+                e.Handled = true;
+                return;
+            }
+            
+            base.OnKeyDown(e);
         }
 
         protected override void HandleEscapeKey()
@@ -1086,9 +1209,23 @@ Navigation:
 • F1 - Show this help
 
 Special Keys:
-• F2 - Select Products
+• F2 - Add/Select Items
 • F3 - Select Taxes
 • F10 - Save Transaction
+• Delete - Remove selected item/tax
+• Enter - Edit selected item/tax in grid
+
+Item Grid Navigation:
+• F2 - Add new item from product list
+• Enter - Edit selected item in grid
+• Delete - Remove selected item
+• Double-click - Edit item in grid
+• Tab/Arrow keys - Navigate between cells
+
+Debug Info:
+• Button Visible: " + btnAddItem.Visible + @"
+• Button Enabled: " + btnAddItem.Enabled + @"
+• Available Products: " + _availableProducts.Count + @"
 
 Field Order:
 1. Transaction Type (dropdown)
@@ -1117,7 +1254,9 @@ Field Order:
 Tips:
 • Use Tab/Backspace for fast field navigation
 • Ctrl+Enter to save from any field
-• F2/F3 for quick product/tax selection
+• F2 for quick item selection and addition
+• F3 for quick tax selection
+• Direct editing in item grid for fast data entry
 • Escape to cancel and close
 • All fields are highlighted when focused";
 
@@ -1208,22 +1347,8 @@ Tips:
 
         private void BtnAddItem_Click(object? sender, EventArgs e)
         {
-            if (_availableProducts.Count == 0)
-            {
-                MessageBox.Show("No products available. Please add products first.", "No Products", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var message = $"Add Item - Available Products ({_availableProducts.Count}):\n\n";
-            foreach (var product in _availableProducts.Take(5)) // Show first 5 products
-            {
-                message += $"• {product.DisplayName} - {product.SellingPrice:C}\n";
-            }
-            if (_availableProducts.Count > 5)
-            {
-                message += $"\n... and {_availableProducts.Count - 5} more products";
-            }
-            MessageBox.Show(message, "Add Item", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Console.WriteLine("BtnAddItem_Click called");
+            ShowItemSelectionDialog();
         }
 
         private void BtnEditItem_Click(object? sender, EventArgs e)
@@ -1343,7 +1468,9 @@ Tips:
                     Models.Transaction? result;
                     if (_transaction == null)
                     {
-                        result = await _transactionService.CreateTransactionAsync(transaction);
+                        var dtoForCreate = CreateTransactionDtoFromForm();
+                        var createdDto = await _transactionService.CreateTransactionAsync(dtoForCreate);
+                        result = createdDto != null ? ConvertDtoToTransaction(createdDto) : null;
                     }
                     else
                     {
@@ -1368,6 +1495,92 @@ Tips:
             {
                 MessageBox.Show($"Error saving transaction: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private Models.TransactionByIdDto CreateTransactionDtoFromForm()
+        {
+            var dto = new Models.TransactionByIdDto();
+
+            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
+                ?? TransactionType.SaleInvoice.ToString();
+
+            dto.Type = transactionTypeString;
+            dto.TransactionNumber = txtTransactionNumber.Text.Trim();
+            dto.InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim();
+            dto.TransactionDate = dtpTransactionDate.Value;
+            dto.DueDate = dtpDueDate.Value;
+            dto.Status = cmbStatus.SelectedItem?.ToString() ?? "Draft";
+            dto.ReferenceNumber = string.IsNullOrWhiteSpace(txtReferenceNumber.Text) ? null : txtReferenceNumber.Text.Trim();
+            dto.Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? null : txtNotes.Text.Trim();
+
+            if (cmbPartyLedger.SelectedValue is Guid pId)
+            {
+                dto.PartyLedgerId = pId.ToString();
+            }
+            if (cmbAccountLedger.SelectedValue is Guid aId)
+            {
+                dto.AccountLedgerId = aId.ToString();
+            }
+
+            decimal.TryParse(txtSubTotal.Text, out var subtotal);
+            decimal.TryParse(txtDiscountPercent.Text, out var discountPercent);
+            decimal.TryParse(txtFreight.Text, out var freight);
+            decimal.TryParse(txtTaxAmount.Text, out var taxAmount);
+            decimal.TryParse(txtRoundOff.Text, out var roundOff);
+            decimal.TryParse(txtTotal.Text, out var total);
+
+            dto.SubTotal = subtotal;
+            dto.Discount = discountPercent;
+            dto.Freight = freight;
+            dto.IsFreightIncluded = chkFreightIncluded.Checked;
+            dto.TaxAmount = taxAmount;
+            dto.RoundOff = roundOff;
+            dto.Total = total;
+
+            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
+
+            dto.Items = itemDisplays
+                .OrderBy(i => i.SerialNumber)
+                .Select(i => new TransactionItemDto
+                {
+                    Id = (i.Id == Guid.Empty ? Guid.NewGuid() : i.Id).ToString(),
+                    ProductId = i.ProductId.ToString(),
+                    ProductName = i.ProductName,
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    DiscountRate = i.DiscountRate,
+                    DiscountAmount = i.DiscountAmount,
+                    TaxRate = i.TaxRate,
+                    TaxAmount = i.TaxAmount,
+                    LineTotal = i.LineTotal,
+                    CurrentQuantity = i.CurrentQuantity,
+                    SerialNumber = i.SerialNumber,
+                    Variants = new List<ProductVariantDto>()
+                })
+                .ToList();
+
+            dto.Taxes = taxDisplays
+                .OrderBy(t => t.SerialNumber)
+                .Select(t => new TransactionTaxDto
+                {
+                    Id = (t.Id == Guid.Empty ? Guid.NewGuid() : t.Id).ToString(),
+                    TaxId = t.TaxId.ToString(),
+                    TaxName = t.TaxName,
+                    TaxableAmount = t.TaxableAmount,
+                    TaxAmount = t.TaxAmount,
+                    CalculationMethod = t.CalculationMethod,
+                    IsApplied = t.IsApplied,
+                    AppliedDate = t.AppliedDate,
+                    ReferenceNumber = t.ReferenceNumber,
+                    Description = t.Description,
+                    SerialNumber = t.SerialNumber,
+                    Components = new List<TransactionTaxComponentDto>()
+                })
+                .ToList();
+
+            return dto;
         }
 
         private UpdateTransactionRequest CreateUpdateRequestFromForm()
@@ -1633,5 +1846,376 @@ Tips:
             DialogResult = DialogResult.Cancel;
             Close();
         }
+
+        #region Item Management and Grid Events
+
+        private void ShowItemSelectionDialog()
+        {
+            try
+            {
+                Console.WriteLine($"ShowItemSelectionDialog called. Available products: {_availableProducts.Count}");
+                
+                if (_availableProducts.Count == 0)
+                {
+                    MessageBox.Show("No products available. Please add products first.", "No Products", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var dialog = new ItemSelectionDialog(_availableProducts);
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                
+                Console.WriteLine("Opening item selection dialog...");
+                
+                if (dialog.ShowDialog(this) == DialogResult.OK && dialog.SelectedProducts.Any())
+                {
+                    Console.WriteLine($"Selected {dialog.SelectedProducts.Count} products");
+                    foreach (var selectedProduct in dialog.SelectedProducts)
+                    {
+                        AddItemToGrid(selectedProduct);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Dialog cancelled or no products selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ShowItemSelectionDialog: {ex.Message}");
+                MessageBox.Show($"Error opening item selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void AddItemToGrid(ProductListDto product)
+        {
+            var items = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            
+            var newSerialNumber = items.Any() ? items.Max(i => i.SerialNumber) + 1 : 1;
+            
+            var newItem = new TransactionItemDisplay(new TransactionItem
+            {
+                Id = Guid.NewGuid(),
+                TransactionId = _transaction?.Id ?? Guid.Empty,
+                ProductId = Guid.Parse(product.Id),
+                Description = product.Name,
+                Quantity = 1,
+                UnitPrice = product.SellingPrice,
+                TaxRate = 0,
+                TaxAmount = 0,
+                DiscountRate = 0,
+                DiscountAmount = 0,
+                LineTotal = product.SellingPrice,
+                CurrentQuantity = product.StockQuantity,
+                SerialNumber = newSerialNumber
+            }, product.DisplayName);
+
+            items.Add(newItem);
+            
+            // Refresh the grid
+            dgvItems.DataSource = null;
+            dgvItems.DataSource = items.OrderBy(i => i.SerialNumber).ToList();
+            
+            // Select the new item
+            if (dgvItems.Rows.Count > 0)
+            {
+                dgvItems.Rows[dgvItems.Rows.Count - 1].Selected = true;
+                dgvItems.CurrentCell = dgvItems.Rows[dgvItems.Rows.Count - 1].Cells[1]; // Focus on description
+            }
+            
+            CalculateTotals();
+        }
+
+        private void DgvItems_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F2)
+            {
+                ShowItemSelectionDialog();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Delete && dgvItems.SelectedRows.Count > 0)
+            {
+                BtnDeleteItem_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Enter && dgvItems.SelectedRows.Count > 0)
+            {
+                // Start editing the first editable cell
+                var selectedRow = dgvItems.SelectedRows[0];
+                for (int i = 0; i < dgvItems.Columns.Count; i++)
+                {
+                    if (!dgvItems.Columns[i].ReadOnly)
+                    {
+                        dgvItems.CurrentCell = selectedRow.Cells[i];
+                        dgvItems.BeginEdit(true);
+                        break;
+                    }
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void DgvItems_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var column = dgvItems.Columns[e.ColumnIndex];
+                if (!column.ReadOnly)
+                {
+                    dgvItems.BeginEdit(true);
+                }
+            }
+        }
+
+        private void DgvItems_CellEndEdit(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var item = dgvItems.Rows[e.RowIndex].DataBoundItem as TransactionItemDisplay;
+                if (item != null)
+                {
+                    // Recalculate line totals when quantity, unit price, or discount changes
+                    var columnName = dgvItems.Columns[e.ColumnIndex].Name;
+                    if (columnName == "Quantity" || columnName == "UnitPrice" || columnName == "DiscountRate" || columnName == "TaxRate")
+                    {
+                        RecalculateItemTotals(item);
+                        
+                        // Refresh the grid to show updated calculated fields
+                        dgvItems.RefreshEdit();
+                        dgvItems.Refresh();
+                        
+                        CalculateTotals();
+                    }
+                }
+            }
+        }
+
+        private void RecalculateItemTotals(TransactionItemDisplay item)
+        {
+            var subtotal = item.Quantity * item.UnitPrice;
+            
+            // Calculate discount
+            item.DiscountAmount = subtotal * (item.DiscountRate / 100);
+            var afterDiscount = subtotal - item.DiscountAmount;
+            
+            // Calculate tax
+            item.TaxAmount = afterDiscount * (item.TaxRate / 100);
+            
+            // Calculate line total
+            item.LineTotal = afterDiscount + item.TaxAmount;
+        }
+
+        #endregion
     }
+
+    #region Item Selection Dialog
+
+    public partial class ItemSelectionDialog : Form
+    {
+        private TextBox txtSearch = null!;
+        private DataGridView dgvProducts = null!;
+        private Button btnOK = null!;
+        private Button btnCancel = null!;
+        private List<ProductListDto> _allProducts;
+        private List<ProductListDto> _filteredProducts;
+
+        public List<ProductListDto> SelectedProducts { get; private set; } = new List<ProductListDto>();
+
+        public ItemSelectionDialog(List<ProductListDto> products)
+        {
+            _allProducts = products;
+            _filteredProducts = new List<ProductListDto>(products);
+            InitializeDialog();
+        }
+
+        private void InitializeDialog()
+        {
+            Text = "Select Products";
+            Size = new Size(800, 600);
+            StartPosition = FormStartPosition.CenterParent;
+            KeyPreview = true;
+            
+            txtSearch = new TextBox();
+            dgvProducts = new DataGridView();
+            btnOK = new Button();
+            btnCancel = new Button();
+
+            SuspendLayout();
+
+            // Search textbox
+            txtSearch.Location = new Point(20, 20);
+            txtSearch.Size = new Size(740, 25);
+            txtSearch.PlaceholderText = "Type to search products...";
+            txtSearch.TextChanged += TxtSearch_TextChanged;
+
+            // Products grid
+            dgvProducts.Location = new Point(20, 55);
+            dgvProducts.Size = new Size(740, 480);
+            dgvProducts.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvProducts.MultiSelect = true;
+            dgvProducts.AllowUserToAddRows = false;
+            dgvProducts.AllowUserToDeleteRows = false;
+            dgvProducts.ReadOnly = true;
+            dgvProducts.RowHeadersVisible = false;
+            dgvProducts.AutoGenerateColumns = false;
+            
+            SetupProductGrid();
+
+            // Buttons
+            btnOK.Location = new Point(600, 545);
+            btnOK.Size = new Size(75, 30);
+            btnOK.Text = "&OK";
+            btnOK.UseVisualStyleBackColor = true;
+            btnOK.Click += BtnOK_Click;
+
+            btnCancel.Location = new Point(685, 545);
+            btnCancel.Size = new Size(75, 30);
+            btnCancel.Text = "&Cancel";
+            btnCancel.UseVisualStyleBackColor = true;
+            btnCancel.Click += BtnCancel_Click;
+
+            Controls.AddRange(new Control[] { txtSearch, dgvProducts, btnOK, btnCancel });
+
+            LoadProducts();
+            txtSearch.Focus();
+
+            ResumeLayout(false);
+            PerformLayout();
+
+            // Event handlers
+            KeyDown += ItemSelectionDialog_KeyDown;
+            dgvProducts.KeyDown += DgvProducts_KeyDown;
+            dgvProducts.DoubleClick += DgvProducts_DoubleClick;
+        }
+
+        private void SetupProductGrid()
+        {
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "ProductCode",
+                HeaderText = "Code",
+                DataPropertyName = "ProductCode",
+                Width = 100
+            });
+
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "Product Name",
+                DataPropertyName = "Name",
+                Width = 300
+            });
+
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Category",
+                HeaderText = "Category",
+                DataPropertyName = "Category",
+                Width = 120
+            });
+
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Unit",
+                HeaderText = "Unit",
+                DataPropertyName = "Unit",
+                Width = 80
+            });
+
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SellingPrice",
+                HeaderText = "Price",
+                DataPropertyName = "SellingPrice",
+                Width = 100,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "StockQuantity",
+                HeaderText = "Stock",
+                DataPropertyName = "StockQuantity",
+                Width = 80,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+        }
+
+        private void LoadProducts()
+        {
+            dgvProducts.DataSource = _filteredProducts;
+        }
+
+        private void TxtSearch_TextChanged(object? sender, EventArgs e)
+        {
+            var searchText = txtSearch.Text.ToLower();
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                _filteredProducts = new List<ProductListDto>(_allProducts);
+            }
+            else
+            {
+                _filteredProducts = _allProducts.Where(p => 
+                    p.ProductCode.ToLower().Contains(searchText) ||
+                    p.Name.ToLower().Contains(searchText) ||
+                    p.Category.ToLower().Contains(searchText)
+                ).ToList();
+            }
+            
+            LoadProducts();
+        }
+
+        private void ItemSelectionDialog_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                BtnOK_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                BtnCancel_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void DgvProducts_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                BtnOK_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void DgvProducts_DoubleClick(object? sender, EventArgs e)
+        {
+            BtnOK_Click(null, EventArgs.Empty);
+        }
+
+        private void BtnOK_Click(object? sender, EventArgs e)
+        {
+            if (dgvProducts.SelectedRows.Count > 0)
+            {
+                SelectedProducts = dgvProducts.SelectedRows.Cast<DataGridViewRow>()
+                    .Select(row => row.DataBoundItem as ProductListDto)
+                    .Where(product => product != null)
+                    .ToList()!;
+                
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("Please select at least one product.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void BtnCancel_Click(object? sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
+    }
+
+    #endregion
 }
