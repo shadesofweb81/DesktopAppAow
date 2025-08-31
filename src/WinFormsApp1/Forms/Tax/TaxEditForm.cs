@@ -21,11 +21,12 @@ namespace WinFormsApp1.Forms.Tax
         }
     }
 
-    public partial class TaxEditForm : Form
+    public partial class TaxEditForm : BaseForm
     {
         private readonly TaxService _taxService;
         private readonly LocalStorageService _localStorageService;
         private TaxModel? _tax;
+        private TaxByIdDto? _taxDto;
         private bool _isNewTax;
         private bool _isReadOnly = false;
 
@@ -339,41 +340,8 @@ namespace WinFormsApp1.Forms.Tax
                 }
                 else
                 {
-                    // Load existing tax data
-                    txtName.Text = _tax!.Name;
-                    txtDescription.Text = _tax.Description;
-                    
-                    // Set category - find the matching display item
-                    if (cmbCategory.Items.Count > 0)
-                    {
-                        for (int i = 0; i < cmbCategory.Items.Count; i++)
-                        {
-                            if (cmbCategory.Items[i] is TaxCategoryDisplayItem item && item.Value == _tax.Category)
-                            {
-                                cmbCategory.SelectedIndex = i;
-                                break;
-                            }
-                        }
-                        
-                        // If not found, set to first item as fallback
-                        if (cmbCategory.SelectedIndex == -1 && cmbCategory.Items.Count > 0)
-                        {
-                            cmbCategory.SelectedIndex = 0;
-                        }
-                    }
-                    
-                    nudDefaultRate.Value = _tax.DefaultRate;
-                    txtHSNCode.Text = _tax.HSNCode ?? "";
-                    txtSectionCode.Text = _tax.SectionCode ?? "";
-                    txtReturnFormNumber.Text = _tax.ReturnFormNumber ?? "";
-                    chkIsActive.Checked = _tax.IsActive;
-                    chkIsComposite.Checked = _tax.IsComposite;
-                    chkIsReverseChargeApplicable.Checked = _tax.IsReverseChargeApplicable;
-                    chkIsDeductibleAtSource.Checked = _tax.IsDeductibleAtSource;
-                    chkIsCollectedAtSource.Checked = _tax.IsCollectedAtSource;
-
-                    // Load components
-                    LoadComponents();
+                    // Load existing tax data using DTO for complete details
+                    await LoadExistingTaxData();
                 }
             }
             catch (Exception ex)
@@ -382,6 +350,115 @@ namespace WinFormsApp1.Forms.Tax
                 lblStatus.ForeColor = Color.Red;
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private async Task LoadExistingTaxData()
+        {
+            if (_tax == null) return;
+
+            try
+            {
+                // Load full tax details using the new DTO
+                _taxDto = await _taxService.GetTaxByIdDtoAsync(_tax.Id);
+                
+                if (_taxDto != null)
+                {
+                    // Load form data from DTO
+                    txtName.Text = _taxDto.Name;
+                    txtDescription.Text = _taxDto.Description;
+                    
+                    // Set category - find the matching display item
+                    if (Enum.TryParse<TaxCategory>(_taxDto.Category, out var category))
+                    {
+                        if (cmbCategory.Items.Count > 0)
+                        {
+                            for (int i = 0; i < cmbCategory.Items.Count; i++)
+                            {
+                                if (cmbCategory.Items[i] is TaxCategoryDisplayItem item && item.Value == category)
+                                {
+                                    cmbCategory.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                            
+                            // If not found, set to first item as fallback
+                            if (cmbCategory.SelectedIndex == -1 && cmbCategory.Items.Count > 0)
+                            {
+                                cmbCategory.SelectedIndex = 0;
+                            }
+                        }
+                    }
+                    
+                    nudDefaultRate.Value = _taxDto.DefaultRate;
+                    txtHSNCode.Text = _taxDto.HSNCode ?? "";
+                    txtSectionCode.Text = _taxDto.SectionCode ?? "";
+                    txtReturnFormNumber.Text = _taxDto.ReturnFormNumber ?? "";
+                    chkIsActive.Checked = _taxDto.IsActive;
+                    chkIsComposite.Checked = _taxDto.IsComposite;
+                    chkIsReverseChargeApplicable.Checked = _taxDto.IsReverseChargeApplicable;
+                    chkIsDeductibleAtSource.Checked = _taxDto.IsDeductibleAtSource;
+                    chkIsCollectedAtSource.Checked = _taxDto.IsCollectedAtSource;
+
+                    // Load components from DTO
+                    LoadComponentsFromDto();
+                    
+                    lblStatus.Text = $"Loaded tax: {_taxDto.Name} with {_taxDto.Components.Count} components";
+                    lblStatus.ForeColor = Color.Green;
+                }
+                else
+                {
+                    // Fallback to original tax data if DTO load fails
+                    LoadFallbackTaxData();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading tax details: {ex.Message}");
+                LoadFallbackTaxData();
+            }
+        }
+
+        private void LoadFallbackTaxData()
+        {
+            if (_tax == null) return;
+
+            txtName.Text = _tax.Name;
+            txtDescription.Text = _tax.Description;
+            
+            // Set category - find the matching display item
+            if (cmbCategory.Items.Count > 0)
+            {
+                for (int i = 0; i < cmbCategory.Items.Count; i++)
+                {
+                    if (cmbCategory.Items[i] is TaxCategoryDisplayItem item && item.Value == _tax.Category)
+                    {
+                        cmbCategory.SelectedIndex = i;
+                        break;
+                    }
+                }
+                
+                // If not found, set to first item as fallback
+                if (cmbCategory.SelectedIndex == -1 && cmbCategory.Items.Count > 0)
+                {
+                    cmbCategory.SelectedIndex = 0;
+                }
+            }
+            
+            nudDefaultRate.Value = _tax.DefaultRate;
+            txtHSNCode.Text = _tax.HSNCode ?? "";
+            txtSectionCode.Text = _tax.SectionCode ?? "";
+            txtReturnFormNumber.Text = _tax.ReturnFormNumber ?? "";
+            chkIsActive.Checked = _tax.IsActive;
+            chkIsComposite.Checked = _tax.IsComposite;
+            chkIsReverseChargeApplicable.Checked = _tax.IsReverseChargeApplicable;
+            chkIsDeductibleAtSource.Checked = _tax.IsDeductibleAtSource;
+            chkIsCollectedAtSource.Checked = _tax.IsCollectedAtSource;
+
+            // Load components
+            LoadComponents();
+            
+            lblStatus.Text = "Loaded tax data (fallback mode)";
+            lblStatus.ForeColor = Color.Orange;
         }
 
         private string GetCategoryDisplayName(TaxCategory category)
@@ -416,6 +493,36 @@ namespace WinFormsApp1.Forms.Tax
                         component.IsActive ? "Yes" : "No"
                     );
                 }
+            }
+        }
+
+        private void LoadComponentsFromDto()
+        {
+            dgvComponents.Rows.Clear();
+            
+            if (_taxDto?.Components != null)
+            {
+                Console.WriteLine($"Loading {_taxDto.Components.Count} components from DTO");
+                
+                foreach (var comp in _taxDto.Components)
+                {
+                    Console.WriteLine($"Adding component: {comp.Name}, Type: {comp.Type}, Rate: {comp.Rate}");
+                    
+                    dgvComponents.Rows.Add(
+                        comp.Name,
+                        comp.Description,
+                        comp.Type,
+                        comp.Rate.ToString("F2"),
+                        comp.LedgerCode,
+                        comp.IsActive ? "Yes" : "No"
+                    );
+                }
+                
+                Console.WriteLine($"Added {dgvComponents.Rows.Count} rows to components grid");
+            }
+            else
+            {
+                Console.WriteLine("No components found in DTO");
             }
         }
 

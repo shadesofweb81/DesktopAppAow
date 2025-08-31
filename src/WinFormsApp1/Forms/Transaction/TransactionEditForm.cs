@@ -585,6 +585,17 @@ namespace WinFormsApp1.Forms.Transaction
             dgvItems.MultiSelect = false;
             dgvItems.RowHeadersVisible = false;
 
+            // Serial Number Column (First Column)
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SerialNumber",
+                HeaderText = "S.No",
+                DataPropertyName = "SerialNumber",
+                Width = 60,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
+            });
+
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "ProductName",
@@ -673,6 +684,17 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTaxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvTaxes.MultiSelect = false;
             dgvTaxes.RowHeadersVisible = false;
+
+            // Serial Number Column (First Column)
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SerialNumber",
+                HeaderText = "S.No",
+                DataPropertyName = "SerialNumber",
+                Width = 60,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
+            });
 
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -796,12 +818,18 @@ namespace WinFormsApp1.Forms.Transaction
                         cmbAccountLedger.SelectedValue = accountLedgerId;
                     }
 
-                    // Convert items to display format using DTO
-                    var itemDisplays = _transactionDto.Items.Select(item => CreateTransactionItemDisplay(item)).ToList();
+                                         // Convert items to display format using DTO and sort by serial number
+                     var itemDisplays = _transactionDto.Items
+                         .Select(item => CreateTransactionItemDisplay(item))
+                         .OrderBy(item => item.SerialNumber)
+                         .ToList();
 
-                                         // Convert taxes to display format using DTO
+                     // Convert taxes to display format using DTO and sort by serial number
                      Console.WriteLine($"Processing {_transactionDto.Taxes.Count()} taxes from DTO");
-                     var taxDisplays = _transactionDto.Taxes.Select(tax => CreateTransactionTaxDisplay(tax)).ToList();
+                     var taxDisplays = _transactionDto.Taxes
+                         .Select(tax => CreateTransactionTaxDisplay(tax))
+                         .OrderBy(tax => tax.SerialNumber)
+                         .ToList();
                      Console.WriteLine($"Created {taxDisplays.Count} tax displays");
 
                      dgvItems.DataSource = itemDisplays;
@@ -841,24 +869,30 @@ namespace WinFormsApp1.Forms.Transaction
             txtReferenceNumber.Text = _transaction.ReferenceNumber ?? "";
             txtNotes.Text = _transaction.Notes ?? "";
 
-            // Convert items to display format
-            var itemDisplays = _transaction.Items.Select(item => 
-            {
-                var product = _availableProducts.FirstOrDefault(p => p.Id == item.ProductId.ToString());
-                var productName = product?.DisplayName ?? "Unknown Product";
-                return new TransactionItemDisplay(item, productName);
-            }).ToList();
+                         // Convert items to display format and sort by serial number
+             var itemDisplays = _transaction.Items
+                 .Select(item => 
+                 {
+                     var product = _availableProducts.FirstOrDefault(p => p.Id == item.ProductId.ToString());
+                     var productName = product?.DisplayName ?? "Unknown Product";
+                     return new TransactionItemDisplay(item, productName);
+                 })
+                 .OrderBy(item => item.SerialNumber)
+                 .ToList();
 
-            // Convert taxes to display format
-            var taxDisplays = _transaction.Taxes.Select(tax => 
-            {
-                var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
-                var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
-                var taxComponents = taxInfo?.Components != null && taxInfo.Components.Any() 
-                    ? string.Join(", ", taxInfo.Components.Select(c => c.DisplayName))
-                    : "No Components";
-                return new TransactionTaxDisplay(tax, taxName, taxComponents);
-            }).ToList();
+             // Convert taxes to display format and sort by serial number
+             var taxDisplays = _transaction.Taxes
+                 .Select(tax => 
+                 {
+                     var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
+                     var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
+                     var taxComponents = taxInfo?.Components != null && taxInfo.Components.Any() 
+                         ? string.Join(", ", taxInfo.Components.Select(c => c.DisplayName))
+                         : "No Components";
+                     return new TransactionTaxDisplay(tax, taxName, taxComponents);
+                 })
+                 .OrderBy(tax => tax.SerialNumber)
+                 .ToList();
 
             dgvItems.DataSource = itemDisplays;
             dgvTaxes.DataSource = taxDisplays;
@@ -1065,8 +1099,8 @@ Field Order:
 8. Notes
 9. Party Ledger (dropdown)
 10. Account Ledger (dropdown)
-11. Transaction Items (DataGrid)
-12. Transaction Taxes (DataGrid)
+11. Transaction Items (DataGrid) - S.No, Product, Description, Qty, Unit Price, Disc %, Disc Amt, Tax %, Tax Amt, Line Total
+12. Transaction Taxes (DataGrid) - S.No, Tax Name, Tax Components, Description, Taxable Amount, Tax Amount, Calculation Method
 13. Subtotal (read-only)
 14. Discount Percent
 15. Discount Amount

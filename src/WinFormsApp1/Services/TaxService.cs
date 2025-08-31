@@ -113,6 +113,48 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<TaxByIdDto?> GetTaxByIdDtoAsync(Guid id)
+        {
+            try
+            {
+                SetAuthHeader();
+                var response = await _httpClient.GetAsync($"{_baseUrl}/{id}");
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"GetTaxByIdDto Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var taxDto = JsonSerializer.Deserialize<TaxByIdDto>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        Console.WriteLine($"Deserialized tax DTO - Name: {taxDto?.Name}, Components Count: {taxDto?.Components?.Count ?? 0}");
+                        return taxDto;
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        return null;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode} - {responseContent}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in GetTaxByIdDtoAsync: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<bool> CreateTaxAsync(TaxModel tax)
         {
             try
