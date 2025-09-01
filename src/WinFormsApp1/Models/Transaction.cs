@@ -179,6 +179,8 @@ namespace WinFormsApp1.Models
     public class TransactionByIdDto
     {
         public string Id { get; set; } = string.Empty;
+        public string CompanyId { get; set; } = string.Empty;
+        public string FinancialYearId { get; set; } = string.Empty;
         public string TransactionNumber { get; set; } = string.Empty;
         public string? InvoiceNumber { get; set; }
         public DateTime TransactionDate { get; set; }

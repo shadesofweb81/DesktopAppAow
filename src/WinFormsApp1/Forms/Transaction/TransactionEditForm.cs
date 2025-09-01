@@ -503,7 +503,7 @@ namespace WinFormsApp1.Forms.Transaction
             // Test: Add a visible test button for Add Item functionality
             var testAddItemBtn = new Button
             {
-                Location = new Point(900, yPosition),
+                Location = new Point(800, yPosition),
                 Size = new Size(90, 35),
                 Text = "Test Add Item",
                 UseVisualStyleBackColor = true,
@@ -514,6 +514,21 @@ namespace WinFormsApp1.Forms.Transaction
                 ShowItemSelectionDialog();
             };
             Controls.Add(testAddItemBtn);
+            
+            // Test: Add a visible test button for Add Tax functionality
+            var testAddTaxBtn = new Button
+            {
+                Location = new Point(900, yPosition),
+                Size = new Size(90, 35),
+                Text = "Test Add Tax",
+                UseVisualStyleBackColor = true,
+                BackColor = Color.LightBlue
+            };
+            testAddTaxBtn.Click += (s, e) => {
+                Console.WriteLine("Test Add Tax button clicked!");
+                BtnAddTax_Click(s, e);
+            };
+            Controls.Add(testAddTaxBtn);
 
             // Debug: Verify controls are properly set up before adding
             Console.WriteLine($"Adding controls to form:");
@@ -743,6 +758,10 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTaxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvTaxes.MultiSelect = false;
             dgvTaxes.RowHeadersVisible = false;
+            
+            // Add event handlers for tax grid interaction
+            dgvTaxes.KeyDown += DgvTaxes_KeyDown;
+            dgvTaxes.CellDoubleClick += DgvTaxes_CellDoubleClick;
 
             // Serial Number Column (First Column)
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
@@ -1240,6 +1259,28 @@ namespace WinFormsApp1.Forms.Transaction
                 // Load taxes
                 _availableTaxes = await _taxService.GetTaxListForTransactionAsync(companyId);
                 Console.WriteLine($"Loaded {_availableTaxes.Count} taxes for transaction");
+                
+                // Debug: List the loaded taxes
+                if (_availableTaxes.Any())
+                {
+                    Console.WriteLine("Loaded taxes:");
+                    foreach (var tax in _availableTaxes.Take(5))
+                    {
+                        Console.WriteLine($"  - {tax.DisplayName} (ID: {tax.Id}, Rate: {tax.DefaultRate}%)");
+                        if (tax.Components?.Any() == true)
+                        {
+                            Console.WriteLine($"    Components: {string.Join(", ", tax.Components.Select(c => c.DisplayName))}");
+                        }
+                    }
+                    if (_availableTaxes.Count > 5)
+                    {
+                        Console.WriteLine($"  ... and {_availableTaxes.Count - 5} more taxes");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("WARNING: No taxes were loaded!");
+                }
 
                 // Load ledgers
                 _availableLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
@@ -1322,8 +1363,8 @@ namespace WinFormsApp1.Forms.Transaction
                     ShowItemSelectionDialog();
                     return true;
                 case Keys.F3:
-                    Console.WriteLine("F3 key pressed - calling BtnSelectTaxes_Click");
-                    BtnSelectTaxes_Click(null, EventArgs.Empty);
+                    Console.WriteLine("F3 key pressed - calling ShowTaxSelectionDialog");
+                    ShowTaxSelectionDialog();
                     return true;
                 case Keys.F10:
                     Console.WriteLine("F10 key pressed - calling BtnSave_Click");
@@ -1382,7 +1423,7 @@ Navigation:
 
 Special Keys:
 • F2 - Add/Select Items
-• F3 - Select Taxes
+• F3 - Add/Select Taxes with Components
 • F10 - Save Transaction
 • Delete - Remove selected item/tax
 • Enter - Edit selected item/tax in grid
@@ -1393,6 +1434,12 @@ Item Grid Navigation:
 • Delete - Remove selected item
 • Double-click - Edit item in grid
 • Tab/Arrow keys - Navigate between cells
+
+Tax Grid Navigation:
+• F3 - Add new tax with component selection
+• Enter - Edit tax components for selected tax
+• Delete - Remove selected tax
+• Double-click - Edit tax components
 
 Debug Info:
 • Button Visible: " + btnAddItem.Visible + @"
@@ -1573,27 +1620,79 @@ Tips:
             MessageBox.Show(message, "Available Taxes", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        private void ShowTaxSelectionDialog()
+        {
+            try
+            {
+                Console.WriteLine($"ShowTaxSelectionDialog called. Available taxes: {_availableTaxes?.Count ?? 0}");
+                
+                if (_availableTaxes == null || _availableTaxes.Count == 0)
+                {
+                    MessageBox.Show("No taxes available. Please add taxes first.", "No Taxes", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                Console.WriteLine("Creating TaxSelectionDialog...");
+                var dialog = new TaxSelectionDialog(_availableTaxes);
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                
+                Console.WriteLine("Opening tax selection dialog...");
+                var dialogResult = dialog.ShowDialog(this);
+                Console.WriteLine($"Dialog result: {dialogResult}");
+                
+                if (dialogResult == DialogResult.OK)
+                {
+                    Console.WriteLine($"Dialog OK - Selected taxes count: {dialog.SelectedTaxes?.Count ?? 0}");
+                    if (dialog.SelectedTaxes != null && dialog.SelectedTaxes.Any())
+                    {
+                        Console.WriteLine($"Adding {dialog.SelectedTaxes.Count} taxes to grid");
+                        foreach (var selectedTax in dialog.SelectedTaxes)
+                        {
+                            Console.WriteLine($"Adding tax: {selectedTax.Tax.DisplayName}");
+                            AddTaxToGrid(selectedTax);
+                        }
+                        Console.WriteLine("Finished adding taxes to grid");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No taxes were selected");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Dialog was cancelled");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ShowTaxSelectionDialog: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Error opening tax selection: {ex.Message}\n\nStack trace:\n{ex.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void BtnAddTax_Click(object? sender, EventArgs e)
         {
-            if (_availableTaxes.Count == 0)
+            Console.WriteLine("BtnAddTax_Click called");
+            Console.WriteLine($"Available taxes count: {_availableTaxes?.Count ?? 0}");
+            
+            // Debug: List some available taxes
+            if (_availableTaxes != null && _availableTaxes.Any())
             {
-                MessageBox.Show("No taxes available. Please add taxes first.", "No Taxes", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Console.WriteLine("First few available taxes:");
+                foreach (var tax in _availableTaxes.Take(3))
+                {
+                    Console.WriteLine($"  - {tax.DisplayName} ({tax.DefaultRate}%)");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No taxes available!");
+                MessageBox.Show("No taxes available. Please check if taxes are loaded properly.", "Debug Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-
-            var message = $"Add Tax - Available Taxes ({_availableTaxes.Count}):\n\n";
-            foreach (var tax in _availableTaxes.Take(5)) // Show first 5 taxes
-            {
-                var components = tax.Components.Any() 
-                    ? string.Join(", ", tax.Components.Select(c => c.DisplayName))
-                    : "No Components";
-                message += $"• {tax.DisplayName} ({tax.DefaultRate}%)\n  Components: {components}\n\n";
-            }
-            if (_availableTaxes.Count > 5)
-            {
-                message += $"... and {_availableTaxes.Count - 5} more taxes";
-            }
-            MessageBox.Show(message, "Add Tax", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            
+            ShowTaxSelectionDialog();
         }
 
         private void BtnEditTax_Click(object? sender, EventArgs e)
@@ -1745,6 +1844,9 @@ Tips:
 
             return new Models.TransactionByIdDto
             {
+                Id = Guid.NewGuid().ToString(), // Add ID for new transactions
+                CompanyId = companyId.ToString(), // Add CompanyId
+                FinancialYearId = financialYearId.ToString(), // Add FinancialYearId
                 TransactionNumber = txtTransactionNumber.Text.Trim(),
                 InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim(),
                 TransactionDate = dtpTransactionDate.Value,
@@ -2116,6 +2218,67 @@ Tips:
             CalculateTotals();
         }
 
+        private void AddTaxToGrid(TaxSelectionResult taxResult)
+        {
+            Console.WriteLine($"AddTaxToGrid called for tax: {taxResult.Tax.DisplayName}");
+            
+            var taxes = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
+            Console.WriteLine($"Current taxes in grid: {taxes.Count}");
+            
+            var newSerialNumber = taxes.Any() ? taxes.Max(t => t.SerialNumber) + 1 : 1;
+            Console.WriteLine($"New tax serial number: {newSerialNumber}");
+            
+            // Calculate taxable amount based on current subtotal
+            decimal.TryParse(txtSubTotal.Text, out var subtotal);
+            var taxableAmount = subtotal; // Default to subtotal, can be modified based on calculation method
+            
+            // Calculate tax amount based on selected components (not default rate)
+            var totalComponentRate = taxResult.SelectedComponents.Any() 
+                ? taxResult.SelectedComponents.Sum(c => c.Rate)
+                : taxResult.Tax.DefaultRate;
+            
+            Console.WriteLine($"Taxable amount: {taxableAmount}");
+            Console.WriteLine($"Selected components: {taxResult.ComponentsDisplay}");
+            Console.WriteLine($"Total component rate: {totalComponentRate}%");
+            
+            var taxAmount = taxableAmount * (totalComponentRate / 100);
+            Console.WriteLine($"Calculated tax amount: {taxAmount}");
+            
+            var newTax = new TransactionTaxDisplay(new TransactionTax
+            {
+                Id = Guid.NewGuid(),
+                TransactionId = _transaction?.Id ?? Guid.Empty,
+                TaxId = Guid.Parse(taxResult.Tax.Id),
+                TaxableAmount = taxableAmount,
+                TaxAmount = taxAmount,
+                CalculationMethod = "ItemSubtotal", // Default calculation method
+                IsApplied = true,
+                AppliedDate = DateTime.Now,
+                ReferenceNumber = null,
+                Description = taxResult.Tax.Description,
+                SerialNumber = newSerialNumber
+            }, taxResult.Tax.DisplayName, taxResult.ComponentsDisplay);
+
+            taxes.Add(newTax);
+            Console.WriteLine($"Added tax to list. New count: {taxes.Count}");
+            
+            // Refresh the grid
+            dgvTaxes.DataSource = null;
+            dgvTaxes.DataSource = taxes.OrderBy(t => t.SerialNumber).ToList();
+            Console.WriteLine($"Refreshed grid. Grid rows count: {dgvTaxes.Rows.Count}");
+            
+            // Select the new tax
+            if (dgvTaxes.Rows.Count > 0)
+            {
+                dgvTaxes.Rows[dgvTaxes.Rows.Count - 1].Selected = true;
+                dgvTaxes.CurrentCell = dgvTaxes.Rows[dgvTaxes.Rows.Count - 1].Cells[1]; // Focus on tax name
+                Console.WriteLine("Selected new tax row");
+            }
+            
+            CalculateTotals();
+            Console.WriteLine("AddTaxToGrid completed");
+        }
+
         private void DgvItems_KeyDown(object? sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F2)
@@ -2193,6 +2356,82 @@ Tips:
             
             // Calculate line total
             item.LineTotal = afterDiscount + item.TaxAmount;
+        }
+
+        private void DgvTaxes_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && dgvTaxes.SelectedRows.Count > 0)
+            {
+                EditSelectedTaxComponents();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Delete && dgvTaxes.SelectedRows.Count > 0)
+            {
+                BtnDeleteTax_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void DgvTaxes_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                EditSelectedTaxComponents();
+            }
+        }
+
+        private void EditSelectedTaxComponents()
+        {
+            if (dgvTaxes.SelectedRows.Count == 0) return;
+
+            var selectedTaxDisplay = dgvTaxes.SelectedRows[0].DataBoundItem as TransactionTaxDisplay;
+            if (selectedTaxDisplay == null) return;
+
+            Console.WriteLine($"Editing tax components for: {selectedTaxDisplay.TaxName}");
+
+            // Find the tax in available taxes to get its components
+            var availableTax = _availableTaxes.FirstOrDefault(t => t.Id == selectedTaxDisplay.TaxId.ToString());
+            if (availableTax == null)
+            {
+                MessageBox.Show("Tax information not found. Cannot edit components.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (availableTax.Components?.Any() != true)
+            {
+                MessageBox.Show("This tax has no components to edit.", "No Components", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Create a new tax selection dialog with the current tax pre-selected
+            var dialog = new TaxSelectionDialog(new List<Models.TaxListDto> { availableTax });
+            dialog.Text = $"Edit Tax Components - {availableTax.DisplayName}";
+            dialog.StartPosition = FormStartPosition.CenterParent;
+
+            Console.WriteLine("Opening tax component edit dialog...");
+
+            if (dialog.ShowDialog(this) == DialogResult.OK && dialog.SelectedTaxes.Any())
+            {
+                var updatedTaxResult = dialog.SelectedTaxes.First();
+                Console.WriteLine($"Updated components: {updatedTaxResult.ComponentsDisplay}");
+
+                // Update the existing tax with new component selection
+                selectedTaxDisplay.TaxComponents = updatedTaxResult.ComponentsDisplay;
+
+                // Recalculate tax amount based on selected components
+                var totalComponentRate = updatedTaxResult.SelectedComponents.Sum(c => c.Rate);
+                selectedTaxDisplay.TaxAmount = selectedTaxDisplay.TaxableAmount * (totalComponentRate / 100);
+
+                // Refresh the grid
+                dgvTaxes.Refresh();
+                CalculateTotals();
+
+                Console.WriteLine("Tax components updated successfully");
+            }
+            else
+            {
+                Console.WriteLine("Tax component edit cancelled");
+            }
         }
 
         #endregion
@@ -2398,6 +2637,322 @@ Tips:
             else
             {
                 MessageBox.Show("Please select at least one product.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void BtnCancel_Click(object? sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
+    }
+
+    #endregion
+
+    #region Tax Selection Dialog
+
+    public class TaxSelectionResult
+    {
+        public Models.TaxListDto Tax { get; set; } = null!;
+        public List<Models.TaxComponentDto> SelectedComponents { get; set; } = new List<Models.TaxComponentDto>();
+        public string ComponentsDisplay { get; set; } = string.Empty;
+    }
+
+    public partial class TaxSelectionDialog : Form
+    {
+        private TextBox txtSearch = null!;
+        private DataGridView dgvTaxes = null!;
+        private DataGridView dgvComponents = null!;
+        private Button btnOK = null!;
+        private Button btnCancel = null!;
+        private Label lblComponents = null!;
+        private List<Models.TaxListDto> _allTaxes;
+        private List<Models.TaxListDto> _filteredTaxes;
+        private Models.TaxListDto? _selectedTax;
+
+        public List<TaxSelectionResult> SelectedTaxes { get; private set; } = new List<TaxSelectionResult>();
+
+        public TaxSelectionDialog(List<Models.TaxListDto> taxes)
+        {
+            _allTaxes = taxes;
+            _filteredTaxes = new List<Models.TaxListDto>(taxes);
+            InitializeDialog();
+        }
+
+        private void InitializeDialog()
+        {
+            Text = "Select Taxes and Components";
+            Size = new Size(1000, 700);
+            StartPosition = FormStartPosition.CenterParent;
+            KeyPreview = true;
+            
+            txtSearch = new TextBox();
+            dgvTaxes = new DataGridView();
+            dgvComponents = new DataGridView();
+            btnOK = new Button();
+            btnCancel = new Button();
+            lblComponents = new Label();
+
+            SuspendLayout();
+
+            // Search textbox
+            txtSearch.Location = new Point(20, 20);
+            txtSearch.Size = new Size(940, 25);
+            txtSearch.PlaceholderText = "Type to search taxes...";
+            txtSearch.TextChanged += TxtSearch_TextChanged;
+
+            // Taxes grid (left side)
+            dgvTaxes.Location = new Point(20, 55);
+            dgvTaxes.Size = new Size(460, 480);
+            dgvTaxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvTaxes.MultiSelect = false;
+            dgvTaxes.AllowUserToAddRows = false;
+            dgvTaxes.AllowUserToDeleteRows = false;
+            dgvTaxes.ReadOnly = true;
+            dgvTaxes.RowHeadersVisible = false;
+            dgvTaxes.AutoGenerateColumns = false;
+            dgvTaxes.SelectionChanged += DgvTaxes_SelectionChanged;
+            
+            SetupTaxGrid();
+
+            // Components label
+            lblComponents.Location = new Point(500, 55);
+            lblComponents.Size = new Size(460, 25);
+            lblComponents.Text = "Select Tax Components (for the selected tax):";
+            lblComponents.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+            // Components grid (right side)
+            dgvComponents.Location = new Point(500, 85);
+            dgvComponents.Size = new Size(460, 450);
+            dgvComponents.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvComponents.MultiSelect = true;
+            dgvComponents.AllowUserToAddRows = false;
+            dgvComponents.AllowUserToDeleteRows = false;
+            dgvComponents.ReadOnly = true;
+            dgvComponents.RowHeadersVisible = false;
+            dgvComponents.AutoGenerateColumns = false;
+            
+            SetupComponentGrid();
+
+            // Buttons
+            btnOK.Location = new Point(800, 545);
+            btnOK.Size = new Size(75, 30);
+            btnOK.Text = "&OK";
+            btnOK.UseVisualStyleBackColor = true;
+            btnOK.Click += BtnOK_Click;
+
+            btnCancel.Location = new Point(885, 545);
+            btnCancel.Size = new Size(75, 30);
+            btnCancel.Text = "&Cancel";
+            btnCancel.UseVisualStyleBackColor = true;
+            btnCancel.Click += BtnCancel_Click;
+
+            Controls.AddRange(new Control[] { txtSearch, dgvTaxes, lblComponents, dgvComponents, btnOK, btnCancel });
+
+            LoadTaxes();
+            txtSearch.Focus();
+
+            ResumeLayout(false);
+            PerformLayout();
+
+            // Event handlers
+            KeyDown += TaxSelectionDialog_KeyDown;
+            dgvTaxes.KeyDown += DgvTaxes_KeyDown;
+            dgvTaxes.DoubleClick += DgvTaxes_DoubleClick;
+        }
+
+        private void SetupTaxGrid()
+        {
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "Tax Name",
+                DataPropertyName = "Name",
+                Width = 200
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Category",
+                HeaderText = "Category",
+                DataPropertyName = "Category",
+                Width = 120
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "DefaultRate",
+                HeaderText = "Rate (%)",
+                DataPropertyName = "DefaultRate",
+                Width = 80,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "HSNCode",
+                HeaderText = "HSN Code",
+                DataPropertyName = "HSNCode",
+                Width = 100
+            });
+        }
+
+        private void SetupComponentGrid()
+        {
+            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "Component Name",
+                DataPropertyName = "Name",
+                Width = 200
+            });
+
+            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Rate",
+                HeaderText = "Rate (%)",
+                DataPropertyName = "Rate",
+                Width = 80,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Description",
+                HeaderText = "Description",
+                DataPropertyName = "Description",
+                Width = 160
+            });
+        }
+
+        private void LoadTaxes()
+        {
+            dgvTaxes.DataSource = _filteredTaxes;
+            if (_filteredTaxes.Any())
+            {
+                dgvTaxes.Rows[0].Selected = true;
+                LoadComponentsForSelectedTax();
+            }
+        }
+
+        private void TxtSearch_TextChanged(object? sender, EventArgs e)
+        {
+            var searchText = txtSearch.Text;
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                _filteredTaxes = new List<Models.TaxListDto>(_allTaxes);
+            }
+            else
+            {
+                _filteredTaxes = _allTaxes.Where(t => 
+                    t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    t.Category.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    (t.HSNCode?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                ).ToList();
+            }
+            
+            LoadTaxes();
+        }
+
+        private void DgvTaxes_SelectionChanged(object? sender, EventArgs e)
+        {
+            LoadComponentsForSelectedTax();
+        }
+
+        private void LoadComponentsForSelectedTax()
+        {
+            if (dgvTaxes.SelectedRows.Count > 0)
+            {
+                _selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as Models.TaxListDto;
+                if (_selectedTax?.Components != null && _selectedTax.Components.Any())
+                {
+                    dgvComponents.DataSource = _selectedTax.Components.ToList();
+                    lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' (Click to select):";
+                    
+                    // Do NOT select all components by default - user must manually select
+                    dgvComponents.ClearSelection();
+                }
+                else
+                {
+                    dgvComponents.DataSource = new List<Models.TaxComponentDto>();
+                    lblComponents.Text = $"No components available for '{_selectedTax?.Name ?? "selected tax"}':";
+                }
+            }
+            else
+            {
+                dgvComponents.DataSource = new List<Models.TaxComponentDto>();
+                lblComponents.Text = "Select Tax Components:";
+            }
+        }
+
+        private void TaxSelectionDialog_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                BtnOK_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                BtnCancel_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void DgvTaxes_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                BtnOK_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void DgvTaxes_DoubleClick(object? sender, EventArgs e)
+        {
+            BtnOK_Click(null, EventArgs.Empty);
+        }
+
+        private void BtnOK_Click(object? sender, EventArgs e)
+        {
+            if (dgvTaxes.SelectedRows.Count > 0)
+            {
+                var selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as Models.TaxListDto;
+                if (selectedTax != null)
+                {
+                    var selectedComponents = dgvComponents.SelectedRows.Cast<DataGridViewRow>()
+                        .Select(row => row.DataBoundItem as Models.TaxComponentDto)
+                        .Where(component => component != null)
+                        .Cast<Models.TaxComponentDto>()
+                        .ToList();
+
+                    // Validate that at least one component is selected if components are available
+                    if (selectedTax.Components?.Any() == true && !selectedComponents.Any())
+                    {
+                        MessageBox.Show("Please select at least one tax component for the selected tax.", "No Component Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    var componentsDisplay = selectedComponents.Any() 
+                        ? string.Join(", ", selectedComponents.Select(c => c.DisplayName))
+                        : "No Components";
+
+                    var taxResult = new TaxSelectionResult
+                    {
+                        Tax = selectedTax,
+                        SelectedComponents = selectedComponents,
+                        ComponentsDisplay = componentsDisplay
+                    };
+
+                    SelectedTaxes.Add(taxResult);
+                    
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a tax.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 

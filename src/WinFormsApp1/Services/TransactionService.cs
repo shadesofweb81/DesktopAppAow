@@ -34,52 +34,6 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<List<Transaction>> GetAllTransactionsAsync(Guid companyId, int pageNumber = 1, int pageSize = 50)
-        {
-            try
-            {
-                SetAuthHeader();
-                var url = $"{_baseUrl}?companyId={companyId}&pageNumber={pageNumber}&pageSize={pageSize}";
-                
-                Console.WriteLine($"Fetching transactions for company {companyId} from: {url}");
-
-                var response = await _httpClient.GetAsync(url);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"Response Status: {response.StatusCode}");
-                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    try
-                    {
-                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedTransactionListResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true,
-                            Converters = { new JsonStringEnumConverter() }
-                        });
-
-                        return paginatedResponse?.Items ?? new List<Transaction>();
-                    }
-                    catch (JsonException ex)
-                    {
-                        Console.WriteLine($"JSON parsing error: {ex.Message}");
-                        return new List<Transaction>();
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
-                    return new List<Transaction>();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Get transactions by company exception: {ex.Message}");
-                return new List<Transaction>();
-            }
-        }
-
         public async Task<TransactionByIdDto?> GetTransactionByIdAsync(Guid id)
         {
             try
