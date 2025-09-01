@@ -248,7 +248,24 @@ namespace WinFormsApp1.Forms
             
             // Ensure the control is visible and focusable
             EnsureControlVisible(nextControl);
-            nextControl.Focus();
+            
+            // Special handling for ComboBox controls
+            if (nextControl is ComboBox comboBox)
+            {
+                Console.WriteLine($"Navigating to ComboBox: {comboBox.Name}, DropDownStyle: {comboBox.DropDownStyle}");
+                comboBox.Focus();
+                // For DropDownList style, ensure it's properly focused
+                if (comboBox.DropDownStyle == ComboBoxStyle.DropDownList)
+                {
+                    // Force the ComboBox to show focus
+                    comboBox.Select();
+                    Console.WriteLine($"ComboBox {comboBox.Name} focused and selected");
+                }
+            }
+            else
+            {
+                nextControl.Focus();
+            }
             
             // Highlight the focused control
             HighlightFocusedControl(nextControl);
@@ -293,7 +310,24 @@ namespace WinFormsApp1.Forms
             
             // Ensure the control is visible and focusable
             EnsureControlVisible(previousControl);
-            previousControl.Focus();
+            
+            // Special handling for ComboBox controls
+            if (previousControl is ComboBox comboBox)
+            {
+                Console.WriteLine($"Navigating to ComboBox: {comboBox.Name}, DropDownStyle: {comboBox.DropDownStyle}");
+                comboBox.Focus();
+                // For DropDownList style, ensure it's properly focused
+                if (comboBox.DropDownStyle == ComboBoxStyle.DropDownList)
+                {
+                    // Force the ComboBox to show focus
+                    comboBox.Select();
+                    Console.WriteLine($"ComboBox {comboBox.Name} focused and selected");
+                }
+            }
+            else
+            {
+                previousControl.Focus();
+            }
             
             // Highlight the focused control
             HighlightFocusedControl(previousControl);
@@ -333,6 +367,11 @@ namespace WinFormsApp1.Forms
             else if (control is ComboBox comboBox)
             {
                 comboBox.BackColor = Color.FromArgb(255, 255, 200);
+                // For DropDownList style, ensure the selection is visible
+                if (comboBox.DropDownStyle == ComboBoxStyle.DropDownList && comboBox.SelectedIndex >= 0)
+                {
+                    comboBox.Select();
+                }
             }
             else if (control is Button button)
             {
@@ -459,7 +498,22 @@ Tips:
                 _currentControlIndex = index;
                 var control = _navigableControls[index];
                 EnsureControlVisible(control);
-                control.Focus();
+                
+                // Special handling for ComboBox controls
+                if (control is ComboBox comboBox)
+                {
+                    comboBox.Focus();
+                    // For DropDownList style, ensure it's properly focused
+                    if (comboBox.DropDownStyle == ComboBoxStyle.DropDownList)
+                    {
+                        comboBox.Select();
+                    }
+                }
+                else
+                {
+                    control.Focus();
+                }
+                
                 HighlightFocusedControl(control);
             }
         }

@@ -10,6 +10,7 @@ namespace WinFormsApp1.Services
         private readonly HttpClient _httpClient;
         private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
         private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
+        //  private readonly string _erpBaseUrl = "https://localhost:7046";
         private readonly string _tokenFilePath;
         private string? _jwtToken;
 
@@ -17,17 +18,17 @@ namespace WinFormsApp1.Services
         {
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri(_authBaseUrl);
-            
+
             // Add headers that might be required
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "WinFormsApp1/1.0");
-            
+
             // Set up token file path
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var appFolder = Path.Combine(appDataPath, "WinFormsApp1");
             Directory.CreateDirectory(appFolder);
             _tokenFilePath = Path.Combine(appFolder, "auth_token.json");
-            
+
             // Try to load saved token on startup
             LoadSavedToken();
         }
@@ -41,8 +42,8 @@ namespace WinFormsApp1.Services
             try
             {
                 var loginRequest = new LoginRequest
-                {                    
-                    Password = password,                  
+                {
+                    Password = password,
                     Email = username     // Some APIs expect email instead of username
                 };
 
@@ -287,11 +288,11 @@ namespace WinFormsApp1.Services
                 {
                     var json = File.ReadAllText(_tokenFilePath);
                     var tokenData = JsonSerializer.Deserialize<TokenData>(json);
-                    
+
                     if (tokenData != null && !string.IsNullOrEmpty(tokenData.Token))
                     {
                         _jwtToken = tokenData.Token;
-                        
+
                         // Check if token is still valid
                         if (!IsTokenValid())
                         {
@@ -324,12 +325,12 @@ namespace WinFormsApp1.Services
                         Token = _jwtToken,
                         SavedAt = DateTime.UtcNow
                     };
-                    
+
                     var json = JsonSerializer.Serialize(tokenData, new JsonSerializerOptions
                     {
                         WriteIndented = true
                     });
-                    
+
                     File.WriteAllText(_tokenFilePath, json);
                     Console.WriteLine("Token saved successfully");
                 }
@@ -373,18 +374,18 @@ namespace WinFormsApp1.Services
                 // Add padding if needed
                 payload = payload.PadRight(4 * ((payload.Length + 3) / 4), '=');
                 payload = payload.Replace('-', '+').Replace('_', '/');
-                
+
                 var payloadBytes = Convert.FromBase64String(payload);
                 var payloadJson = Encoding.UTF8.GetString(payloadBytes);
-                
+
                 var payloadData = JsonSerializer.Deserialize<JsonElement>(payloadJson);
-                
+
                 // Check for expiration
                 if (payloadData.TryGetProperty("exp", out var expElement))
                 {
                     var expTimestamp = expElement.GetInt64();
                     var expDateTime = DateTimeOffset.FromUnixTimeSeconds(expTimestamp);
-                    
+
                     // Add 5 minute buffer for safety
                     if (DateTimeOffset.UtcNow >= expDateTime.AddMinutes(-5))
                     {
@@ -392,7 +393,7 @@ namespace WinFormsApp1.Services
                         return false;
                     }
                 }
-                
+
                 return true;
             }
             catch (Exception ex)

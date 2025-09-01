@@ -182,8 +182,7 @@ namespace WinFormsApp1.Models
         public string TransactionNumber { get; set; } = string.Empty;
         public string? InvoiceNumber { get; set; }
         public DateTime TransactionDate { get; set; }
-        public DateTime DueDate { get; set; }
-        public string Type { get; set; } = string.Empty;
+        public DateTime DueDate { get; set; }      
         public string? TransactionType { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? JournalEntryType { get; set; }

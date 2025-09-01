@@ -122,13 +122,13 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<Transaction?> CreateTransactionAsync(Transaction transaction)
+        public async Task<TransactionByIdDto?> CreateTransactionAsync(CreateTransactionRequest createRequest)
         {
             try
             {
                 SetAuthHeader();
 
-                var json = JsonSerializer.Serialize(transaction, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(createRequest, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = true
@@ -136,118 +136,7 @@ namespace WinFormsApp1.Services
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-             
-                var url = $"{_baseUrl}/";
-                if (transaction.Type.ToString().StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
-                {
-                    url = $"{_baseUrl}/purchase";
-                }
-                else if (transaction.Type.ToString().StartsWith("Sale", StringComparison.OrdinalIgnoreCase))
-                {
-                    url = $"{_baseUrl}/sale";
-                }
-
-                url = $"{url}";
-
-                Console.WriteLine($"Creating transaction ({transaction.Type}) via: {url} with data: {json}");
-
-                var response = await _httpClient.PostAsync(url, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"Create transaction - Status: {response.StatusCode}");
-                Console.WriteLine($"Response Content: {responseContent}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    try
-                    {
-                        var createdTransaction = JsonSerializer.Deserialize<Transaction>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true,
-                            Converters = { new JsonStringEnumConverter() }
-                        });
-
-                        return createdTransaction;
-                    }
-                    catch (JsonException ex)
-                    {
-                        Console.WriteLine($"JSON parsing error: {ex.Message}");
-                        return null;
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Create transaction exception: {ex.Message}");
-                return null;
-            }
-        }        
-
-        public async Task<bool> UpdateTransactionAsync(Guid id, UpdateTransactionRequest updateRequest)
-        {
-            try
-            {
-                SetAuthHeader();
-
-                var json = JsonSerializer.Serialize(updateRequest, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                });
-
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var typeString = updateRequest.TransactionType ?? string.Empty;
-
-                var url = $"{_baseUrl}/";
-                if (typeString.StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
-                {
-                    url = $"{_baseUrl}/purchase";
-                }
-                else if (typeString.StartsWith("Sale", StringComparison.OrdinalIgnoreCase))
-                {
-                    url = $"{_baseUrl}/sale";
-                }
-
-                url = $"{url}/{id}";
-
-                Console.WriteLine($"Updating transaction {id} ({typeString}) via: {url} with data: {json}");
-
-                var response = await _httpClient.PutAsync(url, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"Update transaction {id} - Status: {response.StatusCode}");
-                Console.WriteLine($"Response Content: {responseContent}");
-
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Update transaction exception: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<TransactionByIdDto?> CreateTransactionAsync(TransactionByIdDto transactionDto)
-        {
-            try
-            {
-                SetAuthHeader();
-
-                var json = JsonSerializer.Serialize(transactionDto, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                });
-
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var typeString = transactionDto.Type ?? string.Empty;
+                var typeString = createRequest.TransactionType ?? string.Empty;
                 var url = $"{_baseUrl}/";
                 if (typeString.StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
                 {
@@ -296,6 +185,53 @@ namespace WinFormsApp1.Services
                 return null;
             }
         }
+
+        public async Task<bool> UpdateTransactionAsync(Guid id, UpdateTransactionRequest updateRequest)
+        {
+            try
+            {
+                SetAuthHeader();
+
+                var json = JsonSerializer.Serialize(updateRequest, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                });
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var typeString = updateRequest.TransactionType ?? string.Empty;
+
+                var url = $"{_baseUrl}/";
+                if (typeString.StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
+                {
+                    url = $"{_baseUrl}/purchase";
+                }
+                else if (typeString.StartsWith("Sale", StringComparison.OrdinalIgnoreCase))
+                {
+                    url = $"{_baseUrl}/sale";
+                }
+
+                url = $"{url}/{id}";
+
+                Console.WriteLine($"Updating transaction {id} ({typeString}) via: {url} with data: {json}");
+
+                var response = await _httpClient.PutAsync(url, content);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Update transaction {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content: {responseContent}");
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Update transaction exception: {ex.Message}");
+                return false;
+            }
+        }
+
+      
 
         public async Task<bool> DeleteTransactionAsync(Guid id)
         {

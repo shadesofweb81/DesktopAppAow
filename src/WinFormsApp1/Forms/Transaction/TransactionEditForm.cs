@@ -223,11 +223,11 @@ namespace WinFormsApp1.Forms.Transaction
                 RoundOff = dto.RoundOff
             };
 
-            // Parse the type string
-            if (Enum.TryParse<TransactionType>(dto.Type, out var transactionType))
-            {
-                transaction.Type = transactionType;
-            }
+            //// Parse the type string
+            //if (Enum.TryParse<TransactionType>(dto.Type, out var transactionType))
+            //{
+            //    transaction.Type = transactionType;
+            //}
 
             // Convert items
             transaction.Items = dto.Items.Select(itemDto => new TransactionItem
@@ -860,7 +860,7 @@ namespace WinFormsApp1.Forms.Transaction
                 if (_transactionDto != null)
                 {
                     // Load form data from DTO
-                    if (Enum.TryParse<TransactionType>(_transactionDto.Type, out var transactionType))
+                    if (Enum.TryParse<TransactionType>(_transactionDto.TransactionType, out var transactionType))
                     {
                         cmbTransactionType.SelectedItem = transactionType;
                     }
@@ -1468,8 +1468,8 @@ Tips:
                     Models.Transaction? result;
                     if (_transaction == null)
                     {
-                        var dtoForCreate = CreateTransactionDtoFromForm();
-                        var createdDto = await _transactionService.CreateTransactionAsync(dtoForCreate);
+                        var createRequest = CreateTransactionRequestFromForm();
+                        var createdDto = await _transactionService.CreateTransactionAsync(createRequest);
                         result = createdDto != null ? ConvertDtoToTransaction(createdDto) : null;
                     }
                     else
@@ -1504,7 +1504,7 @@ Tips:
             var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
                 ?? TransactionType.SaleInvoice.ToString();
 
-            dto.Type = transactionTypeString;
+            dto.TransactionType = transactionTypeString;
             dto.TransactionNumber = txtTransactionNumber.Text.Trim();
             dto.InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim();
             dto.TransactionDate = dtpTransactionDate.Value;
@@ -1581,6 +1581,93 @@ Tips:
                 .ToList();
 
             return dto;
+        }
+
+        private CreateTransactionRequest CreateTransactionRequestFromForm()
+        {
+            var companyId = Guid.Parse(_selectedCompany.Id);
+            var financialYearId = _selectedFinancialYear.Id;
+            
+            var partyLedgerId = Guid.Empty;
+            var accountLedgerId = Guid.Empty;
+
+            if (cmbPartyLedger.SelectedValue is Guid pId)
+            {
+                partyLedgerId = pId;
+            }
+            if (cmbAccountLedger.SelectedValue is Guid aId)
+            {
+                accountLedgerId = aId;
+            }
+
+            var paymentTermDays = Math.Max(0, (dtpDueDate.Value.Date - dtpTransactionDate.Value.Date).Days);
+
+            decimal.TryParse(txtDiscountPercent.Text, out var discountPercent);
+            decimal.TryParse(txtFreight.Text, out var freight);
+            decimal.TryParse(txtRoundOff.Text, out var roundOff);
+
+            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
+
+            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
+                ?? TransactionType.SaleInvoice.ToString();
+
+            var items = itemDisplays
+                .OrderBy(i => i.SerialNumber)
+                .Select(i => new CreateTransactionItemRequest
+                {
+                    ProductId = i.ProductId,
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    DiscountRate = i.DiscountRate,
+                    DiscountAmount = i.DiscountAmount,
+                    CurrentQuantity = i.CurrentQuantity,
+                    SerialNumber = i.SerialNumber,
+                    HsnCode = null, // TODO: Add HSN code field if needed
+                    Variants = new List<CreateTransactionItemVariantRequest>() // TODO: Add variants if needed
+                })
+                .ToList();
+
+            var taxes = taxDisplays
+                .OrderBy(t => t.SerialNumber)
+                .Select(t => new CreateTransactionTaxRequest
+                {
+                    Id = t.Id == Guid.Empty ? Guid.NewGuid() : t.Id,
+                    TaxId = t.TaxId,
+                    TaxName = t.TaxName,
+                    TaxableAmount = t.TaxableAmount,
+                    Rate = GetTaxRateById(t.TaxId),
+                    Amount = t.TaxAmount,
+                    CalculationMethod = string.IsNullOrWhiteSpace(t.CalculationMethod) ? "ItemSubtotal" : t.CalculationMethod,
+                    IsApplied = t.IsApplied,
+                    AppliedDate = t.AppliedDate,
+                    ReferenceNumber = t.ReferenceNumber,
+                    Description = t.Description,
+                    SerialNumber = t.SerialNumber,
+                    Components = new List<CreateTransactionTaxComponentRequest>() // TODO: Add components if needed
+                })
+                .ToList();
+
+            return new CreateTransactionRequest
+            {
+                CompanyId = companyId,
+                FinancialYearId = financialYearId,
+                PartyLedgerId = partyLedgerId,
+                AccountLedgerId = accountLedgerId,
+                InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim(),
+                TransactionDate = dtpTransactionDate.Value,
+                PaymentTermDays = paymentTermDays,
+                Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? string.Empty : txtNotes.Text.Trim(),
+                TransactionType = transactionTypeString,
+                Status = cmbStatus.SelectedItem?.ToString(),
+                Discount = discountPercent,
+                Freight = freight,
+                IsFreightIncluded = chkFreightIncluded.Checked,
+                RoundOff = roundOff,
+                Items = items,
+                Taxes = taxes
+            };
         }
 
         private UpdateTransactionRequest CreateUpdateRequestFromForm()
@@ -1715,7 +1802,7 @@ Tips:
                 .ToList();
 
             var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
-                ?? _transactionDto?.Type
+                ?? _transactionDto?.TransactionType
                 ?? TransactionType.SaleInvoice.ToString();
 
             return new UpdateTransactionRequest
@@ -1839,6 +1926,12 @@ Tips:
                 return string.Join(", ", tax.Components.Select(c => c.DisplayName));
             }
             return "No Components";
+        }
+
+        private decimal GetTaxRateById(Guid taxId)
+        {
+            var tax = _availableTaxes.FirstOrDefault(t => t.Id == taxId.ToString());
+            return tax?.DefaultRate ?? 0;
         }
 
         private void BtnCancel_Click(object? sender, EventArgs e)
