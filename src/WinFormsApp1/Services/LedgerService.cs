@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WinFormsApp1.Models;
 
 namespace WinFormsApp1.Services
@@ -48,16 +49,50 @@ namespace WinFormsApp1.Services
                 {
                     try
                     {
-                        var ledgers = JsonSerializer.Deserialize<List<LedgerModel>>(responseContent, new JsonSerializerOptions
+                        var selectLedgers = JsonSerializer.Deserialize<List<SelectLedgerList>>(responseContent, new JsonSerializerOptions
                         {
-                            PropertyNameCaseInsensitive = true
+                            PropertyNameCaseInsensitive = true,
+                            NumberHandling = JsonNumberHandling.AllowReadingFromString,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                         });
 
-                        return ledgers ?? new List<LedgerModel>();
+                        if (selectLedgers != null)
+                        {
+                            // Convert SelectLedgerList to LedgerModel and build parent relationships
+                            var ledgers = new List<LedgerModel>();
+                            var ledgerDict = new Dictionary<Guid, LedgerModel>();
+
+                            // First pass: create all ledgers
+                            foreach (var selectLedger in selectLedgers)
+                            {
+                                var ledger = selectLedger.ToLedgerModel();
+                                ledgers.Add(ledger);
+                                ledgerDict[ledger.Id] = ledger;
+                            }
+
+                            // Second pass: build parent relationships
+                            foreach (var selectLedger in selectLedgers)
+                            {
+                                if (Guid.TryParse(selectLedger.Id, out var ledgerId) && 
+                                    Guid.TryParse(selectLedger.ParentId, out var parentId) &&
+                                    ledgerDict.TryGetValue(ledgerId, out var ledger) &&
+                                    ledgerDict.TryGetValue(parentId, out var parent))
+                                {
+                                    ledger.Parent = parent;
+                                    parent.Children.Add(ledger);
+                                }
+                            }
+
+                            Console.WriteLine($"Successfully loaded {ledgers.Count} ledgers with parent relationships");
+                            return ledgers;
+                        }
+
+                        return new List<LedgerModel>();
                     }
                     catch (JsonException ex)
                     {
                         Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Response content: {responseContent}");
                         return new List<LedgerModel>();
                     }
                 }
@@ -175,6 +210,51 @@ namespace WinFormsApp1.Services
             {
                 Console.WriteLine($"Exception in DeleteLedgerAsync: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<List<SelectLedgerList>> GetSelectLedgerListAsync(Guid companyId)
+        {
+            try
+            {
+                SetAuthHeader();
+                var response = await _httpClient.GetAsync($"{_baseUrl}/company/{companyId}/select");
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var selectLedgers = JsonSerializer.Deserialize<List<SelectLedgerList>>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            NumberHandling = JsonNumberHandling.AllowReadingFromString,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        });
+
+                        Console.WriteLine($"Successfully loaded {selectLedgers?.Count ?? 0} select ledgers");
+                        return selectLedgers ?? new List<SelectLedgerList>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Response content: {responseContent}");
+                        return new List<SelectLedgerList>();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode} - {responseContent}");
+                    return new List<SelectLedgerList>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in GetSelectLedgerListAsync: {ex.Message}");
+                return new List<SelectLedgerList>();
             }
         }
 

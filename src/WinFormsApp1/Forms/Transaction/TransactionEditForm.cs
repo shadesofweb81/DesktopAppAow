@@ -607,6 +607,7 @@ namespace WinFormsApp1.Forms.Transaction
             cmbPartyLedger.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbPartyLedger.DisplayMember = "DisplayName";
             cmbPartyLedger.ValueMember = "Id";
+            cmbPartyLedger.SelectedIndexChanged += CmbPartyLedger_SelectedIndexChanged;
 
             cmbAccountLedger.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbAccountLedger.DisplayMember = "DisplayName";
@@ -815,6 +816,130 @@ namespace WinFormsApp1.Forms.Transaction
             chkFreightIncluded.CheckedChanged += CalculationField_Changed;
         }
 
+        private void CmbPartyLedger_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            AutoSelectAccountLedger();
+        }
+
+        private void AutoSelectAccountLedger()
+        {
+            if (cmbPartyLedger.SelectedItem is not LedgerModel selectedPartyLedger)
+                return;
+
+            Console.WriteLine($"Auto-selecting account ledger for party ledger: {selectedPartyLedger.DisplayName}");
+            Console.WriteLine($"Party ledger category: {selectedPartyLedger.Category}");
+            Console.WriteLine($"Party ledger parent: {selectedPartyLedger.Parent?.DisplayName ?? "None"}");
+
+            // Check if the selected party ledger is a supplier or has a parent that is "Sundry Creditor"
+            bool isSupplier = IsSupplierLedger(selectedPartyLedger);
+            
+            // Check if the selected party ledger is a customer or has a parent that is "Sundry Debtor"
+            bool isCustomer = IsCustomerLedger(selectedPartyLedger);
+
+            Console.WriteLine($"Is Supplier: {isSupplier}, Is Customer: {isCustomer}");
+
+            if (isSupplier)
+            {
+                // For suppliers, select Purchase account
+                Console.WriteLine("Auto-selecting Purchase account for supplier");
+                SelectAccountLedgerByCategory("Purchase");
+            }
+            else if (isCustomer)
+            {
+                // For customers, select Sales account
+                Console.WriteLine("Auto-selecting Sales account for customer");
+                SelectAccountLedgerByCategory("Sales");
+            }
+            else
+            {
+                Console.WriteLine("No auto-selection - party ledger is neither supplier nor customer");
+            }
+        }
+
+        private bool IsSupplierLedger(LedgerModel ledger)
+        {
+            // Check if the ledger itself is a supplier
+            if (ledger.Category.Equals("Supplier", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Check if the parent ledger is "Sundry Creditor"
+            if (ledger.Parent != null && 
+                ledger.Parent.Category.Equals("Sundry Creditor", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Check if the parent name contains "Sundry Creditor"
+            if (ledger.Parent != null && 
+                ledger.Parent.Name.Contains("Sundry Creditor", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // If parent is not loaded, try to find it in the available ledgers
+            if (ledger.ParentId.HasValue)
+            {
+                var parentLedger = _availableLedgers.FirstOrDefault(l => l.Id == ledger.ParentId.Value);
+                if (parentLedger != null)
+                {
+                    if (parentLedger.Category.Equals("Sundry Creditor", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    if (parentLedger.Name.Contains("Sundry Creditor", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsCustomerLedger(LedgerModel ledger)
+        {
+            // Check if the ledger itself is a customer
+            if (ledger.Category.Equals("Customer", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Check if the parent ledger is "Sundry Debtor"
+            if (ledger.Parent != null && 
+                ledger.Parent.Category.Equals("Sundry Debtor", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Check if the parent name contains "Sundry Debtor"
+            if (ledger.Parent != null && 
+                ledger.Parent.Name.Contains("Sundry Debtor", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // If parent is not loaded, try to find it in the available ledgers
+            if (ledger.ParentId.HasValue)
+            {
+                var parentLedger = _availableLedgers.FirstOrDefault(l => l.Id == ledger.ParentId.Value);
+                if (parentLedger != null)
+                {
+                    if (parentLedger.Category.Equals("Sundry Debtor", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    if (parentLedger.Name.Contains("Sundry Debtor", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void SelectAccountLedgerByCategory(string category)
+        {
+            if (cmbAccountLedger.DataSource is not List<LedgerModel> accountLedgers)
+                return;
+
+            // Find the first ledger with the specified category
+            var targetLedger = accountLedgers.FirstOrDefault(l => 
+                l.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+
+            if (targetLedger != null)
+            {
+                cmbAccountLedger.SelectedValue = targetLedger.Id;
+                Console.WriteLine($"Auto-selected {category} account: {targetLedger.DisplayName}");
+            }
+            else
+            {
+                Console.WriteLine($"No {category} account found in available ledgers");
+            }
+        }
+
         private async void LoadData()
         {
             Console.WriteLine("LoadData called - starting to load data...");
@@ -877,6 +1002,8 @@ namespace WinFormsApp1.Forms.Transaction
                     if (!string.IsNullOrEmpty(_transactionDto.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var partyLedgerId))
                     {
                         cmbPartyLedger.SelectedValue = partyLedgerId;
+                        // Auto-select account ledger based on party ledger type
+                        AutoSelectAccountLedger();
                     }
                     
                     if (!string.IsNullOrEmpty(_transactionDto.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var accountLedgerId))
@@ -934,6 +1061,8 @@ namespace WinFormsApp1.Forms.Transaction
             cmbStatus.SelectedItem = _transaction.Status;
             txtReferenceNumber.Text = _transaction.ReferenceNumber ?? "";
             txtNotes.Text = _transaction.Notes ?? "";
+            
+            // Note: Party ledger selection and auto-selection will be handled in LoadProductTaxAndLedgerLists
 
                          // Convert items to display format and sort by serial number
              var itemDisplays = _transaction.Items
@@ -1089,9 +1218,25 @@ namespace WinFormsApp1.Forms.Transaction
                 _availableLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
                 Console.WriteLine($"Loaded {_availableLedgers.Count} ledgers for transaction");
 
+                // Debug: Log some ledger details to verify structure
+                if (_availableLedgers.Any())
+                {
+                    var sampleLedger = _availableLedgers.First();
+                    Console.WriteLine($"Sample ledger: {sampleLedger.DisplayName}");
+                    Console.WriteLine($"  Category: {sampleLedger.Category}");
+                    Console.WriteLine($"  Parent: {sampleLedger.Parent?.DisplayName ?? "None"}");
+                    Console.WriteLine($"  ParentId: {sampleLedger.ParentId}");
+                }
+
                 // Populate ledger combo boxes
                 cmbPartyLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
                 cmbAccountLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
+                
+                // Auto-select account ledger if party ledger is already selected
+                if (cmbPartyLedger.SelectedItem != null)
+                {
+                    AutoSelectAccountLedger();
+                }
             }
             catch (Exception ex)
             {
