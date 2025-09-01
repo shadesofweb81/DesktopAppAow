@@ -773,14 +773,6 @@ namespace WinFormsApp1.Forms.Transaction
 
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "Description",
-                HeaderText = "Description",
-                DataPropertyName = "Description",
-                Width = 200
-            });
-
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
-            {
                 Name = "TaxableAmount",
                 HeaderText = "Taxable Amount",
                 DataPropertyName = "TaxableAmount",
@@ -797,12 +789,30 @@ namespace WinFormsApp1.Forms.Transaction
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            dgvTaxes.Columns.Add(new DataGridViewComboBoxColumn
             {
                 Name = "CalculationMethod",
                 HeaderText = "Calculation Method",
                 DataPropertyName = "CalculationMethod",
-                Width = 150
+                Width = 150,
+                Items = { "ItemSubtotal", "AboveRowAmount", "Total" },
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewCheckBoxColumn
+            {
+                Name = "IsApplied",
+                HeaderText = "Applied",
+                DataPropertyName = "IsApplied",
+                Width = 80
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Description",
+                HeaderText = "Description",
+                DataPropertyName = "Description",
+                Width = 200
             });
         }
 
@@ -814,6 +824,23 @@ namespace WinFormsApp1.Forms.Transaction
             txtFreight.TextChanged += CalculationField_Changed;
             txtRoundOff.TextChanged += CalculationField_Changed;
             chkFreightIncluded.CheckedChanged += CalculationField_Changed;
+
+            // Add event handler for taxes DataGridView
+            dgvTaxes.CellValueChanged += DgvTaxes_CellValueChanged;
+        }
+
+        private void DgvTaxes_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+        {
+            // Handle changes in the taxes DataGridView
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var column = dgvTaxes.Columns[e.ColumnIndex];
+                if (column.Name == "CalculationMethod")
+                {
+                    // Recalculate totals when calculation method changes
+                    CalculateTotals();
+                }
+            }
         }
 
         private void CmbPartyLedger_SelectedIndexChanged(object? sender, EventArgs e)
@@ -842,7 +869,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 // For suppliers, select Purchase account
                 Console.WriteLine("Auto-selecting Purchase account for supplier");
-                SelectAccountLedgerByCategory("Purchase");
+                SelectAccountLedgerByCategory("Purchases");
             }
             else if (isCustomer)
             {
@@ -927,7 +954,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Find the first ledger with the specified category
             var targetLedger = accountLedgers.FirstOrDefault(l => 
-                l.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+                l.Name.Equals(category, StringComparison.OrdinalIgnoreCase));
 
             if (targetLedger != null)
             {
@@ -1613,7 +1640,7 @@ Tips:
                     Models.Transaction? result;
                     if (_transaction == null)
                     {
-                        var createRequest = CreateTransactionRequestFromForm();
+                        var createRequest = CreateTransactionDtoFromForm();
                         var createdDto = await _transactionService.CreateTransactionAsync(createRequest);
                         result = createdDto != null ? ConvertDtoToTransaction(createdDto) : null;
                     }
@@ -1642,30 +1669,26 @@ Tips:
             }
         }
 
+
+
         private Models.TransactionByIdDto CreateTransactionDtoFromForm()
         {
-            var dto = new Models.TransactionByIdDto();
-
-            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
-                ?? TransactionType.SaleInvoice.ToString();
-
-            dto.TransactionType = transactionTypeString;
-            dto.TransactionNumber = txtTransactionNumber.Text.Trim();
-            dto.InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim();
-            dto.TransactionDate = dtpTransactionDate.Value;
-            dto.DueDate = dtpDueDate.Value;
-            dto.Status = cmbStatus.SelectedItem?.ToString() ?? "Draft";
-            dto.ReferenceNumber = string.IsNullOrWhiteSpace(txtReferenceNumber.Text) ? null : txtReferenceNumber.Text.Trim();
-            dto.Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? null : txtNotes.Text.Trim();
+            var companyId = Guid.Parse(_selectedCompany.Id);
+            var financialYearId = _selectedFinancialYear.Id;
+            
+            var partyLedgerId = string.Empty;
+            var accountLedgerId = string.Empty;
 
             if (cmbPartyLedger.SelectedValue is Guid pId)
             {
-                dto.PartyLedgerId = pId.ToString();
+                partyLedgerId = pId.ToString();
             }
             if (cmbAccountLedger.SelectedValue is Guid aId)
             {
-                dto.AccountLedgerId = aId.ToString();
+                accountLedgerId = aId.ToString();
             }
+
+            var dueDate = dtpDueDate.Value;
 
             decimal.TryParse(txtSubTotal.Text, out var subtotal);
             decimal.TryParse(txtDiscountPercent.Text, out var discountPercent);
@@ -1674,18 +1697,13 @@ Tips:
             decimal.TryParse(txtRoundOff.Text, out var roundOff);
             decimal.TryParse(txtTotal.Text, out var total);
 
-            dto.SubTotal = subtotal;
-            dto.Discount = discountPercent;
-            dto.Freight = freight;
-            dto.IsFreightIncluded = chkFreightIncluded.Checked;
-            dto.TaxAmount = taxAmount;
-            dto.RoundOff = roundOff;
-            dto.Total = total;
-
             var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
             var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
 
-            dto.Items = itemDisplays
+            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
+                ?? TransactionType.SaleInvoice.ToString();
+
+            var items = itemDisplays
                 .OrderBy(i => i.SerialNumber)
                 .Select(i => new TransactionItemDto
                 {
@@ -1706,7 +1724,7 @@ Tips:
                 })
                 .ToList();
 
-            dto.Taxes = taxDisplays
+            var taxes = taxDisplays
                 .OrderBy(t => t.SerialNumber)
                 .Select(t => new TransactionTaxDto
                 {
@@ -1715,7 +1733,7 @@ Tips:
                     TaxName = t.TaxName,
                     TaxableAmount = t.TaxableAmount,
                     TaxAmount = t.TaxAmount,
-                    CalculationMethod = t.CalculationMethod,
+                    CalculationMethod = string.IsNullOrWhiteSpace(t.CalculationMethod) ? "ItemSubtotal" : t.CalculationMethod,
                     IsApplied = t.IsApplied,
                     AppliedDate = t.AppliedDate,
                     ReferenceNumber = t.ReferenceNumber,
@@ -1725,93 +1743,28 @@ Tips:
                 })
                 .ToList();
 
-            return dto;
-        }
-
-        private CreateTransactionRequest CreateTransactionRequestFromForm()
-        {
-            var companyId = Guid.Parse(_selectedCompany.Id);
-            var financialYearId = _selectedFinancialYear.Id;
-            
-            var partyLedgerId = Guid.Empty;
-            var accountLedgerId = Guid.Empty;
-
-            if (cmbPartyLedger.SelectedValue is Guid pId)
+            return new Models.TransactionByIdDto
             {
-                partyLedgerId = pId;
-            }
-            if (cmbAccountLedger.SelectedValue is Guid aId)
-            {
-                accountLedgerId = aId;
-            }
-
-            var paymentTermDays = Math.Max(0, (dtpDueDate.Value.Date - dtpTransactionDate.Value.Date).Days);
-
-            decimal.TryParse(txtDiscountPercent.Text, out var discountPercent);
-            decimal.TryParse(txtFreight.Text, out var freight);
-            decimal.TryParse(txtRoundOff.Text, out var roundOff);
-
-            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
-            var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
-
-            var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
-                ?? TransactionType.SaleInvoice.ToString();
-
-            var items = itemDisplays
-                .OrderBy(i => i.SerialNumber)
-                .Select(i => new CreateTransactionItemRequest
-                {
-                    ProductId = i.ProductId,
-                    Description = i.Description,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                    DiscountRate = i.DiscountRate,
-                    DiscountAmount = i.DiscountAmount,
-                    CurrentQuantity = i.CurrentQuantity,
-                    SerialNumber = i.SerialNumber,
-                    HsnCode = null, // TODO: Add HSN code field if needed
-                    Variants = new List<CreateTransactionItemVariantRequest>() // TODO: Add variants if needed
-                })
-                .ToList();
-
-            var taxes = taxDisplays
-                .OrderBy(t => t.SerialNumber)
-                .Select(t => new CreateTransactionTaxRequest
-                {
-                    Id = t.Id == Guid.Empty ? Guid.NewGuid() : t.Id,
-                    TaxId = t.TaxId,
-                    TaxName = t.TaxName,
-                    TaxableAmount = t.TaxableAmount,
-                    Rate = GetTaxRateById(t.TaxId),
-                    Amount = t.TaxAmount,
-                    CalculationMethod = string.IsNullOrWhiteSpace(t.CalculationMethod) ? "ItemSubtotal" : t.CalculationMethod,
-                    IsApplied = t.IsApplied,
-                    AppliedDate = t.AppliedDate,
-                    ReferenceNumber = t.ReferenceNumber,
-                    Description = t.Description,
-                    SerialNumber = t.SerialNumber,
-                    Components = new List<CreateTransactionTaxComponentRequest>() // TODO: Add components if needed
-                })
-                .ToList();
-
-            return new CreateTransactionRequest
-            {
-                CompanyId = companyId,
-                FinancialYearId = financialYearId,
-                PartyLedgerId = partyLedgerId,
-                AccountLedgerId = accountLedgerId,
+                TransactionNumber = txtTransactionNumber.Text.Trim(),
                 InvoiceNumber = string.IsNullOrWhiteSpace(txtInvoiceNumber.Text) ? null : txtInvoiceNumber.Text.Trim(),
                 TransactionDate = dtpTransactionDate.Value,
-                PaymentTermDays = paymentTermDays,
-                Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? string.Empty : txtNotes.Text.Trim(),
+                DueDate = dueDate,
                 TransactionType = transactionTypeString,
-                Status = cmbStatus.SelectedItem?.ToString(),
+                Status = cmbStatus.SelectedItem?.ToString() ?? "Draft",
+                Notes = string.IsNullOrWhiteSpace(txtNotes.Text) ? string.Empty : txtNotes.Text.Trim(),
+                ReferenceNumber = string.IsNullOrWhiteSpace(txtReferenceNumber.Text) ? null : txtReferenceNumber.Text.Trim(),
+                PartyLedgerId = partyLedgerId,
+                AccountLedgerId = accountLedgerId,
+                SubTotal = subtotal,
                 Discount = discountPercent,
                 Freight = freight,
                 IsFreightIncluded = chkFreightIncluded.Checked,
+                TaxAmount = taxAmount,
                 RoundOff = roundOff,
+                Total = total,
                 Items = items,
-                Taxes = taxes
+                Taxes = taxes,
+                LedgerEntries = new List<TransactionLedgerEntryDto>()
             };
         }
 

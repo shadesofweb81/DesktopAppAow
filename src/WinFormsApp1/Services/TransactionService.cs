@@ -1,4 +1,5 @@
-
+using System.Net;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -121,13 +122,13 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<TransactionByIdDto?> CreateTransactionAsync(CreateTransactionRequest createRequest)
+        public async Task<TransactionByIdDto?> CreateTransactionAsync(TransactionByIdDto transactionDto)
         {
             try
             {
                 SetAuthHeader();
 
-                var json = JsonSerializer.Serialize(createRequest, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(transactionDto, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = true
@@ -135,7 +136,7 @@ namespace WinFormsApp1.Services
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var typeString = createRequest.TransactionType ?? string.Empty;
+                var typeString = transactionDto.TransactionType ?? string.Empty;
                 var url = $"{_baseUrl}/";
                 if (typeString.StartsWith("Purchase", StringComparison.OrdinalIgnoreCase))
                 {
