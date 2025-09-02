@@ -150,8 +150,8 @@ namespace WinFormsApp1.Forms.Transaction
         private TextBox txtNotes = null!;
         
         // Ledger Controls
-        private ComboBox cmbPartyLedger = null!;
-        private ComboBox cmbAccountLedger = null!;
+        private TextBox txtPartyLedger = null!;
+        private TextBox txtAccountLedger = null!;
 
         // Items Section
         private DataGridView dgvItems = null!;
@@ -159,6 +159,10 @@ namespace WinFormsApp1.Forms.Transaction
         private Button btnEditItem = null!;
         private Button btnDeleteItem = null!;
         private Button btnSelectProducts = null!;
+        
+        // Ledger Selection Buttons
+        private Button btnSelectPartyLedger = null!;
+        private Button btnSelectAccountLedger = null!;
 
         // Tax Section
         private DataGridView dgvTaxes = null!;
@@ -189,6 +193,10 @@ namespace WinFormsApp1.Forms.Transaction
         private List<Models.ProductListDto> _availableProducts = new List<Models.ProductListDto>();
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
         private List<Models.LedgerModel> _availableLedgers = new List<Models.LedgerModel>();
+        
+        // Selected ledgers (since we're not using ComboBox anymore)
+        private Models.LedgerModel? _selectedPartyLedger;
+        private Models.LedgerModel? _selectedAccountLedger;
 
             private class TransactionTaxDisplay
     {
@@ -347,8 +355,11 @@ namespace WinFormsApp1.Forms.Transaction
             txtReferenceNumber = new TextBox();
             txtNotes = new TextBox();
             
-            cmbPartyLedger = new ComboBox();
-            cmbAccountLedger = new ComboBox();
+            txtPartyLedger = new TextBox();
+            txtAccountLedger = new TextBox();
+            
+            btnSelectPartyLedger = new Button();
+            btnSelectAccountLedger = new Button();
 
             dgvItems = new DataGridView();
             btnAddItem = new Button();
@@ -427,10 +438,99 @@ namespace WinFormsApp1.Forms.Transaction
             AddLabelAndControl("Notes:", txtNotes, leftMargin + 350, yPosition, labelWidth, 550);
             yPosition += spaceBetweenRows;
 
-            // Fourth Row - Ledger Selection
-            AddLabelAndControl("Party Ledger:", cmbPartyLedger, leftMargin, yPosition, labelWidth, controlWidth + 50);
-            AddLabelAndControl("Account Ledger:", cmbAccountLedger, leftMargin + 350, yPosition, labelWidth, controlWidth + 50);
-            yPosition += spaceBetweenRows + 10;
+            // Fourth Row - Ledger Selection Section (Improved Layout)
+            var ledgerSectionHeight = 80; // More space for ledger section
+            
+            // Create a group box for better organization
+            var ledgerGroupBox = new GroupBox
+            {
+                Text = "Ledger Selection",
+                Location = new Point(leftMargin, yPosition),
+                Size = new Size(1140, ledgerSectionHeight),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                ForeColor = Color.DarkBlue
+            };
+            
+            // Party Ledger Row
+            var lblPartyLedger = new Label
+            {
+                Text = "Party Ledger:",
+                Location = new Point(20, 25),
+                Size = new Size(labelWidth, 20),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
+            };
+
+            txtPartyLedger.Location = new Point(20 + labelWidth + 5, 22);
+            txtPartyLedger.Size = new Size(400, 25); // Much wider
+            txtPartyLedger.Font = new Font("Segoe UI", 9F);
+            txtPartyLedger.TabIndex = 100; // Set tab order
+            
+            // Party Ledger Button
+            btnSelectPartyLedger.Location = new Point(20 + labelWidth + 410, 22);
+            btnSelectPartyLedger.Size = new Size(80, 25);
+            btnSelectPartyLedger.Text = "Select (F4)";
+            btnSelectPartyLedger.Font = new Font("Segoe UI", 8F);
+            btnSelectPartyLedger.UseVisualStyleBackColor = true;
+            btnSelectPartyLedger.TabIndex = 101;
+            btnSelectPartyLedger.Click += BtnSelectPartyLedger_Click;
+            
+            // Party Ledger Hint
+            var lblPartyHint = new Label
+            {
+                Text = "Click or press Enter to search party ledgers (customers/suppliers)",
+                Location = new Point(20 + labelWidth + 495, 25),
+                Size = new Size(300, 20),
+                Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+                ForeColor = Color.Gray,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            
+            // Account Ledger Row
+            var lblAccountLedger = new Label
+            {
+                Text = "Account Ledger:",
+                Location = new Point(20, 55),
+                Size = new Size(labelWidth, 20),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
+            };
+
+            txtAccountLedger.Location = new Point(20 + labelWidth + 5, 52);
+            txtAccountLedger.Size = new Size(400, 25); // Much wider
+            txtAccountLedger.Font = new Font("Segoe UI", 9F);
+            txtAccountLedger.TabIndex = 102; // Set tab order
+            
+            // Account Ledger Button
+            btnSelectAccountLedger.Location = new Point(20 + labelWidth + 410, 52);
+            btnSelectAccountLedger.Size = new Size(80, 25);
+            btnSelectAccountLedger.Text = "Select (F5)";
+            btnSelectAccountLedger.Font = new Font("Segoe UI", 8F);
+            btnSelectAccountLedger.UseVisualStyleBackColor = true;
+            btnSelectAccountLedger.TabIndex = 103;
+            btnSelectAccountLedger.Click += BtnSelectAccountLedger_Click;
+            
+            // Account Ledger Hint
+            var lblAccountHint = new Label
+            {
+                Text = "Click or press Enter to search account ledgers (income/expense/assets)",
+                Location = new Point(20 + labelWidth + 495, 55),
+                Size = new Size(300, 20),
+                Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+                ForeColor = Color.Gray,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            
+            // Add all ledger controls to the group box
+            ledgerGroupBox.Controls.AddRange(new Control[] { 
+                lblPartyLedger, txtPartyLedger, btnSelectPartyLedger, lblPartyHint,
+                lblAccountLedger, txtAccountLedger, btnSelectAccountLedger, lblAccountHint
+            });
+            
+            // Add the group box to the form
+            Controls.Add(ledgerGroupBox);
+            
+            yPosition += ledgerSectionHeight + 15;
 
             // Items Section
             itemsGroupBox.Text = "Transaction Items";
@@ -694,16 +794,20 @@ namespace WinFormsApp1.Forms.Transaction
             cmbStatus.Items.AddRange(new[] { "Draft", "Pending", "Approved", "Rejected", "Completed", "Cancelled" });
             cmbStatus.SelectedIndex = 0; // Default to Draft
 
-            // Ledger ComboBoxes
-            cmbPartyLedger.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbPartyLedger.DisplayMember = "DisplayName";
-            cmbPartyLedger.ValueMember = "Id";
-            cmbPartyLedger.SelectedIndexChanged += CmbPartyLedger_SelectedIndexChanged;
+            // Ledger TextBoxes - Enhanced styling and behavior
+            SetupLedgerTextBox(txtPartyLedger, "Click or press Enter to select party ledger...");
+            SetupLedgerTextBox(txtAccountLedger, "Click or press Enter to select account ledger...");
+            
+            // Event handlers
+            txtPartyLedger.Click += TxtPartyLedger_Click;
+            txtPartyLedger.KeyDown += TxtPartyLedger_KeyDown;
+            txtPartyLedger.Enter += TxtPartyLedger_Enter;
+            txtPartyLedger.Leave += TxtPartyLedger_Leave;
 
-            cmbAccountLedger.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbAccountLedger.DisplayMember = "DisplayName";
-            cmbAccountLedger.ValueMember = "Id";
-            cmbAccountLedger.SelectedIndexChanged += CmbAccountLedger_SelectedIndexChanged;
+            txtAccountLedger.Click += TxtAccountLedger_Click;
+            txtAccountLedger.KeyDown += TxtAccountLedger_KeyDown;
+            txtAccountLedger.Enter += TxtAccountLedger_Enter;
+            txtAccountLedger.Leave += TxtAccountLedger_Leave;
         }
 
         private void SetupDataGridViews()
@@ -979,37 +1083,146 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        private void CmbPartyLedger_SelectedIndexChanged(object? sender, EventArgs e)
+        private void TxtPartyLedger_Click(object? sender, EventArgs e)
         {
-            AutoSelectAccountLedger();
-            UpdateAddItemButtonState();
+            Console.WriteLine("Party Ledger TextBox clicked - opening modal");
+            ShowPartyLedgerSelectionDialog();
         }
 
-        private void CmbAccountLedger_SelectedIndexChanged(object? sender, EventArgs e)
+        private void TxtPartyLedger_KeyDown(object? sender, KeyEventArgs e)
         {
-            UpdateAddItemButtonState();
-            
-            // When Account Ledger is selected, focus on Add Item button
-            if (cmbAccountLedger.SelectedItem != null && cmbPartyLedger.SelectedItem != null)
+            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space || e.KeyCode == Keys.F4)
             {
+                Console.WriteLine($"Party Ledger TextBox key pressed: {e.KeyCode} - opening modal");
+                ShowPartyLedgerSelectionDialog();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Tab && !e.Shift)
+            {
+                // Tab to account ledger
+                txtAccountLedger.Focus();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Down)
+            {
+                // Arrow down to account ledger
+                txtAccountLedger.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void TxtPartyLedger_Enter(object? sender, EventArgs e)
+        {
+            // Enhanced focus handling
+            var textBox = sender as TextBox;
+            if (textBox != null)
+            {
+                // Visual feedback for focus
+                textBox.BackColor = Color.LightYellow;
+                
+                if (!string.IsNullOrEmpty(textBox.Text) && _selectedPartyLedger != null)
+                {
+                    textBox.SelectAll();
+                }
+                
+                Console.WriteLine("Party Ledger TextBox focused - ready for Enter key or click");
+            }
+        }
+
+        private void TxtPartyLedger_Leave(object? sender, EventArgs e)
+        {
+            // Reset background when focus leaves
+            var textBox = sender as TextBox;
+            if (textBox != null)
+            {
+                textBox.BackColor = SystemColors.Window;
+            }
+        }
+
+        private void TxtAccountLedger_Click(object? sender, EventArgs e)
+        {
+            Console.WriteLine("Account Ledger TextBox clicked - opening modal");
+            ShowAccountLedgerSelectionDialog();
+        }
+
+        private void TxtAccountLedger_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space || e.KeyCode == Keys.F5)
+            {
+                Console.WriteLine($"Account Ledger TextBox key pressed: {e.KeyCode} - opening modal");
+                ShowAccountLedgerSelectionDialog();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Tab && !e.Shift)
+            {
+                // Tab to Add Item button if both ledgers are selected
+                if (_selectedPartyLedger != null && _selectedAccountLedger != null)
+                {
+                    btnAddItem.Focus();
+                }
+                else
+                {
+                    // Move to next control in tab order
+                    SelectNextControl(txtAccountLedger, true, true, true, true);
+                }
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Up)
+            {
+                // Arrow up to party ledger
+                txtPartyLedger.Focus();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Down && _selectedPartyLedger != null && _selectedAccountLedger != null)
+            {
+                // Arrow down to Add Item button if ready
                 btnAddItem.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void TxtAccountLedger_Enter(object? sender, EventArgs e)
+        {
+            // Enhanced focus handling
+            var textBox = sender as TextBox;
+            if (textBox != null)
+            {
+                // Visual feedback for focus
+                textBox.BackColor = Color.LightYellow;
+                
+                if (!string.IsNullOrEmpty(textBox.Text) && _selectedAccountLedger != null)
+                {
+                    textBox.SelectAll();
+                }
+                
+                Console.WriteLine("Account Ledger TextBox focused - ready for Enter key or click");
+            }
+        }
+
+        private void TxtAccountLedger_Leave(object? sender, EventArgs e)
+        {
+            // Reset background when focus leaves
+            var textBox = sender as TextBox;
+            if (textBox != null)
+            {
+                textBox.BackColor = SystemColors.Window;
             }
         }
 
         private void AutoSelectAccountLedger()
         {
-            if (cmbPartyLedger.SelectedItem is not LedgerModel selectedPartyLedger)
+            if (_selectedPartyLedger == null)
                 return;
 
-            Console.WriteLine($"Auto-selecting account ledger for party ledger: {selectedPartyLedger.DisplayName}");
-            Console.WriteLine($"Party ledger category: {selectedPartyLedger.Category}");
-            Console.WriteLine($"Party ledger parent: {selectedPartyLedger.Parent?.DisplayName ?? "None"}");
+            Console.WriteLine($"Auto-selecting account ledger for party ledger: {_selectedPartyLedger.DisplayName}");
+            Console.WriteLine($"Party ledger category: {_selectedPartyLedger.Category}");
+            Console.WriteLine($"Party ledger parent: {_selectedPartyLedger.Parent?.DisplayName ?? "None"}");
 
             // Check if the selected party ledger is a supplier or has a parent that is "Sundry Creditor"
-            bool isSupplier = IsSupplierLedger(selectedPartyLedger);
+            bool isSupplier = IsSupplierLedger(_selectedPartyLedger);
             
             // Check if the selected party ledger is a customer or has a parent that is "Sundry Debtor"
-            bool isCustomer = IsCustomerLedger(selectedPartyLedger);
+            bool isCustomer = IsCustomerLedger(_selectedPartyLedger);
 
             Console.WriteLine($"Is Supplier: {isSupplier}, Is Customer: {isCustomer}");
 
@@ -1097,16 +1310,16 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void SelectAccountLedgerByCategory(string category)
         {
-            if (cmbAccountLedger.DataSource is not List<LedgerModel> accountLedgers)
+            if (_availableLedgers == null || _availableLedgers.Count == 0)
                 return;
 
             // Find the first ledger with the specified category
-            var targetLedger = accountLedgers.FirstOrDefault(l => 
+            var targetLedger = _availableLedgers.FirstOrDefault(l => 
                 l.Name.Equals(category, StringComparison.OrdinalIgnoreCase));
 
             if (targetLedger != null)
             {
-                cmbAccountLedger.SelectedValue = targetLedger.Id;
+                SetSelectedAccountLedger(targetLedger);
                 Console.WriteLine($"Auto-selected {category} account: {targetLedger.DisplayName}");
             }
             else
@@ -1115,10 +1328,47 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
+        private void SetSelectedPartyLedger(LedgerModel ledger)
+        {
+            _selectedPartyLedger = ledger;
+            txtPartyLedger.Text = $"✓ {ledger.DisplayName}";
+            
+            // Style for selected ledger
+            txtPartyLedger.ForeColor = Color.DarkGreen;
+            txtPartyLedger.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+        }
+
+        private void SetSelectedAccountLedger(LedgerModel ledger)
+        {
+            _selectedAccountLedger = ledger;
+            txtAccountLedger.Text = $"✓ {ledger.DisplayName}";
+            
+            // Style for selected ledger
+            txtAccountLedger.ForeColor = Color.DarkGreen;
+            txtAccountLedger.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+        }
+
+        private void SetupLedgerTextBox(TextBox textBox, string placeholderText)
+        {
+            textBox.ReadOnly = true;
+            textBox.BackColor = SystemColors.Window;
+            textBox.Cursor = Cursors.Hand;
+            textBox.PlaceholderText = placeholderText;
+            textBox.BorderStyle = BorderStyle.FixedSingle;
+            textBox.Font = new Font("Segoe UI", 9F);
+            
+            // Style for empty/placeholder state
+            if (string.IsNullOrEmpty(textBox.Text))
+            {
+                textBox.ForeColor = Color.Gray;
+                textBox.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            }
+        }
+
         private void UpdateAddItemButtonState()
         {
             // Enable Add Item button only when both Party Ledger and Account Ledger are selected
-            bool canAddItems = cmbPartyLedger.SelectedItem != null && cmbAccountLedger.SelectedItem != null;
+            bool canAddItems = _selectedPartyLedger != null && _selectedAccountLedger != null;
             
             btnAddItem.Enabled = canAddItems;
             
@@ -1197,14 +1447,22 @@ namespace WinFormsApp1.Forms.Transaction
                 // Set ledger selections
                 if (!string.IsNullOrEmpty(_transactionDto.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var partyLedgerId))
                 {
-                    cmbPartyLedger.SelectedValue = partyLedgerId;
-                    // Auto-select account ledger based on party ledger type
-                    AutoSelectAccountLedger();
+                    var partyLedger = _availableLedgers.FirstOrDefault(l => l.Id == partyLedgerId);
+                    if (partyLedger != null)
+                    {
+                        SetSelectedPartyLedger(partyLedger);
+                        // Auto-select account ledger based on party ledger type
+                        AutoSelectAccountLedger();
+                    }
                 }
                 
                 if (!string.IsNullOrEmpty(_transactionDto.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var accountLedgerId))
                 {
-                    cmbAccountLedger.SelectedValue = accountLedgerId;
+                    var accountLedger = _availableLedgers.FirstOrDefault(l => l.Id == accountLedgerId);
+                    if (accountLedger != null)
+                    {
+                        SetSelectedAccountLedger(accountLedger);
+                    }
                 }
 
                 // Convert items to display format using DTO and sort by serial number
@@ -1461,12 +1719,11 @@ namespace WinFormsApp1.Forms.Transaction
                     Console.WriteLine($"  ParentId: {sampleLedger.ParentId}");
                 }
 
-                // Populate ledger combo boxes
-                cmbPartyLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
-                cmbAccountLedger.DataSource = _availableLedgers.Where(l => !l.IsGroup).ToList();
+                // Note: Ledgers are now selected via modal dialog, not populated in dropdowns
+                // TextBoxes will display selected ledger names
                 
                 // Auto-select account ledger if party ledger is already selected
-                if (cmbPartyLedger.SelectedItem != null)
+                if (_selectedPartyLedger != null)
                 {
                     AutoSelectAccountLedger();
                 }
@@ -1531,6 +1788,14 @@ namespace WinFormsApp1.Forms.Transaction
                     Console.WriteLine("F3 key pressed - calling ShowTaxSelectionDialog");
                     ShowTaxSelectionDialog();
                     return true;
+                case Keys.F4:
+                    Console.WriteLine("F4 key pressed - calling ShowPartyLedgerSelectionDialog");
+                    ShowPartyLedgerSelectionDialog();
+                    return true;
+                case Keys.F5:
+                    Console.WriteLine("F5 key pressed - calling ShowAccountLedgerSelectionDialog");
+                    ShowAccountLedgerSelectionDialog();
+                    return true;
                 case Keys.F10:
                     Console.WriteLine("F10 key pressed - calling BtnSave_Click");
                     BtnSave_Click(null, EventArgs.Empty);
@@ -1588,7 +1853,9 @@ Navigation:
 
 Special Keys:
 • F2 - Add/Select Items
-• F3 - Add/Select Taxes with Components
+• F3 - Add/Select Taxes with Components  
+• F4 - Select Party Ledger (Customer/Supplier)
+• F5 - Select Account Ledger (Income/Expense)
 • F10 - Save Transaction
 • Delete - Remove selected item/tax
 • Enter - Edit selected item/tax in grid
@@ -1620,8 +1887,8 @@ Field Order:
 6. Status (dropdown)
 7. Reference Number
 8. Notes
-9. Party Ledger (dropdown)
-10. Account Ledger (dropdown)
+9. Party Ledger (TextBox - click or Enter to open selection modal)
+10. Account Ledger (TextBox - click or Enter to open selection modal)
 11. Transaction Items (DataGrid) - S.No, Product, Description, Qty, Unit Price, Disc %, Disc Amt, Tax %, Tax Amt, Line Total
 12. Transaction Taxes (DataGrid) - S.No, Tax Name, Tax Components, Description, Taxable Amount, Tax Amount, Calculation Method
 13. Subtotal (read-only)
@@ -1640,9 +1907,23 @@ Tips:
 • Ctrl+Enter to save from any field
 • F2 for quick item selection and addition
 • F3 for quick tax selection
+• F4 for party ledger selection (customers/suppliers)
+• F5 for account ledger selection (income/expense)
 • Direct editing in item grid for fast data entry
 • Escape to cancel and close
-• All fields are highlighted when focused";
+• All fields are highlighted when focused
+
+Ledger Selection:
+• Click on Party/Account Ledger TextBoxes to open selection modal
+• Press Enter/Space on ledger TextBoxes to open selection dialog
+• Use F4/F5 or click F4/F5 buttons for quick access
+• Ledger selection dialog supports:
+  - Search by name, code, or category
+  - Filter by ledger type (Party/Account/Assets/etc.)
+  - Show/hide group ledgers
+  - Keyboard navigation and selection
+• Selected ledger names are displayed in the TextBoxes
+• TextBoxes are read-only - selection only via modal";
 
             MessageBox.Show(helpMessage, "Transaction Edit Form Help", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1958,17 +2239,8 @@ Tips:
             var companyId = Guid.Parse(_selectedCompany.Id);
             var financialYearId = _selectedFinancialYear.Id;
             
-            var partyLedgerId = string.Empty;
-            var accountLedgerId = string.Empty;
-
-            if (cmbPartyLedger.SelectedValue is Guid pId)
-            {
-                partyLedgerId = pId.ToString();
-            }
-            if (cmbAccountLedger.SelectedValue is Guid aId)
-            {
-                accountLedgerId = aId.ToString();
-            }
+            var partyLedgerId = _selectedPartyLedger?.Id.ToString() ?? string.Empty;
+            var accountLedgerId = _selectedAccountLedger?.Id.ToString() ?? string.Empty;
 
             var dueDate = dtpDueDate.Value;
 
@@ -2068,17 +2340,8 @@ Tips:
         {
             var companyId = Guid.Parse(_selectedCompany.Id);
 
-            var partyLedgerId = Guid.Empty;
-            var accountLedgerId = Guid.Empty;
-
-            if (cmbPartyLedger.SelectedValue is Guid pId)
-            {
-                partyLedgerId = pId;
-            }
-            if (cmbAccountLedger.SelectedValue is Guid aId)
-            {
-                accountLedgerId = aId;
-            }
+            var partyLedgerId = _selectedPartyLedger?.Id ?? Guid.Empty;
+            var accountLedgerId = _selectedAccountLedger?.Id ?? Guid.Empty;
 
             if (partyLedgerId == Guid.Empty && !string.IsNullOrWhiteSpace(_transactionDto?.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var dtoParty))
             {
@@ -2281,9 +2544,9 @@ Tips:
             transaction.FinancialYearId = _selectedFinancialYear.Id;
 
             // Set party name from selected ledger
-            if (cmbPartyLedger.SelectedItem is LedgerModel selectedPartyLedger)
+            if (_selectedPartyLedger != null)
             {
-                transaction.PartyName = selectedPartyLedger.Name;
+                transaction.PartyName = _selectedPartyLedger.Name;
             }
 
             // Parse summary fields
@@ -2643,6 +2906,132 @@ Tips:
             else
             {
                 Console.WriteLine("Tax component edit cancelled");
+            }
+        }
+
+        #endregion
+
+        #region Ledger Selection Methods
+
+        private void BtnSelectPartyLedger_Click(object? sender, EventArgs e)
+        {
+            Console.WriteLine("BtnSelectPartyLedger_Click called");
+            ShowPartyLedgerSelectionDialog();
+        }
+
+        private void BtnSelectAccountLedger_Click(object? sender, EventArgs e)
+        {
+            Console.WriteLine("BtnSelectAccountLedger_Click called");
+            ShowAccountLedgerSelectionDialog();
+        }
+
+        private void ShowPartyLedgerSelectionDialog()
+        {
+            try
+            {
+                Console.WriteLine($"ShowPartyLedgerSelectionDialog called. Available ledgers: {_availableLedgers?.Count ?? 0}");
+                
+                if (_availableLedgers == null || _availableLedgers.Count == 0)
+                {
+                    MessageBox.Show("No ledgers available. Please add ledgers first.", "No Ledgers", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                Console.WriteLine("Creating Party Ledger Selection Dialog...");
+                var dialog = new LedgerSelectionDialog(
+                    _availableLedgers, 
+                    "Select Party Ledger - Click or Enter to Select", 
+                    "Party Ledgers (Customers/Suppliers)",
+                    "Party Ledgers" // Default filter to Party Ledgers
+                );
+                
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                
+                Console.WriteLine("Opening party ledger selection dialog...");
+                var dialogResult = dialog.ShowDialog(this);
+                Console.WriteLine($"Dialog result: {dialogResult}");
+                
+                if (dialogResult == DialogResult.OK && dialog.SelectedLedger != null)
+                {
+                    Console.WriteLine($"Selected party ledger: {dialog.SelectedLedger.DisplayName}");
+                    
+                    // Set the selected ledger
+                    SetSelectedPartyLedger(dialog.SelectedLedger);
+                    
+                    // Trigger auto-selection of account ledger
+                    AutoSelectAccountLedger();
+                    
+                    // Update button states
+                    UpdateAddItemButtonState();
+                    
+                    // Focus on account ledger for next selection
+                    txtAccountLedger.Focus();
+                }
+                else
+                {
+                    Console.WriteLine("Party ledger selection was cancelled or no ledger selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ShowPartyLedgerSelectionDialog: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Error opening party ledger selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowAccountLedgerSelectionDialog()
+        {
+            try
+            {
+                Console.WriteLine($"ShowAccountLedgerSelectionDialog called. Available ledgers: {_availableLedgers?.Count ?? 0}");
+                
+                if (_availableLedgers == null || _availableLedgers.Count == 0)
+                {
+                    MessageBox.Show("No ledgers available. Please add ledgers first.", "No Ledgers", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                Console.WriteLine("Creating Account Ledger Selection Dialog...");
+                var dialog = new LedgerSelectionDialog(
+                    _availableLedgers, 
+                    "Select Account Ledger - Click or Enter to Select", 
+                    "Account Ledgers (Income/Expense/Asset/Liability)",
+                    "Account Ledgers" // Default filter to Account Ledgers
+                );
+                
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                
+                Console.WriteLine("Opening account ledger selection dialog...");
+                var dialogResult = dialog.ShowDialog(this);
+                Console.WriteLine($"Dialog result: {dialogResult}");
+                
+                if (dialogResult == DialogResult.OK && dialog.SelectedLedger != null)
+                {
+                    Console.WriteLine($"Selected account ledger: {dialog.SelectedLedger.DisplayName}");
+                    
+                    // Set the selected ledger
+                    SetSelectedAccountLedger(dialog.SelectedLedger);
+                    
+                    // Update button states
+                    UpdateAddItemButtonState();
+                    
+                    // Focus on Add Item button if both ledgers are now selected
+                    if (_selectedPartyLedger != null && _selectedAccountLedger != null)
+                    {
+                        btnAddItem.Focus();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Account ledger selection was cancelled or no ledger selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ShowAccountLedgerSelectionDialog: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Error opening account ledger selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
