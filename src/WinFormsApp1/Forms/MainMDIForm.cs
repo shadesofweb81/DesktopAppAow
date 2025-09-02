@@ -406,7 +406,7 @@ namespace WinFormsApp1.Forms
             saleButton.Name = "saleButton";
             saleButton.Size = new Size(302, 37);
             saleButton.TabIndex = 7;
-            saleButton.Text = "&Sale (F7)";
+            saleButton.Text = "&Sales (F7) - Invoices, Orders, Quotes";
             saleButton.UseVisualStyleBackColor = true;
             saleButton.Click += saleButton_Click;
             // 
@@ -418,7 +418,7 @@ namespace WinFormsApp1.Forms
             purchaseButton.Name = "purchaseButton";
             purchaseButton.Size = new Size(302, 37);
             purchaseButton.TabIndex = 8;
-            purchaseButton.Text = "&Purchase (F8)";
+            purchaseButton.Text = "&Purchases (F8) - Bills, Orders, Quotes";
             purchaseButton.UseVisualStyleBackColor = true;
             purchaseButton.Click += purchaseButton_Click;
             // 
@@ -430,7 +430,7 @@ namespace WinFormsApp1.Forms
             receiptButton.Name = "receiptButton";
             receiptButton.Size = new Size(302, 37);
             receiptButton.TabIndex = 9;
-            receiptButton.Text = "&Receipt (F9)";
+            receiptButton.Text = "&Receipts (F9) - Customer Payments";
             receiptButton.UseVisualStyleBackColor = true;
             receiptButton.Click += receiptButton_Click;
             // 
@@ -442,7 +442,7 @@ namespace WinFormsApp1.Forms
             paymentButton.Name = "paymentButton";
             paymentButton.Size = new Size(302, 37);
             paymentButton.TabIndex = 10;
-            paymentButton.Text = "Pa&yment (F10)";
+            paymentButton.Text = "Pa&yments (F10) - Supplier Payments";
             paymentButton.UseVisualStyleBackColor = true;
             paymentButton.Click += paymentButton_Click;
             // 
@@ -454,7 +454,7 @@ namespace WinFormsApp1.Forms
             journalButton.Name = "journalButton";
             journalButton.Size = new Size(302, 37);
             journalButton.TabIndex = 11;
-            journalButton.Text = "&Journal (F11)";
+            journalButton.Text = "&Journal Entries (F11) - Manual Entries";
             journalButton.UseVisualStyleBackColor = true;
             journalButton.Click += journalButton_Click;
             // 
@@ -1180,7 +1180,7 @@ namespace WinFormsApp1.Forms
             };
         }
 
-        private void OpenTransactionListForm()
+        private void OpenTransactionListForm(string? transactionType = null)
         {
             // Check if TransactionListForm is already open
             foreach (Form childForm in this.MdiChildren)
@@ -1194,10 +1194,10 @@ namespace WinFormsApp1.Forms
             }
 
             // Create new transaction list form
-            var transactionListForm = new TransactionListForm(_transactionService, _localStorageService)
+            var transactionListForm = new TransactionListForm(_transactionService, _localStorageService, transactionType)
             {
                 MdiParent = this,
-                Text = "Transaction Management",
+                Text = transactionType != null ? $"{transactionType} Transactions" : "Transaction Management",
                 WindowState = FormWindowState.Maximized
             };
 
@@ -1398,11 +1398,11 @@ MASTERS SECTION:
 • F6 - Accounts
 
 TRANSACTIONS SECTION:
-• F7 - Sale
-• F8 - Purchase
-• F9 - Receipt
-• F10 - Payment
-• F11 - Journal
+• F7 - Sales (Invoices, Orders, Quotes)
+• F8 - Purchases (Bills, Orders, Quotes)
+• F9 - Receipts (Customer Payments)
+• F10 - Payments (Supplier Payments)
+• F11 - Journal Entries (Manual Entries)
 
 REPORTS SECTION:
 • Ctrl+F1 - Stock Report
@@ -1989,31 +1989,31 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         private void saleButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenTransactionListForm();
+            OpenTransactionListForm("Sale");
         }
 
         private void purchaseButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenTransactionListForm();
+            OpenTransactionListForm("Purchase");
         }
 
         private void receiptButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenTransactionListForm();
+            OpenTransactionListForm("Receipt");
         }
 
         private void paymentButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenTransactionListForm();
+            OpenTransactionListForm("Payment");
         }
 
         private void journalButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) HighlightButton(btn);
-            OpenTransactionListForm();
+            OpenTransactionListForm("Journal");
         }
 
         // Reports Section Button Handlers

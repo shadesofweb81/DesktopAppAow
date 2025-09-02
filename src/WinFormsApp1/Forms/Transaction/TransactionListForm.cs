@@ -28,12 +28,21 @@ namespace WinFormsApp1.Forms.Transaction
         // Company and Financial Year info
         private Models.Company? _selectedCompany;
         private FinancialYearModel? _selectedFinancialYear;
+        
+        // Transaction type filter
+        private string? _transactionType;
+        public string? TransactionType 
+        { 
+            get => _transactionType; 
+            set => _transactionType = value; 
+        }
 
         public TransactionListForm(TransactionService transactionService, LocalStorageService localStorageService,
-            ProductService? productService = null, TaxService? taxService = null, LedgerService? ledgerService = null)
+            string? transactionType = null, ProductService? productService = null, TaxService? taxService = null, LedgerService? ledgerService = null)
         {
             _transactionService = transactionService;
             _localStorageService = localStorageService;
+            TransactionType = transactionType;
             
             // Create services if not provided
             var authService = new AuthService();
@@ -75,7 +84,7 @@ namespace WinFormsApp1.Forms.Transaction
             lblInstructions.Location = new Point(12, 40);
             lblInstructions.Name = "lblInstructions";
             lblInstructions.Size = new Size(600, 40);
-            lblInstructions.Text = "Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | Uses selected company from local storage";
+            lblInstructions.Text = GetInstructionsText();
             lblInstructions.ForeColor = Color.Blue;
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
             
@@ -187,7 +196,7 @@ namespace WinFormsApp1.Forms.Transaction
             CancelButton = null; // Ensure no default cancel button interferes
             Name = "TransactionListForm";
             StartPosition = FormStartPosition.CenterParent;
-            Text = _selectedCompany != null ? $"Transactions - {_selectedCompany.DisplayName}" : "Transactions - No Company Selected";
+            Text = GetFormTitle();
             WindowState = FormWindowState.Maximized;
             KeyDown += new KeyEventHandler(TransactionListForm_KeyDown);
             Load += new EventHandler(TransactionListForm_Load);
@@ -348,8 +357,8 @@ namespace WinFormsApp1.Forms.Transaction
                 }
                 
                 // Update UI with company info
-                lblCompanyInfo.Text = $"Transactions for: {_selectedCompany.DisplayName}";
-                Text = $"Transactions - {_selectedCompany.DisplayName}";
+                lblCompanyInfo.Text = GetCompanyInfoText();
+                Text = GetFormTitle();
                 
                 // Load transactions
                 await LoadTransactions();
@@ -377,9 +386,9 @@ namespace WinFormsApp1.Forms.Transaction
 
                 var companyId = Guid.Parse(_selectedCompany.Id);
                 var financialYearId = _selectedFinancialYear.Id;
-                Console.WriteLine($"Loading transactions for company: {companyId}, financial year: {financialYearId}");
+                Console.WriteLine($"Loading transactions for company: {companyId}, financial year: {financialYearId}, type: {TransactionType ?? "All"}");
                 
-                _transactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50);
+                _transactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50, TransactionType);
                 Console.WriteLine($"Loaded {_transactions.Count} transactions");
 
                 dgvTransactions.DataSource = _transactions;
@@ -1018,6 +1027,28 @@ namespace WinFormsApp1.Forms.Transaction
                     MessageBox.Show($"Error deleting transaction: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private string GetFormTitle()
+        {
+            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            if (_selectedCompany != null)
+            {
+                return $"{typeText}Transactions - {_selectedCompany.DisplayName}";
+            }
+            return $"{typeText}Transactions - No Company Selected";
+        }
+
+        private string GetCompanyInfoText()
+        {
+            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            return $"{typeText}Transactions for: {_selectedCompany?.DisplayName ?? "No company selected"}";
+        }
+
+        private string GetInstructionsText()
+        {
+            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Uses selected company from local storage";
         }
     }
 }

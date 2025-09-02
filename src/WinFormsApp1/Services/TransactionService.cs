@@ -208,23 +208,24 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<List<TransactionListDto>> GetTransactionListAsync(Guid companyId, Guid financialYearId, int pageNumber = 1, int pageSize = 50)
+        public async Task<List<TransactionListDto>> GetTransactionListAsync(Guid companyId, Guid financialYearId, int pageNumber = 1, int pageSize = 50, string? type = null)
         {
             try
             {
                 SetAuthHeader();
 
                 var queryParams = new List<string>
-        {
-            $"financialYearId={financialYearId}",
-            $"pageNumber={pageNumber}",
-            $"pageSize={pageSize}"
-        };
+                {
+                    $"financialYearId={financialYearId}",
+                    $"pageNumber={pageNumber}",
+                    $"pageSize={pageSize}"
+                };
 
+                if (!string.IsNullOrEmpty(type))
+                    queryParams.Add($"type={Uri.EscapeDataString(type)}");
 
                 var queryString = string.Join("&", queryParams);
                 var url = $"{_baseUrl}/company/{companyId}?{queryString}";
-
 
                 Console.WriteLine($"Fetching transaction list for company {companyId} from: {url}");
 
