@@ -249,44 +249,7 @@ namespace WinFormsApp1.Services
                             return taxesArray;
                         }
 
-                        // If that doesn't work, try to parse as response wrapper
-                        Console.WriteLine("Direct array parsing failed, trying response wrapper...");
-                        var responseWrapper = JsonSerializer.Deserialize<dynamic>(responseContent);
-                        
-                        if (responseWrapper != null)
-                        {
-                            // Try to extract taxes from various possible properties
-                            if (responseWrapper.Taxes != null)
-                            {
-                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Taxes.ToString());
-                                if (taxes != null)
-                                {
-                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Taxes property");
-                                    return taxes;
-                                }
-                            }
-                            
-                            if (responseWrapper.Data != null)
-                            {
-                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Data.ToString());
-                                if (taxes != null)
-                                {
-                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Data property");
-                                    return taxes;
-                                }
-                            }
-                            
-                            if (responseWrapper.Items != null)
-                            {
-                                var taxes = JsonSerializer.Deserialize<List<TaxListDto>>(responseWrapper.Items.ToString());
-                                if (taxes != null)
-                                {
-                                    Console.WriteLine($"Successfully parsed {taxes.Count} taxes from Items property");
-                                    return taxes;
-                                }
-                            }
-                        }
-
+                     
                         Console.WriteLine("Could not parse tax list from any expected format");
                         return new List<TaxListDto>();
                     }

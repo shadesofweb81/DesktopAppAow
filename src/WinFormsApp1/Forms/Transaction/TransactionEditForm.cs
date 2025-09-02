@@ -1,10 +1,131 @@
+
+using AccountingERP.WebApi.Models.Requests;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
-using AccountingERP.WebApi.Models.Requests;
-using System.Linq;
 
 namespace WinFormsApp1.Forms.Transaction
 {
+    public class TaxSelectionResult
+    {
+        public TaxListDto Tax { get; set; } = null!;
+        public List<TaxComponentDto> SelectedComponents { get; set; } = new List<TaxComponentDto>();
+        public string ComponentsDisplay { get; set; } = string.Empty;
+    }
+
+    public class TransactionItemDisplay
+    {
+        public Guid Id { get; set; }
+        public Guid TransactionId { get; set; }
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal DiscountRate { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal LineTotal { get; set; }
+        public decimal CurrentQuantity { get; set; }
+        public int SerialNumber { get; set; }
+
+        public TransactionItemDisplay(TransactionItem item, string productName)
+        {
+            Id = item.Id;
+            TransactionId = item.TransactionId;
+            ProductId = item.ProductId;
+            ProductName = productName;
+            Description = item.Description;
+            Quantity = item.Quantity;
+            UnitPrice = item.UnitPrice;
+            TaxRate = item.TaxRate;
+            TaxAmount = item.TaxAmount;
+            DiscountRate = item.DiscountRate;
+            DiscountAmount = item.DiscountAmount;
+            LineTotal = item.LineTotal;
+            CurrentQuantity = item.CurrentQuantity;
+            SerialNumber = item.SerialNumber;
+        }
+
+        public TransactionItem ToTransactionItem()
+        {
+            return new TransactionItem
+            {
+                Id = Id,
+                TransactionId = TransactionId,
+                ProductId = ProductId,
+                Description = Description,
+                Quantity = Quantity,
+                UnitPrice = UnitPrice,
+                TaxRate = TaxRate,
+                TaxAmount = TaxAmount,
+                DiscountRate = DiscountRate,
+                DiscountAmount = DiscountAmount,
+                LineTotal = LineTotal,
+                CurrentQuantity = CurrentQuantity,
+                SerialNumber = SerialNumber
+            };
+        }
+    }
+
+    public class TransactionTaxDisplay
+    {
+        public Guid Id { get; set; }
+        public Guid TransactionId { get; set; }
+        public Guid TaxId { get; set; }
+        public string TaxName { get; set; } = string.Empty;
+        public string TaxComponents { get; set; } = string.Empty;
+        public string ComponentRates { get; set; } = string.Empty;
+        public decimal TotalComponentRate { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public string CalculationMethod { get; set; } = string.Empty;
+        public bool IsApplied { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public string? Description { get; set; }
+        public int SerialNumber { get; set; }
+        public List<TaxComponentDto> SelectedComponents { get; set; } = new List<TaxComponentDto>();
+
+        public TransactionTaxDisplay(TransactionTax tax, string taxName, string taxComponents, List<TaxComponentDto>? selectedComponents = null)
+        {
+            Id = tax.Id;
+            TransactionId = tax.TransactionId;
+            TaxId = tax.TaxId;
+            TaxName = taxName;
+            TaxComponents = taxComponents;
+            SelectedComponents = selectedComponents ?? new List<TaxComponentDto>();
+            TotalComponentRate = SelectedComponents.Sum(c => c.Rate);
+            ComponentRates = string.Join(", ", SelectedComponents.Select(c => $"{c.DisplayName}: {c.Rate:N2}%"));
+            TaxableAmount = tax.TaxableAmount;
+            TaxAmount = tax.TaxAmount;
+            CalculationMethod = tax.CalculationMethod;
+            IsApplied = tax.IsApplied;
+            AppliedDate = tax.AppliedDate;
+            ReferenceNumber = tax.ReferenceNumber;
+            Description = tax.Description;
+            SerialNumber = tax.SerialNumber;
+        }
+
+        public TransactionTax ToTransactionTax()
+        {
+            return new TransactionTax
+            {
+                Id = Id,
+                TransactionId = TransactionId,
+                TaxId = TaxId,
+                TaxableAmount = TaxableAmount,
+                TaxAmount = TaxAmount,
+                CalculationMethod = CalculationMethod,
+                IsApplied = IsApplied,
+                AppliedDate = AppliedDate,
+                ReferenceNumber = ReferenceNumber,
+                Description = Description,
+                SerialNumber = SerialNumber
+            };
+        }
+    }
+
     public partial class TransactionEditForm : BaseForm
     {
         private readonly TransactionService _transactionService;
@@ -69,86 +190,35 @@ namespace WinFormsApp1.Forms.Transaction
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
         private List<Models.LedgerModel> _availableLedgers = new List<Models.LedgerModel>();
 
-        // Wrapper classes for DataGridView display
-        private class TransactionItemDisplay
-        {
-            public Guid Id { get; set; }
-            public Guid TransactionId { get; set; }
-            public Guid ProductId { get; set; }
-            public string ProductName { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public decimal Quantity { get; set; }
-            public decimal UnitPrice { get; set; }
-            public decimal TaxRate { get; set; }
-            public decimal TaxAmount { get; set; }
-            public decimal DiscountRate { get; set; }
-            public decimal DiscountAmount { get; set; }
-            public decimal LineTotal { get; set; }
-            public decimal CurrentQuantity { get; set; }
-            public int SerialNumber { get; set; }
+            private class TransactionTaxDisplay
+    {
+        public Guid Id { get; set; }
+        public Guid TransactionId { get; set; }
+        public Guid TaxId { get; set; }
+        public string TaxName { get; set; } = string.Empty;
+        public string TaxComponents { get; set; } = string.Empty;
+        public string ComponentRates { get; set; } = string.Empty;
+        public decimal TotalComponentRate { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public string CalculationMethod { get; set; } = string.Empty;
+        public bool IsApplied { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public string? Description { get; set; }
+        public int SerialNumber { get; set; }
+        public List<Models.TaxComponentDto> SelectedComponents { get; set; } = new List<Models.TaxComponentDto>();
 
-            public TransactionItemDisplay(TransactionItem item, string productName)
-            {
-                Id = item.Id;
-                TransactionId = item.TransactionId;
-                ProductId = item.ProductId; // Convert string to Guid
-                ProductName = productName;
-                Description = item.Description;
-                Quantity = item.Quantity;
-                UnitPrice = item.UnitPrice;
-                TaxRate = item.TaxRate;
-                TaxAmount = item.TaxAmount;
-                DiscountRate = item.DiscountRate;
-                DiscountAmount = item.DiscountAmount;
-                LineTotal = item.LineTotal;
-                CurrentQuantity = item.CurrentQuantity;
-                SerialNumber = item.SerialNumber;
-            }
-
-            public TransactionItem ToTransactionItem()
-            {
-                return new TransactionItem
-                {
-                    Id = Id,
-                    TransactionId = TransactionId,
-                    ProductId = ProductId, // Convert Guid to string
-                    Description = Description,
-                    Quantity = Quantity,
-                    UnitPrice = UnitPrice,
-                    TaxRate = TaxRate,
-                    TaxAmount = TaxAmount,
-                    DiscountRate = DiscountRate,
-                    DiscountAmount = DiscountAmount,
-                    LineTotal = LineTotal,
-                    CurrentQuantity = CurrentQuantity,
-                    SerialNumber = SerialNumber
-                };
-            }
-        }
-
-        private class TransactionTaxDisplay
-        {
-            public Guid Id { get; set; }
-            public Guid TransactionId { get; set; }
-            public Guid TaxId { get; set; }
-            public string TaxName { get; set; } = string.Empty;
-            public string TaxComponents { get; set; } = string.Empty;
-            public decimal TaxableAmount { get; set; }
-            public decimal TaxAmount { get; set; }
-            public string CalculationMethod { get; set; } = string.Empty;
-            public bool IsApplied { get; set; }
-            public DateTime? AppliedDate { get; set; }
-            public string? ReferenceNumber { get; set; }
-            public string? Description { get; set; }
-            public int SerialNumber { get; set; }
-
-            public TransactionTaxDisplay(TransactionTax tax, string taxName, string taxComponents)
+            public TransactionTaxDisplay(TransactionTax tax, string taxName, string taxComponents, List<Models.TaxComponentDto>? selectedComponents = null)
             {
                 Id = tax.Id;
                 TransactionId = tax.TransactionId;
-                TaxId = tax.TaxId; // Convert string to Guid
+                TaxId = tax.TaxId;
                 TaxName = taxName;
                 TaxComponents = taxComponents;
+                SelectedComponents = selectedComponents ?? new List<Models.TaxComponentDto>();
+                TotalComponentRate = SelectedComponents.Sum(c => c.Rate);
+                ComponentRates = string.Join(", ", SelectedComponents.Select(c => $"{c.DisplayName}: {c.Rate:N2}%"));
                 TaxableAmount = tax.TaxableAmount;
                 TaxAmount = tax.TaxAmount;
                 CalculationMethod = tax.CalculationMethod;
@@ -198,7 +268,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             InitializeComponent();
             SetupForm();
-            LoadData();
+            _ = LoadData();
         }
 
         private Models.Transaction ConvertDtoToTransaction(Models.TransactionByIdDto dto)
@@ -327,8 +397,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             var yPosition = 10;
             var leftMargin = 20;
-            var rightMargin = 20;
-            var controlHeight = 25;
+
             var spaceBetweenRows = 30;
             var labelWidth = 120;
             var controlWidth = 200;
@@ -785,9 +854,27 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "TaxComponents",
-                HeaderText = "Tax Components",
+                HeaderText = "Components",
                 DataPropertyName = "TaxComponents",
-                Width = 200
+                Width = 150
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "ComponentRates",
+                HeaderText = "Component Rates",
+                DataPropertyName = "ComponentRates",
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+
+            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "TotalComponentRate",
+                HeaderText = "Total Rate %",
+                DataPropertyName = "TotalComponentRate",
+                Width = 80,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
@@ -844,8 +931,30 @@ namespace WinFormsApp1.Forms.Transaction
             txtRoundOff.TextChanged += CalculationField_Changed;
             chkFreightIncluded.CheckedChanged += CalculationField_Changed;
 
+            // Add event handler for transaction date validation
+            dtpTransactionDate.ValueChanged += DtpTransactionDate_ValueChanged;
+
             // Add event handler for taxes DataGridView
             dgvTaxes.CellValueChanged += DgvTaxes_CellValueChanged;
+        }
+
+        private void DtpTransactionDate_ValueChanged(object? sender, EventArgs e)
+        {
+            var transactionDate = dtpTransactionDate.Value.Date;
+            var financialYearStart = _selectedFinancialYear.StartDate.Date;
+            var financialYearEnd = _selectedFinancialYear.EndDate.Date;
+
+            if (transactionDate < financialYearStart || transactionDate > financialYearEnd)
+            {
+                MessageBox.Show(
+                    $"Warning: Selected date {transactionDate:dd-MMM-yyyy} is outside the current financial year.\n\n" +
+                    $"Financial Year: {_selectedFinancialYear.YearLabel}\n" +
+                    $"Valid Date Range: {financialYearStart:dd-MMM-yyyy} to {financialYearEnd:dd-MMM-yyyy}",
+                    "Date Out of Range",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+            }
         }
 
         private void DgvTaxes_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
@@ -986,7 +1095,7 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        private async void LoadData()
+        private async Task LoadData()
         {
             Console.WriteLine("LoadData called - starting to load data...");
             
@@ -1021,72 +1130,61 @@ namespace WinFormsApp1.Forms.Transaction
 
         private async Task LoadExistingTransactionData()
         {
-            if (_transaction == null) return;
+            if (_transaction == null || _transactionDto == null) return;
 
             try
             {
-                // Load full transaction details using the new DTO
-                _transactionDto = await _transactionService.GetTransactionByIdAsync(_transaction.Id);
+                // Use the existing DTO that was passed to the constructor
+                if (Enum.TryParse<TransactionType>(_transactionDto.TransactionType, out var transactionType))
+                {
+                    cmbTransactionType.SelectedItem = transactionType;
+                }
                 
-                if (_transactionDto != null)
+                txtTransactionNumber.Text = _transactionDto.TransactionNumber;
+                txtInvoiceNumber.Text = _transactionDto.InvoiceNumber ?? "";
+                dtpTransactionDate.Value = _transactionDto.TransactionDate;
+                dtpDueDate.Value = _transactionDto.DueDate;
+                cmbStatus.SelectedItem = _transactionDto.Status;
+                txtReferenceNumber.Text = _transactionDto.ReferenceNumber ?? "";
+                txtNotes.Text = _transactionDto.Notes ?? "";
+
+                // Set ledger selections
+                if (!string.IsNullOrEmpty(_transactionDto.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var partyLedgerId))
                 {
-                    // Load form data from DTO
-                    if (Enum.TryParse<TransactionType>(_transactionDto.TransactionType, out var transactionType))
-                    {
-                        cmbTransactionType.SelectedItem = transactionType;
-                    }
-                    
-                    txtTransactionNumber.Text = _transactionDto.TransactionNumber;
-                    txtInvoiceNumber.Text = _transactionDto.InvoiceNumber ?? "";
-                    dtpTransactionDate.Value = _transactionDto.TransactionDate;
-                    dtpDueDate.Value = _transactionDto.DueDate;
-                    cmbStatus.SelectedItem = _transactionDto.Status;
-                    txtReferenceNumber.Text = _transactionDto.ReferenceNumber ?? "";
-                    txtNotes.Text = _transactionDto.Notes ?? "";
-
-                    // Set ledger selections
-                    if (!string.IsNullOrEmpty(_transactionDto.PartyLedgerId) && Guid.TryParse(_transactionDto.PartyLedgerId, out var partyLedgerId))
-                    {
-                        cmbPartyLedger.SelectedValue = partyLedgerId;
-                        // Auto-select account ledger based on party ledger type
-                        AutoSelectAccountLedger();
-                    }
-                    
-                    if (!string.IsNullOrEmpty(_transactionDto.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var accountLedgerId))
-                    {
-                        cmbAccountLedger.SelectedValue = accountLedgerId;
-                    }
-
-                                         // Convert items to display format using DTO and sort by serial number
-                     var itemDisplays = _transactionDto.Items
-                         .Select(item => CreateTransactionItemDisplay(item))
-                         .OrderBy(item => item.SerialNumber)
-                         .ToList();
-
-                     // Convert taxes to display format using DTO and sort by serial number
-                     Console.WriteLine($"Processing {_transactionDto.Taxes.Count()} taxes from DTO");
-                     var taxDisplays = _transactionDto.Taxes
-                         .Select(tax => CreateTransactionTaxDisplay(tax))
-                         .OrderBy(tax => tax.SerialNumber)
-                         .ToList();
-                     Console.WriteLine($"Created {taxDisplays.Count} tax displays");
-
-                     dgvItems.DataSource = itemDisplays;
-                     dgvTaxes.DataSource = taxDisplays;
-
-                    txtDiscountPercent.Text = _transactionDto.Discount.ToString("N2");
-                    txtDiscountAmount.Text = "0.00"; // Calculated field
-                    txtFreight.Text = _transactionDto.Freight.ToString("N2");
-                    chkFreightIncluded.Checked = _transactionDto.IsFreightIncluded;
-                    txtRoundOff.Text = _transactionDto.RoundOff.ToString("N2");
-
-                    CalculateTotals();
+                    cmbPartyLedger.SelectedValue = partyLedgerId;
+                    // Auto-select account ledger based on party ledger type
+                    AutoSelectAccountLedger();
                 }
-                else
+                
+                if (!string.IsNullOrEmpty(_transactionDto.AccountLedgerId) && Guid.TryParse(_transactionDto.AccountLedgerId, out var accountLedgerId))
                 {
-                    // Fallback to original transaction data if DTO load fails
-                    LoadFallbackTransactionData();
+                    cmbAccountLedger.SelectedValue = accountLedgerId;
                 }
+
+                // Convert items to display format using DTO and sort by serial number
+                var itemDisplays = _transactionDto.Items
+                    .Select(item => CreateTransactionItemDisplay(item))
+                    .OrderBy(item => item.SerialNumber)
+                    .ToList();
+
+                // Convert taxes to display format using DTO and sort by serial number
+                Console.WriteLine($"Processing {_transactionDto.Taxes.Count()} taxes from DTO");
+                var taxDisplays = _transactionDto.Taxes
+                    .Select(tax => CreateTransactionTaxDisplay(tax))
+                    .OrderBy(tax => tax.SerialNumber)
+                    .ToList();
+                Console.WriteLine($"Created {taxDisplays.Count} tax displays");
+
+                dgvItems.DataSource = itemDisplays;
+                dgvTaxes.DataSource = taxDisplays;
+
+                txtDiscountPercent.Text = _transactionDto.Discount.ToString("N2");
+                txtDiscountAmount.Text = "0.00"; // Calculated field
+                txtFreight.Text = _transactionDto.Freight.ToString("N2");
+                chkFreightIncluded.Checked = _transactionDto.IsFreightIncluded;
+                txtRoundOff.Text = _transactionDto.RoundOff.ToString("N2");
+
+                CalculateTotals();
             }
             catch (Exception ex)
             {
@@ -1125,12 +1223,13 @@ namespace WinFormsApp1.Forms.Transaction
              var taxDisplays = _transaction.Taxes
                  .Select(tax => 
                  {
-                     var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
-                     var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
-                     var taxComponents = taxInfo?.Components != null && taxInfo.Components.Any() 
-                         ? string.Join(", ", taxInfo.Components.Select(c => c.DisplayName))
-                         : "No Components";
-                     return new TransactionTaxDisplay(tax, taxName, taxComponents);
+                                         var taxInfo = _availableTaxes.FirstOrDefault(t => t.Id == tax.TaxId.ToString());
+                    var taxName = taxInfo?.DisplayName ?? "Unknown Tax";
+                    var selectedComponents = taxInfo?.Components?.ToList() ?? new List<Models.TaxComponentDto>();
+                    var taxComponents = selectedComponents.Any() 
+                        ? string.Join(", ", selectedComponents.Select(c => c.DisplayName))
+                        : "No Components";
+                    return new TransactionTaxDisplay(tax, taxName, taxComponents, selectedComponents);
                  })
                  .OrderBy(tax => tax.SerialNumber)
                  .ToList();
@@ -1174,45 +1273,64 @@ namespace WinFormsApp1.Forms.Transaction
 
                  private TransactionTaxDisplay CreateTransactionTaxDisplay(TransactionTaxDto taxDto)
          {
-             // Try to get tax information from available taxes list first
-             string taxName = "Unknown Tax";
-             string taxComponents = "No Components";
+             // Get tax name from DTO first, fallback to available tax info
+             string taxName = taxDto.TaxName ?? "Unknown Tax";
              
              Console.WriteLine($"Processing tax DTO - TaxId: {taxDto.TaxId}, TaxName: {taxDto.TaxName}");
-             Console.WriteLine($"Available taxes count: {_availableTaxes.Count}");
+             Console.WriteLine($"Components in DTO: {taxDto.Components?.Count ?? 0}");
              
-             if (Guid.TryParse(taxDto.TaxId, out var taxId))
+             // Create selected components from DTO data with actual rates and amounts
+             var selectedComponents = new List<Models.TaxComponentDto>();
+             string taxComponents = "No Components";
+             string componentRates = "";
+             
+             if (taxDto.Components != null && taxDto.Components.Any())
+             {
+                 // Build components from DTO data (actual transaction data)
+                 var componentDisplays = new List<string>();
+                 var componentRateDisplays = new List<string>();
+                 
+                 foreach (var dtoComponent in taxDto.Components)
+                 {
+                     // Calculate rate from amount and taxable amount
+                     var calculatedRate = taxDto.TaxableAmount > 0 ? (dtoComponent.Amount / taxDto.TaxableAmount) * 100 : 0;
+                     
+                     // Create TaxComponentDto for display
+                     var componentDto = new Models.TaxComponentDto
+                     {
+                         Id = dtoComponent.TaxComponentId,
+                         Name = dtoComponent.ComponentName ?? "Unknown Component",
+                         Rate = calculatedRate,
+                         Description = dtoComponent.Description ?? "",
+                         IsActive = true
+                     };
+                     
+                     selectedComponents.Add(componentDto);
+                     componentDisplays.Add(dtoComponent.ComponentName ?? "Unknown Component");
+                     componentRateDisplays.Add($"{dtoComponent.ComponentName}: {calculatedRate:N2}%");
+                     
+                     Console.WriteLine($"  Component: {dtoComponent.ComponentName}, Amount: {dtoComponent.Amount}, Rate: {calculatedRate:N2}%");
+                 }
+                 
+                 taxComponents = string.Join(", ", componentDisplays);
+                 componentRates = string.Join(", ", componentRateDisplays);
+             }
+             
+             // If no components in DTO, try to get from available tax info
+             if (!selectedComponents.Any() && Guid.TryParse(taxDto.TaxId, out var taxId))
              {
                  var availableTax = _availableTaxes.FirstOrDefault(t => t.Id == taxId.ToString());
-                 Console.WriteLine($"Looking for tax with ID: {taxId}, Found: {availableTax != null}");
-                 
                  if (availableTax != null)
                  {
-                     taxName = availableTax.DisplayName;
-                     Console.WriteLine($"Using available tax name: {taxName}");
+                     taxName = availableTax.DisplayName; // Use available tax name if found
                      
                      if (availableTax.Components != null && availableTax.Components.Any())
                      {
-                         taxComponents = string.Join(", ", availableTax.Components.Select(c => c.DisplayName));
-                         Console.WriteLine($"Using available tax components: {taxComponents}");
+                             selectedComponents = availableTax.Components.ToList();
+                         taxComponents = string.Join(", ", availableTax.Components.Select(c => c.Name));
+                         componentRates = string.Join(", ", availableTax.Components.Select(c => $"{c.Name}: {c.Rate:N2}%"));
                      }
                  }
-                 else
-                 {
-                     // Fallback to DTO data if not found in available taxes
-                     taxName = taxDto.TaxName ?? "Unknown Tax";
-                     Console.WriteLine($"Using DTO tax name: {taxName}");
-                     
-                     if (taxDto.Components != null && taxDto.Components.Any())
-                     {
-                         taxComponents = string.Join(", ", taxDto.Components.Select(c => c.ComponentName));
-                         Console.WriteLine($"Using DTO tax components: {taxComponents}");
-                     }
-                 }
-             }
-             else
-             {
-                 Console.WriteLine($"Failed to parse TaxId: {taxDto.TaxId}");
              }
              
              // Convert DTO to TransactionTax for the display wrapper
@@ -1231,8 +1349,9 @@ namespace WinFormsApp1.Forms.Transaction
                  SerialNumber = taxDto.SerialNumber
              };
 
-             Console.WriteLine($"Created TransactionTaxDisplay - TaxName: {taxName}, Components: {taxComponents}");
-             return new TransactionTaxDisplay(transactionTax, taxName, taxComponents);
+             Console.WriteLine($"Created TransactionTaxDisplay - TaxName: {taxName}, Components: {taxComponents}, ComponentRates: {componentRates}");
+             
+             return new TransactionTaxDisplay(transactionTax, taxName, taxComponents, selectedComponents);
          }
 
         private async Task LoadProductTaxAndLedgerLists()
@@ -1522,15 +1641,33 @@ Tips:
 
                 var discountedSubtotal = subtotal - discountAmount;
 
-                // Calculate tax
-                var taxAmount = taxesSource.Sum(tax => tax.TaxAmount);
-                txtTaxAmount.Text = taxAmount.ToString("N2");
+                // Calculate tax amount from all taxes
+                var totalTaxAmount = 0m;
+                foreach (var tax in taxesSource)
+                {
+                    // For loaded transactions, use the stored tax amount
+                    // For new calculations, recalculate based on components
+                    if (tax.TaxAmount > 0)
+                    {
+                        totalTaxAmount += tax.TaxAmount;
+                    }
+                    else if (tax.SelectedComponents.Any())
+                    {
+                        // Recalculate based on components
+                        var componentBasedAmount = tax.TaxableAmount * (tax.TotalComponentRate / 100);
+                        totalTaxAmount += componentBasedAmount;
+                        
+                        // Update the tax amount in the display object
+                        tax.TaxAmount = componentBasedAmount;
+                    }
+                }
+                txtTaxAmount.Text = totalTaxAmount.ToString("N2");
 
                 // Add freight if not included
                 decimal freight = 0;
                 decimal.TryParse(txtFreight.Text, out freight);
 
-                var beforeRounding = discountedSubtotal + taxAmount;
+                var beforeRounding = discountedSubtotal + totalTaxAmount;
                 if (!chkFreightIncluded.Checked)
                 {
                     beforeRounding += freight;
@@ -1838,7 +1975,18 @@ Tips:
                     ReferenceNumber = t.ReferenceNumber,
                     Description = t.Description,
                     SerialNumber = t.SerialNumber,
-                    Components = new List<TransactionTaxComponentDto>()
+                    Components = t.SelectedComponents.Select(c => new TransactionTaxComponentDto
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        TaxComponentId = c.Id,
+                        ComponentName = c.DisplayName,
+
+                        Amount = t.TaxableAmount * (c.Rate / 100),
+                        Description = c.Description,
+                        IsApplied = true,
+                        AppliedDate = DateTime.Now,
+                        ReferenceNumber = null
+                    }).ToList()
                 })
                 .ToList();
 
@@ -1980,21 +2128,21 @@ Tips:
 
                     if (dtoTaxesById.TryGetValue(t.Id, out var dtoTax) && dtoTax.Components != null && dtoTax.Components.Any())
                     {
-                        req.Components = dtoTax.Components
-                            .Select(c => new UpdateTransactionTaxComponentRequest
-                            {
-                                Id = Guid.TryParse(c.Id, out var cid) ? (Guid?)cid : null,
-                                TaxComponentId = Guid.TryParse(c.TaxComponentId, out var tcid) ? tcid : Guid.Empty,
-                                Name = c.ComponentName ?? string.Empty,
-                                Amount = c.Amount,
-                                Description = c.Description,
-                                IsApplied = c.IsApplied,
-                                AppliedDate = c.AppliedDate,
-                                ReferenceNumber = c.ReferenceNumber,
-                                PayableLedgerId = null,
-                                IsDeleted = false
-                            })
-                            .ToList();
+                        // Use selected components from the tax display
+                    var selectedComponents = t.SelectedComponents;
+                    req.Components = selectedComponents.Select(c => new UpdateTransactionTaxComponentRequest
+                    {
+                        Id = null, // New component
+                        TaxComponentId = Guid.TryParse(c.Id, out var tcid) ? tcid : Guid.Empty,
+                        Name = c.DisplayName,
+                        Amount = t.TaxableAmount * (c.Rate / 100),
+                        Description = c.Description,
+                        IsApplied = true,
+                        AppliedDate = DateTime.Now,
+                        ReferenceNumber = null,
+                        PayableLedgerId = null,
+                        IsDeleted = false
+                    }).ToList();
                     }
 
                     return req;
@@ -2038,6 +2186,24 @@ Tips:
             {
                 MessageBox.Show("Please enter a transaction number.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtTransactionNumber.Focus();
+                return false;
+            }
+
+            // Validate transaction date is within financial year range
+            var transactionDate = dtpTransactionDate.Value.Date;
+            var financialYearStart = _selectedFinancialYear.StartDate.Date;
+            var financialYearEnd = _selectedFinancialYear.EndDate.Date;
+
+            if (transactionDate < financialYearStart || transactionDate > financialYearEnd)
+            {
+                MessageBox.Show(
+                    $"Transaction date must be between {financialYearStart:dd-MMM-yyyy} and {financialYearEnd:dd-MMM-yyyy}.\n\n" +
+                    $"Selected Financial Year: {_selectedFinancialYear.YearLabel}",
+                    "Invalid Transaction Date",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                dtpTransactionDate.Focus();
                 return false;
             }
 
@@ -2232,13 +2398,13 @@ Tips:
             decimal.TryParse(txtSubTotal.Text, out var subtotal);
             var taxableAmount = subtotal; // Default to subtotal, can be modified based on calculation method
             
-            // Calculate tax amount based on selected components (not default rate)
-            var totalComponentRate = taxResult.SelectedComponents.Any() 
-                ? taxResult.SelectedComponents.Sum(c => c.Rate)
-                : taxResult.Tax.DefaultRate;
+            // Calculate tax amount based on selected components
+            var totalComponentRate = taxResult.SelectedComponents.Sum(c => c.Rate);
+            var componentRates = string.Join(", ", taxResult.SelectedComponents.Select(c => $"{c.DisplayName}: {c.Rate:N2}%"));
             
             Console.WriteLine($"Taxable amount: {taxableAmount}");
             Console.WriteLine($"Selected components: {taxResult.ComponentsDisplay}");
+            Console.WriteLine($"Component rates: {componentRates}");
             Console.WriteLine($"Total component rate: {totalComponentRate}%");
             
             var taxAmount = taxableAmount * (totalComponentRate / 100);
@@ -2257,7 +2423,7 @@ Tips:
                 ReferenceNumber = null,
                 Description = taxResult.Tax.Description,
                 SerialNumber = newSerialNumber
-            }, taxResult.Tax.DisplayName, taxResult.ComponentsDisplay);
+            }, taxResult.Tax.DisplayName, taxResult.ComponentsDisplay, taxResult.SelectedComponents);
 
             taxes.Add(newTax);
             Console.WriteLine($"Added tax to list. New count: {taxes.Count}");
@@ -2436,532 +2602,4 @@ Tips:
 
         #endregion
     }
-
-    #region Item Selection Dialog
-
-    public partial class ItemSelectionDialog : Form
-    {
-        private TextBox txtSearch = null!;
-        private DataGridView dgvProducts = null!;
-        private Button btnOK = null!;
-        private Button btnCancel = null!;
-        private List<ProductListDto> _allProducts;
-        private List<ProductListDto> _filteredProducts;
-
-        public List<ProductListDto> SelectedProducts { get; private set; } = new List<ProductListDto>();
-
-        public ItemSelectionDialog(List<ProductListDto> products)
-        {
-            _allProducts = products;
-            _filteredProducts = new List<ProductListDto>(products);
-            InitializeDialog();
-        }
-
-        private void InitializeDialog()
-        {
-            Text = "Select Products";
-            Size = new Size(800, 600);
-            StartPosition = FormStartPosition.CenterParent;
-            KeyPreview = true;
-            
-            txtSearch = new TextBox();
-            dgvProducts = new DataGridView();
-            btnOK = new Button();
-            btnCancel = new Button();
-
-            SuspendLayout();
-
-            // Search textbox
-            txtSearch.Location = new Point(20, 20);
-            txtSearch.Size = new Size(740, 25);
-            txtSearch.PlaceholderText = "Type to search products...";
-            txtSearch.TextChanged += TxtSearch_TextChanged;
-
-            // Products grid
-            dgvProducts.Location = new Point(20, 55);
-            dgvProducts.Size = new Size(740, 480);
-            dgvProducts.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvProducts.MultiSelect = true;
-            dgvProducts.AllowUserToAddRows = false;
-            dgvProducts.AllowUserToDeleteRows = false;
-            dgvProducts.ReadOnly = true;
-            dgvProducts.RowHeadersVisible = false;
-            dgvProducts.AutoGenerateColumns = false;
-            
-            SetupProductGrid();
-
-            // Buttons
-            btnOK.Location = new Point(600, 545);
-            btnOK.Size = new Size(75, 30);
-            btnOK.Text = "&OK";
-            btnOK.UseVisualStyleBackColor = true;
-            btnOK.Click += BtnOK_Click;
-
-            btnCancel.Location = new Point(685, 545);
-            btnCancel.Size = new Size(75, 30);
-            btnCancel.Text = "&Cancel";
-            btnCancel.UseVisualStyleBackColor = true;
-            btnCancel.Click += BtnCancel_Click;
-
-            Controls.AddRange(new Control[] { txtSearch, dgvProducts, btnOK, btnCancel });
-
-            LoadProducts();
-            txtSearch.Focus();
-
-            ResumeLayout(false);
-            PerformLayout();
-
-            // Event handlers
-            KeyDown += ItemSelectionDialog_KeyDown;
-            dgvProducts.KeyDown += DgvProducts_KeyDown;
-            dgvProducts.DoubleClick += DgvProducts_DoubleClick;
-        }
-
-        private void SetupProductGrid()
-        {
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "ProductCode",
-                HeaderText = "Code",
-                DataPropertyName = "ProductCode",
-                Width = 100
-            });
-
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Name",
-                HeaderText = "Product Name",
-                DataPropertyName = "Name",
-                Width = 300
-            });
-
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Category",
-                HeaderText = "Category",
-                DataPropertyName = "Category",
-                Width = 120
-            });
-
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Unit",
-                HeaderText = "Unit",
-                DataPropertyName = "Unit",
-                Width = 80
-            });
-
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "SellingPrice",
-                HeaderText = "Price",
-                DataPropertyName = "SellingPrice",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvProducts.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "StockQuantity",
-                HeaderText = "Stock",
-                DataPropertyName = "StockQuantity",
-                Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-        }
-
-        private void LoadProducts()
-        {
-            dgvProducts.DataSource = _filteredProducts;
-        }
-
-        private void TxtSearch_TextChanged(object? sender, EventArgs e)
-        {
-            var searchText = txtSearch.Text.ToLower();
-            if (string.IsNullOrWhiteSpace(searchText))
-            {
-                _filteredProducts = new List<ProductListDto>(_allProducts);
-            }
-            else
-            {
-                _filteredProducts = _allProducts.Where(p => 
-                    p.ProductCode.ToLower().Contains(searchText) ||
-                    p.Name.ToLower().Contains(searchText) ||
-                    p.Category.ToLower().Contains(searchText)
-                ).ToList();
-            }
-            
-            LoadProducts();
-        }
-
-        private void ItemSelectionDialog_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnOK_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Escape)
-            {
-                BtnCancel_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
-
-        private void DgvProducts_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnOK_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
-
-        private void DgvProducts_DoubleClick(object? sender, EventArgs e)
-        {
-            BtnOK_Click(null, EventArgs.Empty);
-        }
-
-        private void BtnOK_Click(object? sender, EventArgs e)
-        {
-            if (dgvProducts.SelectedRows.Count > 0)
-            {
-                SelectedProducts = dgvProducts.SelectedRows.Cast<DataGridViewRow>()
-                    .Select(row => row.DataBoundItem as ProductListDto)
-                    .Where(product => product != null)
-                    .ToList()!;
-                
-                DialogResult = DialogResult.OK;
-                Close();
-            }
-            else
-            {
-                MessageBox.Show("Please select at least one product.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private void BtnCancel_Click(object? sender, EventArgs e)
-        {
-            DialogResult = DialogResult.Cancel;
-            Close();
-        }
-    }
-
-    #endregion
-
-    #region Tax Selection Dialog
-
-    public class TaxSelectionResult
-    {
-        public Models.TaxListDto Tax { get; set; } = null!;
-        public List<Models.TaxComponentDto> SelectedComponents { get; set; } = new List<Models.TaxComponentDto>();
-        public string ComponentsDisplay { get; set; } = string.Empty;
-    }
-
-    public partial class TaxSelectionDialog : Form
-    {
-        private TextBox txtSearch = null!;
-        private DataGridView dgvTaxes = null!;
-        private DataGridView dgvComponents = null!;
-        private Button btnOK = null!;
-        private Button btnCancel = null!;
-        private Label lblComponents = null!;
-        private List<Models.TaxListDto> _allTaxes;
-        private List<Models.TaxListDto> _filteredTaxes;
-        private Models.TaxListDto? _selectedTax;
-
-        public List<TaxSelectionResult> SelectedTaxes { get; private set; } = new List<TaxSelectionResult>();
-
-        public TaxSelectionDialog(List<Models.TaxListDto> taxes)
-        {
-            _allTaxes = taxes;
-            _filteredTaxes = new List<Models.TaxListDto>(taxes);
-            InitializeDialog();
-        }
-
-        private void InitializeDialog()
-        {
-            Text = "Select Taxes and Components";
-            Size = new Size(1000, 700);
-            StartPosition = FormStartPosition.CenterParent;
-            KeyPreview = true;
-            
-            txtSearch = new TextBox();
-            dgvTaxes = new DataGridView();
-            dgvComponents = new DataGridView();
-            btnOK = new Button();
-            btnCancel = new Button();
-            lblComponents = new Label();
-
-            SuspendLayout();
-
-            // Search textbox
-            txtSearch.Location = new Point(20, 20);
-            txtSearch.Size = new Size(940, 25);
-            txtSearch.PlaceholderText = "Type to search taxes...";
-            txtSearch.TextChanged += TxtSearch_TextChanged;
-
-            // Taxes grid (left side)
-            dgvTaxes.Location = new Point(20, 55);
-            dgvTaxes.Size = new Size(460, 480);
-            dgvTaxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvTaxes.MultiSelect = false;
-            dgvTaxes.AllowUserToAddRows = false;
-            dgvTaxes.AllowUserToDeleteRows = false;
-            dgvTaxes.ReadOnly = true;
-            dgvTaxes.RowHeadersVisible = false;
-            dgvTaxes.AutoGenerateColumns = false;
-            dgvTaxes.SelectionChanged += DgvTaxes_SelectionChanged;
-            
-            SetupTaxGrid();
-
-            // Components label
-            lblComponents.Location = new Point(500, 55);
-            lblComponents.Size = new Size(460, 25);
-            lblComponents.Text = "Select Tax Components (for the selected tax):";
-            lblComponents.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-
-            // Components grid (right side)
-            dgvComponents.Location = new Point(500, 85);
-            dgvComponents.Size = new Size(460, 450);
-            dgvComponents.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvComponents.MultiSelect = true;
-            dgvComponents.AllowUserToAddRows = false;
-            dgvComponents.AllowUserToDeleteRows = false;
-            dgvComponents.ReadOnly = true;
-            dgvComponents.RowHeadersVisible = false;
-            dgvComponents.AutoGenerateColumns = false;
-            
-            SetupComponentGrid();
-
-            // Buttons
-            btnOK.Location = new Point(800, 545);
-            btnOK.Size = new Size(75, 30);
-            btnOK.Text = "&OK";
-            btnOK.UseVisualStyleBackColor = true;
-            btnOK.Click += BtnOK_Click;
-
-            btnCancel.Location = new Point(885, 545);
-            btnCancel.Size = new Size(75, 30);
-            btnCancel.Text = "&Cancel";
-            btnCancel.UseVisualStyleBackColor = true;
-            btnCancel.Click += BtnCancel_Click;
-
-            Controls.AddRange(new Control[] { txtSearch, dgvTaxes, lblComponents, dgvComponents, btnOK, btnCancel });
-
-            LoadTaxes();
-            txtSearch.Focus();
-
-            ResumeLayout(false);
-            PerformLayout();
-
-            // Event handlers
-            KeyDown += TaxSelectionDialog_KeyDown;
-            dgvTaxes.KeyDown += DgvTaxes_KeyDown;
-            dgvTaxes.DoubleClick += DgvTaxes_DoubleClick;
-        }
-
-        private void SetupTaxGrid()
-        {
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Name",
-                HeaderText = "Tax Name",
-                DataPropertyName = "Name",
-                Width = 200
-            });
-
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Category",
-                HeaderText = "Category",
-                DataPropertyName = "Category",
-                Width = 120
-            });
-
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "DefaultRate",
-                HeaderText = "Rate (%)",
-                DataPropertyName = "DefaultRate",
-                Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "HSNCode",
-                HeaderText = "HSN Code",
-                DataPropertyName = "HSNCode",
-                Width = 100
-            });
-        }
-
-        private void SetupComponentGrid()
-        {
-            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Name",
-                HeaderText = "Component Name",
-                DataPropertyName = "Name",
-                Width = 200
-            });
-
-            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Rate",
-                HeaderText = "Rate (%)",
-                DataPropertyName = "Rate",
-                Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvComponents.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Description",
-                HeaderText = "Description",
-                DataPropertyName = "Description",
-                Width = 160
-            });
-        }
-
-        private void LoadTaxes()
-        {
-            dgvTaxes.DataSource = _filteredTaxes;
-            if (_filteredTaxes.Any())
-            {
-                dgvTaxes.Rows[0].Selected = true;
-                LoadComponentsForSelectedTax();
-            }
-        }
-
-        private void TxtSearch_TextChanged(object? sender, EventArgs e)
-        {
-            var searchText = txtSearch.Text;
-            if (string.IsNullOrWhiteSpace(searchText))
-            {
-                _filteredTaxes = new List<Models.TaxListDto>(_allTaxes);
-            }
-            else
-            {
-                _filteredTaxes = _allTaxes.Where(t => 
-                    t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    t.Category.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    (t.HSNCode?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-                ).ToList();
-            }
-            
-            LoadTaxes();
-        }
-
-        private void DgvTaxes_SelectionChanged(object? sender, EventArgs e)
-        {
-            LoadComponentsForSelectedTax();
-        }
-
-        private void LoadComponentsForSelectedTax()
-        {
-            if (dgvTaxes.SelectedRows.Count > 0)
-            {
-                _selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as Models.TaxListDto;
-                if (_selectedTax?.Components != null && _selectedTax.Components.Any())
-                {
-                    dgvComponents.DataSource = _selectedTax.Components.ToList();
-                    lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' (Click to select):";
-                    
-                    // Do NOT select all components by default - user must manually select
-                    dgvComponents.ClearSelection();
-                }
-                else
-                {
-                    dgvComponents.DataSource = new List<Models.TaxComponentDto>();
-                    lblComponents.Text = $"No components available for '{_selectedTax?.Name ?? "selected tax"}':";
-                }
-            }
-            else
-            {
-                dgvComponents.DataSource = new List<Models.TaxComponentDto>();
-                lblComponents.Text = "Select Tax Components:";
-            }
-        }
-
-        private void TaxSelectionDialog_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnOK_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Escape)
-            {
-                BtnCancel_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
-
-        private void DgvTaxes_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnOK_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
-
-        private void DgvTaxes_DoubleClick(object? sender, EventArgs e)
-        {
-            BtnOK_Click(null, EventArgs.Empty);
-        }
-
-        private void BtnOK_Click(object? sender, EventArgs e)
-        {
-            if (dgvTaxes.SelectedRows.Count > 0)
-            {
-                var selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as Models.TaxListDto;
-                if (selectedTax != null)
-                {
-                    var selectedComponents = dgvComponents.SelectedRows.Cast<DataGridViewRow>()
-                        .Select(row => row.DataBoundItem as Models.TaxComponentDto)
-                        .Where(component => component != null)
-                        .Cast<Models.TaxComponentDto>()
-                        .ToList();
-
-                    // Validate that at least one component is selected if components are available
-                    if (selectedTax.Components?.Any() == true && !selectedComponents.Any())
-                    {
-                        MessageBox.Show("Please select at least one tax component for the selected tax.", "No Component Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    var componentsDisplay = selectedComponents.Any() 
-                        ? string.Join(", ", selectedComponents.Select(c => c.DisplayName))
-                        : "No Components";
-
-                    var taxResult = new TaxSelectionResult
-                    {
-                        Tax = selectedTax,
-                        SelectedComponents = selectedComponents,
-                        ComponentsDisplay = componentsDisplay
-                    };
-
-                    SelectedTaxes.Add(taxResult);
-                    
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
-            }
-            else
-            {
-                MessageBox.Show("Please select a tax.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private void BtnCancel_Click(object? sender, EventArgs e)
-        {
-            DialogResult = DialogResult.Cancel;
-            Close();
-        }
-    }
-
-    #endregion
 }
