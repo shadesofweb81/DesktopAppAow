@@ -190,6 +190,10 @@ namespace WinFormsApp1.Forms.Transaction
         private GroupBox taxGroupBox = null!;
         private GroupBox summaryGroupBox = null!;
 
+        // Context Menus
+        private ContextMenuStrip _itemsContextMenu = null!;
+        private ContextMenuStrip _taxesContextMenu = null!;
+
         private List<Models.ProductListDto> _availableProducts = new List<Models.ProductListDto>();
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
         private List<Models.LedgerModel> _availableLedgers = new List<Models.LedgerModel>();
@@ -814,6 +818,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             SetupItemsDataGridView();
             SetupTaxesDataGridView();
+            SetupContextMenus();
         }
 
         private void SetupItemsDataGridView()
@@ -830,6 +835,7 @@ namespace WinFormsApp1.Forms.Transaction
             dgvItems.KeyDown += DgvItems_KeyDown;
             dgvItems.CellDoubleClick += DgvItems_CellDoubleClick;
             dgvItems.CellEndEdit += DgvItems_CellEndEdit;
+            dgvItems.MouseClick += DgvItems_MouseClick; // Add mouse click handler for context menu
 
             // Serial Number Column (First Column)
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn
@@ -943,6 +949,7 @@ namespace WinFormsApp1.Forms.Transaction
             // Add event handlers for tax grid interaction
             dgvTaxes.KeyDown += DgvTaxes_KeyDown;
             dgvTaxes.CellDoubleClick += DgvTaxes_CellDoubleClick;
+            dgvTaxes.MouseClick += DgvTaxes_MouseClick; // Add mouse click handler for context menu
 
             // Serial Number Column (First Column)
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
@@ -1048,6 +1055,67 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Add event handler for taxes DataGridView
             dgvTaxes.CellValueChanged += DgvTaxes_CellValueChanged;
+        }
+
+        private void SetupContextMenus()
+        {
+            // Create context menu for items DataGridView
+            var itemsContextMenu = new ContextMenuStrip();
+            itemsContextMenu.Font = new Font("Segoe UI", 9F);
+            
+            var addItemMenuItem = new ToolStripMenuItem("Add New Item (F2)", null, (s, e) => BtnAddItem_Click(s, e));
+            addItemMenuItem.Image = SystemIcons.Application.ToBitmap();
+            itemsContextMenu.Items.Add(addItemMenuItem);
+            
+            itemsContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var editItemMenuItem = new ToolStripMenuItem("Edit Item (Enter)", null, (s, e) => BtnEditItem_Click(s, e));
+            editItemMenuItem.Image = SystemIcons.Information.ToBitmap();
+            itemsContextMenu.Items.Add(editItemMenuItem);
+            
+            itemsContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var deleteItemMenuItem = new ToolStripMenuItem("Delete Row (Delete)", null, (s, e) => BtnDeleteItem_Click(s, e));
+            deleteItemMenuItem.Image = SystemIcons.Error.ToBitmap();
+            deleteItemMenuItem.ForeColor = Color.Red;
+            itemsContextMenu.Items.Add(deleteItemMenuItem);
+            
+            itemsContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var copyItemMenuItem = new ToolStripMenuItem("Copy Item Details", null, (s, e) => CopySelectedItemDetails());
+            copyItemMenuItem.Image = SystemIcons.Exclamation.ToBitmap();
+            itemsContextMenu.Items.Add(copyItemMenuItem);
+
+            // Create context menu for taxes DataGridView
+            var taxesContextMenu = new ContextMenuStrip();
+            taxesContextMenu.Font = new Font("Segoe UI", 9F);
+            
+            var addTaxMenuItem = new ToolStripMenuItem("Add New Tax (F3)", null, (s, e) => BtnAddTax_Click(s, e));
+            addTaxMenuItem.Image = SystemIcons.Application.ToBitmap();
+            taxesContextMenu.Items.Add(addTaxMenuItem);
+            
+            taxesContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var editTaxMenuItem = new ToolStripMenuItem("Edit Tax Components (Enter)", null, (s, e) => EditSelectedTaxComponents());
+            editTaxMenuItem.Image = SystemIcons.Information.ToBitmap();
+            taxesContextMenu.Items.Add(editTaxMenuItem);
+            
+            taxesContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var deleteTaxMenuItem = new ToolStripMenuItem("Delete Row (Delete)", null, (s, e) => BtnDeleteTax_Click(s, e));
+            deleteTaxMenuItem.Image = SystemIcons.Error.ToBitmap();
+            deleteTaxMenuItem.ForeColor = Color.Red;
+            taxesContextMenu.Items.Add(deleteTaxMenuItem);
+            
+            taxesContextMenu.Items.Add(new ToolStripSeparator());
+            
+            var copyTaxMenuItem = new ToolStripMenuItem("Copy Tax Details", null, (s, e) => CopySelectedTaxDetails());
+            copyTaxMenuItem.Image = SystemIcons.Exclamation.ToBitmap();
+            taxesContextMenu.Items.Add(copyTaxMenuItem);
+
+            // Store context menus as class fields for access in mouse click handlers
+            _itemsContextMenu = itemsContextMenu;
+            _taxesContextMenu = taxesContextMenu;
         }
 
         private void DtpTransactionDate_ValueChanged(object? sender, EventArgs e)
@@ -1866,12 +1934,14 @@ Item Grid Navigation:
 • Delete - Remove selected item
 • Double-click - Edit item in grid
 • Tab/Arrow keys - Navigate between cells
+• Right-click - Context menu with options (Add, Edit, Delete, Copy)
 
 Tax Grid Navigation:
 • F3 - Add new tax with component selection
 • Enter - Edit tax components for selected tax
 • Delete - Remove selected tax
 • Double-click - Edit tax components
+• Right-click - Context menu with options (Add, Edit, Delete, Copy)
 
 Debug Info:
 • Button Visible: " + btnAddItem.Visible + @"
@@ -1910,6 +1980,8 @@ Tips:
 • F4 for party ledger selection (customers/suppliers)
 • F5 for account ledger selection (income/expense)
 • Direct editing in item grid for fast data entry
+• Right-click on grid rows for context menu options
+• C key to copy selected item/tax details
 • Escape to cancel and close
 • All fields are highlighted when focused
 
@@ -3032,6 +3104,138 @@ Ledger Selection:
                 Console.WriteLine($"Error in ShowAccountLedgerSelectionDialog: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 MessageBox.Show($"Error opening account ledger selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
+        #region Context Menu Event Handlers
+
+        private void DgvItems_MouseClick(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                // Get the row under the mouse cursor
+                var hitTest = dgvItems.HitTest(e.X, e.Y);
+                if (hitTest.Type == DataGridViewHitTestType.Cell)
+                {
+                    // Select the row under the cursor
+                    dgvItems.ClearSelection();
+                    dgvItems.Rows[hitTest.RowIndex].Selected = true;
+                    
+                    // Update context menu items based on selection
+                    UpdateItemsContextMenu();
+                    
+                    // Show context menu at cursor position
+                    _itemsContextMenu.Show(dgvItems, e.Location);
+                }
+            }
+        }
+
+        private void DgvTaxes_MouseClick(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                // Get the row under the mouse cursor
+                var hitTest = dgvTaxes.HitTest(e.X, e.Y);
+                if (hitTest.Type == DataGridViewHitTestType.Cell)
+                {
+                    // Select the row under the cursor
+                    dgvTaxes.ClearSelection();
+                    dgvTaxes.Rows[hitTest.RowIndex].Selected = true;
+                    
+                    // Update context menu items based on selection
+                    UpdateTaxesContextMenu();
+                    
+                    // Show context menu at cursor position
+                    _taxesContextMenu.Show(dgvTaxes, e.Location);
+                }
+            }
+        }
+
+        private void UpdateItemsContextMenu()
+        {
+            // Enable/disable menu items based on current selection
+            var hasSelection = dgvItems.SelectedRows.Count > 0;
+            
+            foreach (ToolStripItem item in _itemsContextMenu.Items)
+            {
+                if (item is ToolStripMenuItem menuItem)
+                {
+                    menuItem.Enabled = hasSelection;
+                }
+            }
+        }
+
+        private void UpdateTaxesContextMenu()
+        {
+            // Enable/disable menu items based on current selection
+            var hasSelection = dgvTaxes.SelectedRows.Count > 0;
+            
+            foreach (ToolStripItem item in _taxesContextMenu.Items)
+            {
+                if (item is ToolStripMenuItem menuItem)
+                {
+                    menuItem.Enabled = hasSelection;
+                }
+            }
+        }
+
+        private void CopySelectedItemDetails()
+        {
+            if (dgvItems.SelectedRows.Count == 0) return;
+
+            var selectedItem = dgvItems.SelectedRows[0].DataBoundItem as TransactionItemDisplay;
+            if (selectedItem != null)
+            {
+                var details = $"Product: {selectedItem.ProductName}\n" +
+                             $"Description: {selectedItem.Description}\n" +
+                             $"Quantity: {selectedItem.Quantity}\n" +
+                             $"Unit Price: {selectedItem.UnitPrice:C}\n" +
+                             $"Tax Rate: {selectedItem.TaxRate:N2}%\n" +
+                             $"Discount Rate: {selectedItem.DiscountRate:N2}%\n" +
+                             $"Line Total: {selectedItem.LineTotal:C}";
+
+                try
+                {
+                    Clipboard.SetText(details);
+                    // Show a brief success message
+                    var toolTip = new ToolTip();
+                    toolTip.Show("Item details copied to clipboard!", dgvItems, 1000);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error copying to clipboard: {ex.Message}");
+                }
+            }
+        }
+
+        private void CopySelectedTaxDetails()
+        {
+            if (dgvTaxes.SelectedRows.Count == 0) return;
+
+            var selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as TransactionTaxDisplay;
+            if (selectedTax != null)
+            {
+                var details = $"Tax: {selectedTax.TaxName}\n" +
+                             $"Components: {selectedTax.TaxComponents}\n" +
+                             $"Component Rates: {selectedTax.ComponentRates}\n" +
+                             $"Total Rate: {selectedTax.TotalComponentRate:N2}%\n" +
+                             $"Taxable Amount: {selectedTax.TaxableAmount:C}\n" +
+                             $"Tax Amount: {selectedTax.TaxAmount:C}\n" +
+                             $"Calculation Method: {selectedTax.CalculationMethod}";
+
+                try
+                {
+                    Clipboard.SetText(details);
+                    // Show a brief success message
+                    var toolTip = new ToolTip();
+                    toolTip.Show("Tax details copied to clipboard!", dgvTaxes, 1000);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error copying to clipboard: {ex.Message}");
+                }
             }
         }
 
