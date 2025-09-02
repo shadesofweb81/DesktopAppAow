@@ -12,6 +12,7 @@ namespace WinFormsApp1.Forms.Transaction
         private readonly TaxService _taxService;
         private readonly LedgerService _ledgerService;
         private List<TransactionListDto> _transactions = new List<TransactionListDto>();
+        private List<TransactionListDto> _allTransactions = new List<TransactionListDto>(); // Store all transactions
         private TransactionListDto? _selectedTransaction;
 
         // Form controls
@@ -24,6 +25,11 @@ namespace WinFormsApp1.Forms.Transaction
         private Label lblStatus = null!;
         private Label lblInstructions = null!;
         private Label lblCompanyInfo = null!;
+        
+        // Filter controls
+        private Label lblFilter = null!;
+        private ComboBox cmbFilter = null!;
+        private Button btnTestFilter = null!;
 
         // Company and Financial Year info
         private Models.Company? _selectedCompany;
@@ -66,6 +72,9 @@ namespace WinFormsApp1.Forms.Transaction
             lblStatus = new Label();
             lblInstructions = new Label();
             lblCompanyInfo = new Label();
+            lblFilter = new Label();
+            cmbFilter = new ComboBox();
+            btnTestFilter = new Button();
             SuspendLayout();
             
             // 
@@ -89,9 +98,39 @@ namespace WinFormsApp1.Forms.Transaction
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
             
             // 
+            // lblFilter
+            // 
+            lblFilter.Location = new Point(12, 85);
+            lblFilter.Name = "lblFilter";
+            lblFilter.Size = new Size(100, 20);
+            lblFilter.Text = "Filter by:";
+            lblFilter.ForeColor = Color.DarkBlue;
+            lblFilter.Font = new Font("Arial", 9, FontStyle.Bold);
+            
+            // 
+            // cmbFilter
+            // 
+            cmbFilter.Location = new Point(120, 82);
+            cmbFilter.Name = "cmbFilter";
+            cmbFilter.Size = new Size(200, 25);
+            cmbFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbFilter.Font = new Font("Arial", 9, FontStyle.Regular);
+            cmbFilter.SelectedIndexChanged += new EventHandler(cmbFilter_SelectedIndexChanged);
+            
+            // 
+            // btnTestFilter
+            // 
+            btnTestFilter.Location = new Point(330, 82);
+            btnTestFilter.Name = "btnTestFilter";
+            btnTestFilter.Size = new Size(80, 25);
+            btnTestFilter.Text = "Test Filter";
+            btnTestFilter.UseVisualStyleBackColor = true;
+            btnTestFilter.Click += new EventHandler(btnTestFilter_Click);
+            
+            // 
             // dgvTransactions
             // 
-            dgvTransactions.Location = new Point(12, 85);
+            dgvTransactions.Location = new Point(12, 115);
             dgvTransactions.Name = "dgvTransactions";
             dgvTransactions.Size = new Size(800, 350);
             dgvTransactions.TabIndex = 0;
@@ -187,6 +226,9 @@ namespace WinFormsApp1.Forms.Transaction
             Controls.Add(btnEdit);
             Controls.Add(btnNew);
             Controls.Add(dgvTransactions);
+            Controls.Add(lblFilter);
+            Controls.Add(cmbFilter);
+            Controls.Add(btnTestFilter);
             Controls.Add(lblInstructions);
             Controls.Add(lblCompanyInfo);
             FormBorderStyle = FormBorderStyle.Sizable;
@@ -360,6 +402,9 @@ namespace WinFormsApp1.Forms.Transaction
                 lblCompanyInfo.Text = GetCompanyInfoText();
                 Text = GetFormTitle();
                 
+                // Setup filter dropdown after company is loaded
+                SetupFilterDropdown();
+                
                 // Load transactions
                 await LoadTransactions();
             }
@@ -386,26 +431,17 @@ namespace WinFormsApp1.Forms.Transaction
 
                 var companyId = Guid.Parse(_selectedCompany.Id);
                 var financialYearId = _selectedFinancialYear.Id;
+                
                 Console.WriteLine($"Loading transactions for company: {companyId}, financial year: {financialYearId}, type: {TransactionType ?? "All"}");
                 
-                _transactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50, TransactionType);
-                Console.WriteLine($"Loaded {_transactions.Count} transactions");
+                // Load all transactions for the company and financial year
+                _allTransactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50, TransactionType);
+                Console.WriteLine($"Loaded {_allTransactions.Count} total transactions");
+                
+                // Apply current filter to the loaded transactions
+                ApplyCurrentFilter();
 
-                dgvTransactions.DataSource = _transactions;
-                lblStatus.Text = $"Loaded {_transactions.Count} transactions";
-
-                // Select first row if transactions exist
-                if (_transactions.Count > 0)
-                {
-                    dgvTransactions.Rows[0].Selected = true;
-                    _selectedTransaction = _transactions[0];
-                    
-                    // Ensure the DataGridView has focus for keyboard navigation
-                    dgvTransactions.Focus();
-                }
-
-                // Update button states
-                UpdateButtonStates();
+                // Note: Row selection and button states are now handled in ApplyCurrentFilter()
             }
             catch (Exception ex)
             {
@@ -632,7 +668,7 @@ namespace WinFormsApp1.Forms.Transaction
             // Reserve space for buttons on the right side
             int buttonAreaWidth = 150;
             int availableWidth = clientWidth - buttonAreaWidth - 30; // 30px margin
-            int availableHeight = clientHeight - 150;
+            int availableHeight = clientHeight - 200; // Increased to accommodate filter controls
             
             // Ensure minimum grid width
             if (availableWidth < 600)
@@ -645,11 +681,11 @@ namespace WinFormsApp1.Forms.Transaction
             
             // Reposition buttons on the right side with 30px margin
             int buttonX = availableWidth + 30;
-            btnNew.Location = new Point(buttonX, 85);
-            btnEdit.Location = new Point(buttonX, 125);
-            btnView.Location = new Point(buttonX, 165);
-            btnDelete.Location = new Point(buttonX, 205);
-            btnRefresh.Location = new Point(buttonX, 245);
+            btnNew.Location = new Point(buttonX, 115);
+            btnEdit.Location = new Point(buttonX, 155);
+            btnView.Location = new Point(buttonX, 195);
+            btnDelete.Location = new Point(buttonX, 235);
+            btnRefresh.Location = new Point(buttonX, 275);
             
             // Reposition status label at the bottom
             lblStatus.Location = new Point(12, clientHeight - 30);
@@ -658,6 +694,11 @@ namespace WinFormsApp1.Forms.Transaction
             // Resize company info and instructions labels
             lblCompanyInfo.Size = new Size(clientWidth - 24, 25);
             lblInstructions.Size = new Size(clientWidth - 24, 40);
+            
+            // Reposition filter controls
+            lblFilter.Location = new Point(12, 85);
+            cmbFilter.Location = new Point(120, 82);
+            btnTestFilter.Location = new Point(330, 82);
         }
 
         private void TransactionListForm_Resize(object? sender, EventArgs e)
@@ -683,6 +724,9 @@ namespace WinFormsApp1.Forms.Transaction
             // Ensure the form takes focus and maintains its state
             this.BringToFront();
             this.Activate();
+            
+            // Refresh filter dropdown to ensure it's up to date
+            SetupFilterDropdown();
             
             // Force the form to stay maximized
             this.BeginInvoke(new Action(() =>
@@ -1048,7 +1092,153 @@ namespace WinFormsApp1.Forms.Transaction
         private string GetInstructionsText()
         {
             var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
-            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Uses selected company from local storage";
+            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Use filter dropdown to refine results | Uses selected company from local storage";
+        }
+
+        private void SetupFilterDropdown()
+        {
+            cmbFilter.Items.Clear();
+            
+            Console.WriteLine($"Setting up filter dropdown. TransactionType: '{TransactionType}'");
+            
+            if (string.IsNullOrEmpty(TransactionType))
+            {
+                // Default filter options for all transactions - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Quotation", "Returns", "Receipt", "Payment", "Journal" });
+                Console.WriteLine("Using default filter options (no transaction type)");
+            }
+            else if (TransactionType.Equals("Sale", StringComparison.OrdinalIgnoreCase))
+            {
+                // Sales filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Dispatched", "Returns", "Quotation" });
+                Console.WriteLine("Using Sales filter options");
+            }
+            else if (TransactionType.Equals("Purchase", StringComparison.OrdinalIgnoreCase))
+            {
+                // Purchase filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Bill", "Order", "Received", "Returns", "Quotation" });
+                Console.WriteLine("Using Purchase filter options");
+            }
+            else if (TransactionType.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
+            {
+                // Receipt filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Payment", "Advance", "Refund" });
+                Console.WriteLine("Using Receipt filter options");
+            }
+            else if (TransactionType.Equals("Payment", StringComparison.OrdinalIgnoreCase))
+            {
+                // Payment filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Payment", "Advance", "Refund" });
+                Console.WriteLine("Using Payment filter options");
+            }
+            else if (TransactionType.Equals("Journal", StringComparison.OrdinalIgnoreCase))
+            {
+                // Journal filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Opening", "Adjustment", "Transfer", "Closing" });
+                Console.WriteLine("Using Journal filter options");
+            }
+            else
+            {
+                // Generic filter options - use direct values for API
+                cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Quotation", "Returns", "Receipt", "Payment", "Journal" });
+                Console.WriteLine($"Using generic filter options for unknown type: {TransactionType}");
+            }
+            
+            // Set default selection to "All"
+            cmbFilter.SelectedIndex = 0;
+            
+            // Log the filter options for debugging
+            Console.WriteLine($"Filter dropdown setup complete. Options: {string.Join(", ", cmbFilter.Items.Cast<object>())}");
+            Console.WriteLine($"Selected index: {cmbFilter.SelectedIndex}, Selected item: {cmbFilter.SelectedItem}");
+        }
+
+        private void cmbFilter_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (cmbFilter.SelectedItem != null && _allTransactions.Count > 0)
+            {
+                var selectedFilter = cmbFilter.SelectedItem.ToString();
+                Console.WriteLine($"Filter changed to: {selectedFilter}");
+                
+                // Apply the filter to the current loaded transactions
+                ApplyCurrentFilter();
+            }
+        }
+
+        private void ApplyCurrentFilter()
+        {
+            try
+            {
+                var selectedFilter = cmbFilter.SelectedItem?.ToString() ?? "All";
+                Console.WriteLine($"Applying filter: {selectedFilter} to {_allTransactions.Count} transactions");
+                
+                if (selectedFilter == "All")
+                {
+                    // Show all transactions
+                    _transactions = new List<TransactionListDto>(_allTransactions);
+                }
+                else
+                {
+                    // Filter transactions based on the selected filter
+                    _transactions = _allTransactions.Where(t => 
+                    {
+                        var transactionType = t.Type.ToString();
+                        return transactionType.Contains(selectedFilter, StringComparison.OrdinalIgnoreCase);
+                    }).ToList();
+                }
+                
+                Console.WriteLine($"Filter applied. Showing {_transactions.Count} transactions out of {_allTransactions.Count} total");
+                
+                // Update the DataGridView
+                dgvTransactions.DataSource = null;
+                dgvTransactions.DataSource = _transactions;
+                
+                // Update status
+                lblStatus.Text = $"Showing {_transactions.Count} transactions (filtered from {_allTransactions.Count} total)";
+                
+                // Select first row if transactions exist
+                if (_transactions.Count > 0)
+                {
+                    dgvTransactions.Rows[0].Selected = true;
+                    _selectedTransaction = _transactions[0];
+                    dgvTransactions.Focus();
+                }
+                else
+                {
+                    _selectedTransaction = null;
+                }
+                
+                // Update button states
+                UpdateButtonStates();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error applying filter: {ex.Message}");
+                lblStatus.Text = $"Error applying filter: {ex.Message}";
+            }
+        }
+
+        private void btnTestFilter_Click(object? sender, EventArgs e)
+        {
+            Console.WriteLine("=== TEST FILTER BUTTON CLICKED ===");
+            Console.WriteLine($"TransactionType: '{TransactionType}'");
+            Console.WriteLine($"Selected Filter: '{cmbFilter.SelectedItem}'");
+            Console.WriteLine($"Company: {_selectedCompany?.DisplayName ?? "None"}");
+            Console.WriteLine($"Financial Year: {_selectedFinancialYear?.YearLabel ?? "None"}");
+            Console.WriteLine($"Total Transactions Loaded: {_allTransactions.Count}");
+            Console.WriteLine($"Currently Filtered: {_transactions.Count}");
+            
+            // Show a message box with the current filter state
+            MessageBox.Show(
+                $"Current Filter State:\n\n" +
+                $"Transaction Type: {TransactionType ?? "None"}\n" +
+                $"Selected Filter: {cmbFilter.SelectedItem}\n" +
+                $"Total Transactions: {_allTransactions.Count}\n" +
+                $"Currently Showing: {_transactions.Count}\n\n" +
+                $"Check console for detailed logging.",
+                "Filter Test Results",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
         }
     }
 }
