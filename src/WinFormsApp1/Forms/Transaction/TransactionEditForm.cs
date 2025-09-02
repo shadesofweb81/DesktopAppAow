@@ -439,33 +439,48 @@ namespace WinFormsApp1.Forms.Transaction
             itemsGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             dgvItems.Location = new Point(10, 25);
-            dgvItems.Size = new Size(1020, 180);
+            dgvItems.Size = new Size(1020, 150);
             dgvItems.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            // Add Item button - positioned prominently at the bottom of the items group box
+            var lblAddItemHint = new Label
+            {
+                Text = "After selecting Party and Account Ledgers, click below to add items:",
+                Location = new Point(10, 185),
+                Size = new Size(400, 20),
+                Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+                ForeColor = Color.DarkBlue
+            };
+            
+            btnAddItem.Location = new Point(10, 210);
+            btnAddItem.Size = new Size(140, 35);
+            btnAddItem.Text = "&Add Item (F2)";
+            btnAddItem.UseVisualStyleBackColor = true;
+            btnAddItem.Visible = true;
+            btnAddItem.Enabled = true;
+            btnAddItem.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnAddItem.BackColor = Color.LightGreen;
+            btnAddItem.ForeColor = Color.DarkGreen;
+            btnAddItem.FlatStyle = FlatStyle.Flat;
+            btnAddItem.Cursor = Cursors.Hand;
+            btnAddItem.Click += BtnAddItem_Click;
 
             btnSelectProducts.Location = new Point(1040, 25);
             btnSelectProducts.Size = new Size(90, 30);
             btnSelectProducts.Text = "Select Products";
             btnSelectProducts.Click += BtnSelectProducts_Click;
 
-            btnAddItem.Location = new Point(1040, 65);
-            btnAddItem.Size = new Size(90, 30);
-            btnAddItem.Text = "Add Item";
-            btnAddItem.UseVisualStyleBackColor = true;
-            btnAddItem.Visible = true;
-            btnAddItem.Enabled = true;
-            btnAddItem.Click += BtnAddItem_Click;
-
-            btnEditItem.Location = new Point(1040, 105);
+            btnEditItem.Location = new Point(1040, 65);
             btnEditItem.Size = new Size(90, 30);
             btnEditItem.Text = "Edit Item";
             btnEditItem.Click += BtnEditItem_Click;
 
-            btnDeleteItem.Location = new Point(1040, 145);
+            btnDeleteItem.Location = new Point(1040, 105);
             btnDeleteItem.Size = new Size(90, 30);
             btnDeleteItem.Text = "Delete Item";
             btnDeleteItem.Click += BtnDeleteItem_Click;
 
-            itemsGroupBox.Controls.AddRange(new Control[] { dgvItems, btnSelectProducts, btnAddItem, btnEditItem, btnDeleteItem });
+            itemsGroupBox.Controls.AddRange(new Control[] { dgvItems, btnSelectProducts, btnEditItem, btnDeleteItem, lblAddItemHint, btnAddItem });
             yPosition += 260;
 
             // Tax Section
@@ -569,20 +584,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += BtnCancel_Click;
             
-            // Test: Add a visible test button for Add Item functionality
-            var testAddItemBtn = new Button
-            {
-                Location = new Point(800, yPosition),
-                Size = new Size(90, 35),
-                Text = "Test Add Item",
-                UseVisualStyleBackColor = true,
-                BackColor = Color.LightGreen
-            };
-            testAddItemBtn.Click += (s, e) => {
-                Console.WriteLine("Test Add Item button clicked!");
-                ShowItemSelectionDialog();
-            };
-            Controls.Add(testAddItemBtn);
+
             
             // Test: Add a visible test button for Add Tax functionality
             var testAddTaxBtn = new Button
@@ -696,6 +698,7 @@ namespace WinFormsApp1.Forms.Transaction
             cmbAccountLedger.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbAccountLedger.DisplayMember = "DisplayName";
             cmbAccountLedger.ValueMember = "Id";
+            cmbAccountLedger.SelectedIndexChanged += CmbAccountLedger_SelectedIndexChanged;
         }
 
         private void SetupDataGridViews()
@@ -974,6 +977,18 @@ namespace WinFormsApp1.Forms.Transaction
         private void CmbPartyLedger_SelectedIndexChanged(object? sender, EventArgs e)
         {
             AutoSelectAccountLedger();
+            UpdateAddItemButtonState();
+        }
+
+        private void CmbAccountLedger_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            UpdateAddItemButtonState();
+            
+            // When Account Ledger is selected, focus on Add Item button
+            if (cmbAccountLedger.SelectedItem != null && cmbPartyLedger.SelectedItem != null)
+            {
+                btnAddItem.Focus();
+            }
         }
 
         private void AutoSelectAccountLedger()
@@ -1095,6 +1110,29 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
+        private void UpdateAddItemButtonState()
+        {
+            // Enable Add Item button only when both Party Ledger and Account Ledger are selected
+            bool canAddItems = cmbPartyLedger.SelectedItem != null && cmbAccountLedger.SelectedItem != null;
+            
+            btnAddItem.Enabled = canAddItems;
+            
+            if (canAddItems)
+            {
+                btnAddItem.BackColor = Color.LightGreen;
+                btnAddItem.ForeColor = Color.DarkGreen;
+                btnAddItem.Text = "&Add Item (F2)";
+            }
+            else
+            {
+                btnAddItem.BackColor = Color.LightGray;
+                btnAddItem.ForeColor = Color.Gray;
+                btnAddItem.Text = "Select Ledgers First";
+            }
+            
+            Console.WriteLine($"Add Item button state updated - Enabled: {btnAddItem.Enabled}, Can Add Items: {canAddItems}");
+        }
+
         private async Task LoadData()
         {
             Console.WriteLine("LoadData called - starting to load data...");
@@ -1123,6 +1161,9 @@ namespace WinFormsApp1.Forms.Transaction
             Console.WriteLine("LoadData completed - setting focus...");
             // Set focus to the first field (Transaction Type dropdown)
             cmbTransactionType.Focus();
+            
+            // Update Add Item button state after loading data
+            UpdateAddItemButtonState();
             
             // Final debug: Check if Add Item button is visible after everything is loaded
             Console.WriteLine($"Final check - btnAddItem: Visible={btnAddItem.Visible}, Enabled={btnAddItem.Enabled}, Parent={btnAddItem.Parent?.GetType().Name}");
