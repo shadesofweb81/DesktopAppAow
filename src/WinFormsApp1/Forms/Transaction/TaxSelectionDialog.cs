@@ -70,6 +70,16 @@ namespace WinFormsApp1.Forms.Transaction
             lblComponents.Text = "Select Tax Components (for the selected tax):";
             lblComponents.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
 
+            // Add keyboard navigation hint
+            var lblKeyboardHint = new Label
+            {
+                Location = new Point(500, 25),
+                Size = new Size(460, 20),
+                Text = "Navigation: Tab → Components, Shift+Tab → Back, Space → Select, Enter → OK",
+                Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+                ForeColor = Color.DarkBlue
+            };
+
             // Components grid (right side)
             dgvComponents.Location = new Point(500, 85);
             dgvComponents.Size = new Size(460, 450);
@@ -80,6 +90,7 @@ namespace WinFormsApp1.Forms.Transaction
             dgvComponents.ReadOnly = true;
             dgvComponents.RowHeadersVisible = false;
             dgvComponents.AutoGenerateColumns = false;
+            dgvComponents.SelectionChanged += DgvComponents_SelectionChanged;
             
             SetupComponentGrid();
 
@@ -96,7 +107,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += BtnCancel_Click;
 
-            Controls.AddRange(new Control[] { txtSearch, dgvTaxes, lblComponents, dgvComponents, btnOK, btnCancel });
+            Controls.AddRange(new Control[] { txtSearch, dgvTaxes, lblComponents, lblKeyboardHint, dgvComponents, btnOK, btnCancel });
 
             LoadTaxes();
             txtSearch.Focus();
@@ -108,6 +119,7 @@ namespace WinFormsApp1.Forms.Transaction
             KeyDown += TaxSelectionDialog_KeyDown;
             dgvTaxes.KeyDown += DgvTaxes_KeyDown;
             dgvTaxes.DoubleClick += DgvTaxes_DoubleClick;
+            dgvComponents.KeyDown += DgvComponents_KeyDown;
         }
 
         private void SetupTaxGrid()
@@ -172,6 +184,12 @@ namespace WinFormsApp1.Forms.Transaction
                 DataPropertyName = "Description",
                 Width = 160
             });
+
+            // Set up visual styling for better selection visibility
+            dgvComponents.DefaultCellStyle.SelectionBackColor = Color.LightBlue;
+            dgvComponents.DefaultCellStyle.SelectionForeColor = Color.Black;
+            dgvComponents.GridColor = Color.LightGray;
+            dgvComponents.BorderStyle = BorderStyle.Fixed3D;
         }
 
         private void LoadTaxes()
@@ -254,6 +272,66 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 BtnOK_Click(null, EventArgs.Empty);
                 e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Tab)
+            {
+                // When Tab is pressed in tax list, move focus to component list
+                dgvComponents.Focus();
+                if (dgvComponents.Rows.Count > 0)
+                {
+                    // Select the first row in components grid if available
+                    dgvComponents.Rows[0].Selected = true;
+                    dgvComponents.CurrentCell = dgvComponents.Rows[0].Cells[0];
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void DgvComponents_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Tab)
+            {
+                if (e.Modifiers.HasFlag(Keys.Shift))
+                {
+                    // Shift+Tab: Go back to tax list
+                    dgvTaxes.Focus();
+                    if (dgvTaxes.SelectedRows.Count > 0)
+                    {
+                        dgvTaxes.CurrentCell = dgvTaxes.SelectedRows[0].Cells[0];
+                    }
+                }
+                else
+                {
+                    // Tab: Move to OK button
+                    btnOK.Focus();
+                }
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Enter)
+            {
+                // Enter: Move to OK button
+                btnOK.Focus();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Space)
+            {
+                // Space: Toggle selection of current component row
+                if (dgvComponents.CurrentRow != null)
+                {
+                    dgvComponents.CurrentRow.Selected = !dgvComponents.CurrentRow.Selected;
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void DgvComponents_SelectionChanged(object? sender, EventArgs e)
+        {
+            // Update the components label to show selection count
+            if (_selectedTax != null)
+            {
+                var selectedCount = dgvComponents.SelectedRows.Count;
+                var totalCount = _selectedTax.Components?.Count ?? 0;
+                lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' ({selectedCount}/{totalCount} selected):";
             }
         }
 

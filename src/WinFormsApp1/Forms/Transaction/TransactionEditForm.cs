@@ -513,7 +513,25 @@ namespace WinFormsApp1.Forms.Transaction
             btnDeleteTax.Text = "Delete Tax";
             btnDeleteTax.Click += BtnDeleteTax_Click;
 
-            taxGroupBox.Controls.AddRange(new Control[] { dgvTaxes, btnSelectTaxes, btnAddTax, btnEditTax, btnDeleteTax });
+            // Add test add tax button prominently in the tax group box
+            var testAddTaxBtn = new Button
+            {
+                Location = new Point(10, 145),
+                Size = new Size(140, 35),
+                Text = "Test Add Tax (F3)",
+                UseVisualStyleBackColor = true,
+                BackColor = Color.LightBlue,
+                ForeColor = Color.DarkBlue,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            testAddTaxBtn.Click += (s, e) => {
+                Console.WriteLine("Test Add Tax button clicked!");
+                BtnAddTax_Click(s, e);
+            };
+
+            taxGroupBox.Controls.AddRange(new Control[] { dgvTaxes, btnSelectTaxes, btnAddTax, btnEditTax, btnDeleteTax, testAddTaxBtn });
             yPosition += 190;
 
             // Summary Section - Improved Layout
@@ -586,20 +604,7 @@ namespace WinFormsApp1.Forms.Transaction
             
 
             
-            // Test: Add a visible test button for Add Tax functionality
-            var testAddTaxBtn = new Button
-            {
-                Location = new Point(900, yPosition),
-                Size = new Size(90, 35),
-                Text = "Test Add Tax",
-                UseVisualStyleBackColor = true,
-                BackColor = Color.LightBlue
-            };
-            testAddTaxBtn.Click += (s, e) => {
-                Console.WriteLine("Test Add Tax button clicked!");
-                BtnAddTax_Click(s, e);
-            };
-            Controls.Add(testAddTaxBtn);
+
 
             // Debug: Verify controls are properly set up before adding
             Console.WriteLine($"Adding controls to form:");
