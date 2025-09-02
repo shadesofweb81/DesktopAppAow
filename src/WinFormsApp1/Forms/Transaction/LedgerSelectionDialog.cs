@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
+using System.ComponentModel;
 using WinFormsApp1.Models;
 
 namespace WinFormsApp1.Forms.Transaction
@@ -19,8 +15,14 @@ namespace WinFormsApp1.Forms.Transaction
         private List<LedgerModel> _filteredLedgers;
 
         public LedgerModel? SelectedLedger { get; private set; }
+        
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string DialogTitle { get; set; } = "Select Ledger";
+        
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string FilterHint { get; set; } = "All Ledgers";
+        
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string DefaultFilterType { get; set; } = "All Ledgers";
 
         public LedgerSelectionDialog(List<LedgerModel> ledgers, string title = "Select Ledger", string filterHint = "All Ledgers", string defaultFilterType = "All Ledgers")
