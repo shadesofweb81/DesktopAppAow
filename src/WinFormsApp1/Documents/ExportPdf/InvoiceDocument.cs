@@ -1,6 +1,8 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Data.Common;
+using System.Reflection;
 using WinFormsApp1.Documents;
 
 namespace WinFormsApp1.Documents.ExportPdf
@@ -27,7 +29,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                     page.Margin(20);
                     page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10));
 
-                    page.Header().Element(ComposeHeader);
+                    page.Header().Element(ComposeHeader);                    
                     page.Content().Element(ComposeContent);
                     page.Footer().Element(ComposeFooter);
                 });
@@ -37,35 +39,50 @@ namespace WinFormsApp1.Documents.ExportPdf
         {
             container.Column(column =>
             {
-                // Company Information
-                column.Item().Text(_invoiceModel.CompanyName)
-                    .FontSize(16).Bold().FontColor(Colors.Blue.Medium);
+                // TAX INVOICE Title
+                column.Item().PaddingTop(0).AlignCenter().Text("TAX INVOICE")
+                    .FontSize(13).Bold().FontColor(Colors.Blue.Medium);
 
-                column.Item().Text($"GSTIN: {_invoiceModel.CompanyGSTIN}")
-                    .FontSize(9).FontColor(Colors.Grey.Medium);
+                // Page Name (Copy Type)
+                column.Item().PaddingTop(0).AlignCenter().Text($"{_copyType}")
+                    .FontSize(9).Bold().FontColor(Colors.Red.Medium);
+                // Company Details Section
+                //column.Item().AlignCenter().Text(_invoiceModel.CompanyName)
+                //    .FontSize(18).Bold().FontColor(Colors.Blue.Medium);
 
-                column.Item().Text($"Phone: {_invoiceModel.CompanyPhone}")
-                    .FontSize(9).FontColor(Colors.Grey.Medium);
+                //column.Item().PaddingTop(5).AlignCenter().Text($"GSTIN: {_invoiceModel.CompanyGSTIN}")
+                //    .FontSize(11).FontColor(Colors.Grey.Medium);
 
-                column.Item().Text($"Email: {_invoiceModel.CompanyEmail}")
-                    .FontSize(9).FontColor(Colors.Grey.Medium);
+                //column.Item().AlignCenter().Text($"Phone: {_invoiceModel.CompanyPhone}")
+                //    .FontSize(10).FontColor(Colors.Grey.Medium);
 
-                // Invoice Title
-                column.Item().PaddingTop(15).AlignCenter().Text("INVOICE")
-                    .FontSize(20).Bold().FontColor(Colors.Blue.Medium);
+                //column.Item().AlignCenter().Text($"Email: {_invoiceModel.CompanyEmail}")
+                //    .FontSize(10).FontColor(Colors.Grey.Medium);
 
-                column.Item().AlignCenter().Text($"Copy: {_copyType}")
-                    .FontSize(11).Bold().FontColor(Colors.Grey.Medium);
+                // Separator line
+                column.Item().PaddingTop(1).PaddingBottom(1).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
-                // Simple line separator
-                column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+            
+            });
+        }
+
+        void ComposeComments(IContainer container)
+        {
+            container.Background(Colors.Grey.Lighten3).Padding(1).Column(column =>
+            {
+                column.Spacing(1);
+                column.Item().Text(_invoiceModel.CompanyName).FontSize(10);
+                column.Item().Text($"Address: {_invoiceModel.CustomerAddress}").FontSize(10);
+                column.Item().Text($"GSTIN: {_invoiceModel.CompanyGSTIN}").FontSize(10);
             });
         }
 
         public void ComposeContent(IContainer container)
         {
+          
             container.Column(column =>
             {
+                column.Item().Element(ComposeComments);
                 // Party Details and Invoice Details Row
                 column.Item().PaddingTop(20).Row(row =>
                 {
@@ -118,7 +135,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                 column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
                 // Items Table
-                column.Item().PaddingTop(20).Element(ComposeTable);
+                column.Item().PaddingTop(0).Element(ComposeTable);
 
                 // Totals Section
                 column.Item().PaddingTop(20).Element(ComposeTotals);
@@ -130,6 +147,7 @@ namespace WinFormsApp1.Documents.ExportPdf
 
         private void ComposeTable(IContainer container)
         {
+            
             container.Table(table =>
             {
                 table.ColumnsDefinition(columns =>
@@ -167,7 +185,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                 
                 foreach (var item in _invoiceModel.Items)
                 {
-                    table.Cell().Element(CellStyle).Text(item.SerialNumber);
+                    table.Cell().Element(CellStyle).Text(item.SerialNumber.ToString());
                     table.Cell().Element(CellStyle).Text(item.ProductName);
                     table.Cell().Element(CellStyle).Text(item.HSNCode);
                     table.Cell().Element(CellStyle).AlignCenter().Text(item.Quantity.ToString("N2"));
