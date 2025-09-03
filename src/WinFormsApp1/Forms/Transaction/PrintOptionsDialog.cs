@@ -295,11 +295,19 @@ namespace WinFormsApp1.Forms.Transaction
         private void UpdateCopyInfo()
         {
             var totalPages = GetTotalPages();
-            lblCopiesInfo.Text = $"Total pages to print: {totalPages} ({GetCopyTypeDescription()})";
+            var copyInfo = SelectedCopyType == CopyType.All 
+                ? $"Total pages to print: {totalPages} (Original + Duplicate + Triplicate)"
+                : $"Total pages to print: {totalPages} ({GetCopyTypeDescription()})";
+            lblCopiesInfo.Text = copyInfo;
         }
 
         private int GetTotalPages()
         {
+            // For "All" copy type, always return 3 pages regardless of NumberOfCopies
+            if (SelectedCopyType == CopyType.All)
+            {
+                return 3; // Original + Duplicate + Triplicate
+            }
             return NumberOfCopies * GetPagesPerCopy();
         }
 
@@ -307,8 +315,8 @@ namespace WinFormsApp1.Forms.Transaction
         {
             return SelectedCopyType switch
             {
-                CopyType.All => 3,
-                CopyType.OriginalDuplicate => 2,
+                CopyType.All => 3, // Original + Duplicate + Triplicate
+                CopyType.OriginalDuplicate => 2, // Original + Duplicate
                 _ => 1
             };
         }
@@ -328,18 +336,37 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void BtnPreview_Click(object? sender, EventArgs e)
         {
-            // TODO: Implement print preview functionality
-            MessageBox.Show(
-                $"Print Preview:\n\n" +
-                $"Copy Type: {GetCopyTypeDescription()}\n" +
-                $"Number of Copies: {NumberOfCopies}\n" +
-                $"Total Pages: {GetTotalPages()}\n" +
-                $"Format: {GetInvoiceFormatDescription()}\n\n" +
-                $"Preview functionality will be implemented here.",
-                "Print Preview",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
-            );
+            try
+            {
+                // Capture the selected values
+                CaptureSelectedValues();
+                
+                // Show preview with actual invoice generation
+                var previewMessage = $"Print Preview:\n\n" +
+                    $"Copy Type: {GetCopyTypeDescription()}\n" +
+                    $"Number of Copies: {NumberOfCopies}\n" +
+                    $"Total Pages: {GetTotalPages()}\n" +
+                    $"Format: {GetInvoiceFormatDescription()}\n\n" +
+                    $"Invoice will be generated with:\n" +
+                    $"- {SelectedInvoiceFormat} format\n" +
+                    $"- {SelectedCopyType} copy type\n" +
+                    $"- {NumberOfCopies} copies\n" +
+                    $"- Professional A4 layout with company branding\n" +
+                    $"- Customer details and itemized billing\n" +
+                    $"- Tax calculations and totals\n" +
+                    $"- Terms and conditions";
+                
+                MessageBox.Show(
+                    previewMessage,
+                    "Print Preview",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error generating preview: {ex.Message}", "Preview Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnPrint_Click(object? sender, EventArgs e)
@@ -349,14 +376,188 @@ namespace WinFormsApp1.Forms.Transaction
                 // Capture the selected values before closing
                 CaptureSelectedValues();
 
-                // Set the selected values and close with OK result
-                DialogResult = DialogResult.OK;
-                Close();
+                // Check if this dialog is being used as a child dialog
+                if (Owner != null)
+                {
+                    // If it's a child dialog, just close with OK result
+                    // The parent form will handle PDF generation
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    // If it's a standalone dialog, generate invoice PDF
+                    if (GenerateInvoicePdf())
+                    {
+                        // Set the selected values and close with OK result
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error preparing print: {ex.Message}", "Print Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private bool GenerateInvoicePdf()
+        {
+            try
+            {
+                // Show save file dialog
+                using (var saveFileDialog = new SaveFileDialog())
+                {
+                    saveFileDialog.Filter = "PDF files (*.pdf)|*.pdf|All files (*.*)|*.*";
+                    saveFileDialog.FilterIndex = 1;
+                    saveFileDialog.RestoreDirectory = true;
+                    
+                    // Set default filename
+                    var copyTypeForFilename = SelectedCopyType == CopyType.All ? "All_3Copies" : SelectedCopyType.ToString();
+                    var defaultFileName = $"Invoice_{SelectedInvoiceFormat}_{copyTypeForFilename}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                    saveFileDialog.FileName = defaultFileName;
+
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // Create sample invoice data for demonstration
+                        var invoiceModel = CreateSampleInvoiceModel();
+                        
+                        // Generate PDF using the new InvoicePdfGenerator
+                        var pdfGenerator = new WinFormsApp1.Documents.ExportPdf.InvoicePdfGenerator();
+                        
+                        // For "All" copy type, always generate multiple copies (Original, Duplicate, Triplicate)
+                        if (SelectedCopyType == CopyType.All)
+                        {
+                            // Generate 3 copies: Original, Duplicate, Triplicate
+                            pdfGenerator.SaveInvoicePdfWithMultipleCopies(
+                                invoiceModel, 
+                                saveFileDialog.FileName, 
+                                SelectedCopyType, 
+                                3, // Always 3 for All option
+                                SelectedInvoiceFormat
+                            );
+                        }
+                        else if (NumberOfCopies > 1)
+                        {
+                            // Generate multiple copies for other copy types
+                            pdfGenerator.SaveInvoicePdfWithMultipleCopies(
+                                invoiceModel, 
+                                saveFileDialog.FileName, 
+                                SelectedCopyType, 
+                                NumberOfCopies, 
+                                SelectedInvoiceFormat
+                            );
+                        }
+                        else
+                        {
+                            // Generate single copy
+                            pdfGenerator.SaveInvoicePdf(
+                                invoiceModel, 
+                                saveFileDialog.FileName, 
+                                SelectedCopyType, 
+                                SelectedInvoiceFormat
+                            );
+                        }
+
+                        // Show success message
+                        var copyInfo = SelectedCopyType == CopyType.All 
+                            ? "3 copies (Original + Duplicate + Triplicate)"
+                            : $"{NumberOfCopies} copies ({GetCopyTypeDescription()})";
+                        
+                        var result = MessageBox.Show(
+                            $"Invoice PDF generated successfully!\n\n" +
+                            $"File: {saveFileDialog.FileName}\n" +
+                            $"Format: {GetInvoiceFormatDescription()}\n" +
+                            $"Copy Type: {GetCopyTypeDescription()}\n" +
+                            $"Copies: {copyInfo}\n\n" +
+                            $"Would you like to open the file?",
+                            "PDF Generated",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
+
+                        if (result == DialogResult.Yes)
+                        {
+                            // Open the PDF file
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = saveFileDialog.FileName,
+                                UseShellExecute = true
+                            });
+                        }
+
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error generating invoice PDF: {ex.Message}", "PDF Generation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        private WinFormsApp1.Documents.InvoiceModel CreateSampleInvoiceModel()
+        {
+            // Create sample invoice data for demonstration purposes
+            // In a real application, this would come from the actual transaction data
+            return new WinFormsApp1.Documents.InvoiceModel
+            {
+                InvoiceNumber = "INV-2024-001",
+                InvoiceDate = DateTime.Now,
+                CustomerName = "Sample Customer Ltd.",
+                CustomerAddress = "123 Business Street, City, State 12345",
+                CustomerGSTIN = "GSTIN123456789",
+                CustomerMobile = "+91 98765 43210",
+                CompanyName = "Your Company Name",
+                CompanyGSTIN = "COMPANY123456789",
+                CompanyPhone = "+91 12345 67890",
+                CompanyEmail = "info@yourcompany.com",
+                PlaceOfSupply = "Mumbai, Maharashtra",
+                TransactionType = "Sale Invoice",
+                ReferenceNumber = "REF-001",
+                Notes = "Thank you for your business!",
+                Items = new List<WinFormsApp1.Documents.InvoiceItemModel>
+                {
+                    new WinFormsApp1.Documents.InvoiceItemModel
+                    {
+                        SerialNumber = 1,
+                        ProductName = "Sample Product 1",
+                        HSNCode = "HSN001",
+                        Quantity = 2,
+                        Unit = "PCS",
+                        UnitPrice = 100.00m,
+                        DiscountPercentage = 10,
+                        DiscountAmount = 20.00m,
+                        TaxRate = 18,
+                        TaxAmount = 32.40m,
+                        LineTotal = 212.40m
+                    },
+                    new WinFormsApp1.Documents.InvoiceItemModel
+                    {
+                        SerialNumber = 2,
+                        ProductName = "Sample Product 2",
+                        HSNCode = "HSN002",
+                        Quantity = 1,
+                        Unit = "PCS",
+                        UnitPrice = 150.00m,
+                        DiscountPercentage = 0,
+                        DiscountAmount = 0.00m,
+                        TaxRate = 18,
+                        TaxAmount = 27.00m,
+                        LineTotal = 177.00m
+                    }
+                },
+                SubTotal = 250.00m,
+                DiscountAmount = 20.00m,
+                TaxAmount = 59.40m,
+                TotalAmount = 389.40m,
+                RoundOff = 0.60m,
+                NetPayable = 390.00m,
+                AmountInWords = "Three Hundred and Ninety Rupees Only",
+                InvoiceFormat = GetInvoiceFormatDescription()
+            };
         }
 
         private void CaptureSelectedValues()

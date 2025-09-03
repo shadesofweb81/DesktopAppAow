@@ -39,11 +39,12 @@ namespace WinFormsApp1.Forms.Transaction
         private FinancialYearModel? _selectedFinancialYear;
         
         // Transaction type filter
-        private string? _transactionType;
-        public string? TransactionType 
+        private string? _filterTransactionType;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public string? FilterTransactionType 
         { 
-            get => _transactionType; 
-            set => _transactionType = value; 
+            get => _filterTransactionType; 
+            set => _filterTransactionType = value; 
         }
 
         public TransactionListForm(TransactionService transactionService, LocalStorageService localStorageService,
@@ -51,7 +52,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             _transactionService = transactionService;
             _localStorageService = localStorageService;
-            TransactionType = transactionType;
+            FilterTransactionType = transactionType;
             
             // Create services if not provided
             var authService = new AuthService();
@@ -449,10 +450,10 @@ namespace WinFormsApp1.Forms.Transaction
                 var companyId = Guid.Parse(_selectedCompany.Id);
                 var financialYearId = _selectedFinancialYear.Id;
                 
-                Console.WriteLine($"Loading transactions for company: {companyId}, financial year: {financialYearId}, type: {TransactionType ?? "All"}");
+                Console.WriteLine($"Loading transactions for company: {companyId}, financial year: {financialYearId}, type: {FilterTransactionType ?? "All"}");
                 
                 // Load all transactions for the company and financial year
-                _allTransactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50, TransactionType);
+                _allTransactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 50, FilterTransactionType);
                 Console.WriteLine($"Loaded {_allTransactions.Count} total transactions");
                 
                 // Apply current filter to the loaded transactions
@@ -961,7 +962,7 @@ namespace WinFormsApp1.Forms.Transaction
                     _transactions,
                     _selectedCompany,
                     _selectedFinancialYear,
-                    TransactionType,
+                    FilterTransactionType,
                     filterApplied
                 );
 
@@ -1133,7 +1134,7 @@ namespace WinFormsApp1.Forms.Transaction
 
         private string GetFormTitle()
         {
-            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            var typeText = !string.IsNullOrEmpty(FilterTransactionType) ? $"{FilterTransactionType} " : "";
             if (_selectedCompany != null)
             {
                 return $"{typeText}Transactions - {_selectedCompany.DisplayName}";
@@ -1143,13 +1144,13 @@ namespace WinFormsApp1.Forms.Transaction
 
         private string GetCompanyInfoText()
         {
-            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            var typeText = !string.IsNullOrEmpty(FilterTransactionType) ? $"{FilterTransactionType} " : "";
             return $"{typeText}Transactions for: {_selectedCompany?.DisplayName ?? "No company selected"}";
         }
 
         private string GetInstructionsText()
         {
-            var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
+            var typeText = !string.IsNullOrEmpty(FilterTransactionType) ? $"{FilterTransactionType} " : "";
             return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Use filter dropdown to refine results | Export PDF button to save as PDF | Uses selected company from local storage";
         }
 
@@ -1157,39 +1158,39 @@ namespace WinFormsApp1.Forms.Transaction
         {
             cmbFilter.Items.Clear();
             
-            Console.WriteLine($"Setting up filter dropdown. TransactionType: '{TransactionType}'");
+            Console.WriteLine($"Setting up filter dropdown. FilterTransactionType: '{FilterTransactionType}'");
             
-            if (string.IsNullOrEmpty(TransactionType))
+            if (string.IsNullOrEmpty(FilterTransactionType))
             {
                 // Default filter options for all transactions - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Quotation", "Returns", "Receipt", "Payment", "Journal" });
                 Console.WriteLine("Using default filter options (no transaction type)");
             }
-            else if (TransactionType.Equals("Sale", StringComparison.OrdinalIgnoreCase))
+            else if (FilterTransactionType.Equals("Sale", StringComparison.OrdinalIgnoreCase))
             {
                 // Sales filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Dispatched", "Returns", "Quotation" });
                 Console.WriteLine("Using Sales filter options");
             }
-            else if (TransactionType.Equals("Purchase", StringComparison.OrdinalIgnoreCase))
+            else if (FilterTransactionType.Equals("Purchase", StringComparison.OrdinalIgnoreCase))
             {
                 // Purchase filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Bill", "Order", "Received", "Returns", "Quotation" });
                 Console.WriteLine("Using Purchase filter options");
             }
-            else if (TransactionType.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
+            else if (FilterTransactionType.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
             {
                 // Receipt filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Payment", "Advance", "Refund" });
                 Console.WriteLine("Using Receipt filter options");
             }
-            else if (TransactionType.Equals("Payment", StringComparison.OrdinalIgnoreCase))
+            else if (FilterTransactionType.Equals("Payment", StringComparison.OrdinalIgnoreCase))
             {
                 // Payment filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Payment", "Advance", "Refund" });
                 Console.WriteLine("Using Payment filter options");
             }
-            else if (TransactionType.Equals("Journal", StringComparison.OrdinalIgnoreCase))
+            else if (FilterTransactionType.Equals("Journal", StringComparison.OrdinalIgnoreCase))
             {
                 // Journal filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Opening", "Adjustment", "Transfer", "Closing" });
@@ -1199,7 +1200,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 // Generic filter options - use direct values for API
                 cmbFilter.Items.AddRange(new object[] { "All", "Invoice", "Order", "Quotation", "Returns", "Receipt", "Payment", "Journal" });
-                Console.WriteLine($"Using generic filter options for unknown type: {TransactionType}");
+                Console.WriteLine($"Using generic filter options for unknown type: {FilterTransactionType}");
             }
             
             // Set default selection to "All"
@@ -1278,7 +1279,7 @@ namespace WinFormsApp1.Forms.Transaction
         private void btnTestFilter_Click(object? sender, EventArgs e)
         {
             Console.WriteLine("=== TEST FILTER BUTTON CLICKED ===");
-            Console.WriteLine($"TransactionType: '{TransactionType}'");
+            Console.WriteLine($"FilterTransactionType: '{FilterTransactionType}'");
             Console.WriteLine($"Selected Filter: '{cmbFilter.SelectedItem}'");
             Console.WriteLine($"Company: {_selectedCompany?.DisplayName ?? "None"}");
             Console.WriteLine($"Financial Year: {_selectedFinancialYear?.YearLabel ?? "None"}");
@@ -1288,7 +1289,7 @@ namespace WinFormsApp1.Forms.Transaction
             // Show a message box with the current filter state
             MessageBox.Show(
                 $"Current Filter State:\n\n" +
-                $"Transaction Type: {TransactionType ?? "None"}\n" +
+                $"Transaction Type: {FilterTransactionType ?? "None"}\n" +
                 $"Selected Filter: {cmbFilter.SelectedItem}\n" +
                 $"Total Transactions: {_allTransactions.Count}\n" +
                 $"Currently Showing: {_transactions.Count}\n\n" +

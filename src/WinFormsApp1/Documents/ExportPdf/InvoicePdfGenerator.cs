@@ -1,535 +1,462 @@
 ﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using QuestPDF.Drawing;
+using System.Data.Common;
+using WinFormsApp1.Documents;
+using WinFormsApp1.Forms.Transaction;
 
-namespace WinFormsApp1.Documents
+namespace WinFormsApp1.Documents.ExportPdf
 {
     public class InvoicePdfGenerator
     {
-        public byte[] GenerateInvoicePdf(InvoiceModel invoice)
+        public void SaveInvoicePdf(InvoiceModel invoiceModel, string filePath, CopyType copyType = CopyType.Original, InvoiceFormat format = InvoiceFormat.StandardA4)
+        {
+            try
+            {
+                // Create the invoice document based on the selected format
+                IDocument document = format switch
+                {
+                    InvoiceFormat.StandardA4 => CreateStandardA4Invoice(invoiceModel, copyType),
+                    InvoiceFormat.A5HalfPage => CreateA5HalfPageInvoice(invoiceModel, copyType),
+                    InvoiceFormat.Slip3Inch => CreateSlipInvoice(invoiceModel, copyType, 76),
+                    InvoiceFormat.Slip4Inch => CreateSlipInvoice(invoiceModel, copyType, 101),
+                    _ => CreateStandardA4Invoice(invoiceModel, copyType)
+                };
+
+                // Save the PDF
+                document.GeneratePdf(filePath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to generate invoice PDF: {ex.Message}", ex);
+            }
+        }
+
+        public void SaveInvoicePdfWithMultipleCopies(InvoiceModel invoiceModel, string filePath, CopyType copyType, int numberOfCopies, InvoiceFormat format = InvoiceFormat.StandardA4)
+        {
+            try
+            {
+                // Create a composite document with multiple pages
+                var document = Document.Create(container =>
+                {
+                    for (int i = 0; i < numberOfCopies; i++)
+                    {
+                        var currentCopyType = GetCopyTypeForPage(copyType, i);
+                        var currentInvoiceModel = CloneInvoiceModel(invoiceModel, currentCopyType);
+                        
+                        container.Page(page =>
+                        {
+                            page.Size(GetPageSize(format));
+                            page.Margin(20);
+                            page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10));
+
+                            // For Standard A4, use InvoiceDocument methods
+                            if (format == InvoiceFormat.StandardA4)
+                            {
+                                var invoiceDoc = new InvoiceDocument(currentInvoiceModel, currentCopyType);
+                                page.Header().Element(invoiceDoc.ComposeHeader);
+                                page.Content().Element(invoiceDoc.ComposeContent);
+                                page.Footer().Element(invoiceDoc.ComposeFooter);
+                            }
+                            else
+                            {
+                                // For other formats, use compact methods
+                                page.Header().Element(container => ComposeHeader(container, currentInvoiceModel, copyType));
+                                page.Content().Element(container => ComposeContent(container, currentInvoiceModel));
+                                page.Footer().Element(ComposeFooter);
+                            }
+                        });
+                    }
+                });
+
+                // Save the PDF only once
+                document.GeneratePdf(filePath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to generate invoice PDF with multiple copies: {ex.Message}", ex);
+            }
+        }
+
+        private IDocument CreateStandardA4Invoice(InvoiceModel invoiceModel, CopyType copyType)
+        {
+            return new InvoiceDocument(invoiceModel, copyType.ToString());
+        }
+
+        private IDocument CreateA5HalfPageInvoice(InvoiceModel invoiceModel, CopyType copyType)
         {
             return Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Size(GetPageSize(invoice.InvoiceFormat));
-                    page.Margin(GetPageMargin(invoice.InvoiceFormat));
-                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(GetBaseFontSize(invoice.InvoiceFormat)));
-                    page.Header().Element(ComposeHeader);
-                    page.Content().Element(x => ComposeContent(x, invoice));
-                    page.Footer().Element(ComposeFooter);
+                    page.Size(PageSizes.A5);
+                    page.Margin(15);
+                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(8));
 
-                    void ComposeHeader(IContainer container)
-                    {
-                        if (invoice.InvoiceFormat.Contains("Slip"))
-                        {
-                            ComposeSlipHeader(container, invoice);
-                        }
-                        else
-                        {
-                            ComposeStandardHeader(container, invoice);
-                        }
-                    }
-
-                    void ComposeContent(IContainer container, InvoiceModel invoice)
-                    {
-                        if (invoice.InvoiceFormat.Contains("Slip"))
-                        {
-                            ComposeSlipContent(container, invoice);
-                        }
-                        else
-                        {
-                            ComposeStandardContent(container, invoice);
-                        }
-                    }
-
-                    void ComposeFooter(IContainer container)
-                    {
-                        if (invoice.InvoiceFormat.Contains("Slip"))
-                        {
-                            ComposeSlipFooter(container, invoice);
-                        }
-                        else
-                        {
-                            ComposeStandardFooter(container, invoice);
-                        }
-                    }
+                    page.Header().Element(container => ComposeCompactHeader(container, invoiceModel, copyType));
+                    page.Content().Element(container => ComposeCompactContent(container, invoiceModel));
+                    page.Footer().Element(ComposeCompactFooter);
                 });
-            }).GeneratePdf();
+            });
         }
 
-        public byte[] GenerateCombinedInvoicePdf(InvoiceModel invoice)
+        // Replace usages of MmToPoints(76) and MmToPoints(210) with the correct calculation.
+        // Since Unit is an enum, you should convert millimeters to points manually.
+        // 1 inch = 25.4 mm, 1 inch = 72 points, so 1 mm = 72 / 25.4 points ≈ 2.83465 points.
+
+        private float MmToPoints(float mm)
         {
+            return mm * 72f / 25.4f;
+        }
+
+        private IDocument CreateSlipInvoice(InvoiceModel invoiceModel, CopyType copyType, int widthMm)
+        {
+            // For slip formats, use A4 height but custom width
+            var pageSize = widthMm switch
+            {
+                76 => new PageSize(MmToPoints(76), MmToPoints(210)), // 3 inch width
+                101 => new PageSize(MmToPoints(101), MmToPoints(210)), // 4 inch width
+                _ => PageSizes.A4
+            };
+
             return Document.Create(container =>
             {
-                // First page - Original
                 container.Page(page =>
                 {
-                    page.Size(GetPageSize(invoice.InvoiceFormat));
-                    page.Margin(GetPageMargin(invoice.InvoiceFormat));
-                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(GetBaseFontSize(invoice.InvoiceFormat)));
-                    page.Header().Element(x => ComposeHeaderWithCopyType(x, invoice, "ORIGINAL"));
-                    page.Content().Element(x => ComposeContentForCombined(x, invoice));
-                    page.Footer().Element(x => ComposeFooterForCombined(x, invoice));
-                });
+                    page.Size(pageSize);
+                    page.Margin(10);
+                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(7));
 
-                // Second page - Duplicate
-                container.Page(page =>
-                {
-                    page.Size(GetPageSize(invoice.InvoiceFormat));
-                    page.Margin(GetPageMargin(invoice.InvoiceFormat));
-                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(GetBaseFontSize(invoice.InvoiceFormat)));
-                    page.Header().Element(x => ComposeHeaderWithCopyType(x, invoice, "DUPLICATE"));
-                    page.Content().Element(x => ComposeContentForCombined(x, invoice));
-                    page.Footer().Element(x => ComposeFooterForCombined(x, invoice));
+                    page.Header().Element(container => ComposeSlipHeader(container, invoiceModel, copyType));
+                    page.Content().Element(container => ComposeSlipContent(container, invoiceModel));
+                    page.Footer().Element(ComposeSlipFooter);
                 });
-
-                // Third page - Triplicate
-                container.Page(page =>
-                {
-                    page.Size(GetPageSize(invoice.InvoiceFormat));
-                    page.Margin(GetPageMargin(invoice.InvoiceFormat));
-                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(GetBaseFontSize(invoice.InvoiceFormat)));
-                    page.Header().Element(x => ComposeHeaderWithCopyType(x, invoice, "TRIPLICATE"));
-                    page.Content().Element(x => ComposeContentForCombined(x, invoice));
-                    page.Footer().Element(x => ComposeFooterForCombined(x, invoice));
-                });
-            }).GeneratePdf();
+            });
         }
 
-        private PageSize GetPageSize(string format)
+        private PageSize GetPageSize(InvoiceFormat format)
         {
             return format switch
             {
-                "Standard A4" => PageSizes.A4,
-                "A5 Half Page" => PageSizes.A5,
-                "Slip 3 inch" => new PageSize(76, 210), // 3 inch width
-                "Slip 4 inch" => new PageSize(101, 210), // 4 inch width
+                InvoiceFormat.StandardA4 => PageSizes.A4,
+                InvoiceFormat.A5HalfPage => PageSizes.A5,
+                InvoiceFormat.Slip3Inch => new PageSize(MmToPoints(76), MmToPoints(210)),
+                InvoiceFormat.Slip4Inch => new PageSize(MmToPoints(101), MmToPoints(210)),
                 _ => PageSizes.A4
             };
         }
 
-        private float GetPageMargin(string format)
+   
+
+        private string GetCopyTypeForPage(CopyType copyType, int pageIndex)
         {
-            return format switch
+            return copyType switch
             {
-                "Standard A4" => 20,
-                "A5 Half Page" => 15,
-                "Slip 3 inch" => 5,
-                "Slip 4 inch" => 8,
-                _ => 20
+                CopyType.All => pageIndex switch
+                {
+                    0 => "Original",
+                    1 => "Duplicate",
+                    2 => "Triplicate",
+                    _ => $"Copy {pageIndex + 1}"
+                },
+                CopyType.OriginalDuplicate => pageIndex switch
+                {
+                    0 => "Original",
+                    1 => "Duplicate",
+                    _ => $"Copy {pageIndex + 1}"
+                },
+                _ => copyType.ToString()
             };
         }
 
-        private float GetBaseFontSize(string format)
+        private InvoiceModel CloneInvoiceModel(InvoiceModel original, string copyType)
         {
-            return format switch
+            return new InvoiceModel
             {
-                "Standard A4" => 10,
-                "A5 Half Page" => 9,
-                "Slip 3 inch" => 6,
-                "Slip 4 inch" => 7,
-                _ => 10
+                InvoiceNumber = original.InvoiceNumber,
+                InvoiceDate = original.InvoiceDate,
+                CustomerName = original.CustomerName,
+                CustomerAddress = original.CustomerAddress,
+                CustomerGSTIN = original.CustomerGSTIN,
+                CustomerMobile = original.CustomerMobile,
+                CompanyName = original.CompanyName,
+                CompanyGSTIN = original.CompanyGSTIN,
+                CompanyPhone = original.CompanyPhone,
+                CompanyEmail = original.CompanyEmail,
+                PlaceOfSupply = original.PlaceOfSupply,
+                Items = original.Items,
+                SubTotal = original.SubTotal,
+                DiscountAmount = original.DiscountAmount,
+                TaxAmount = original.TaxAmount,
+                TotalAmount = original.TotalAmount,
+                RoundOff = original.RoundOff,
+                NetPayable = original.NetPayable,
+                AmountInWords = original.AmountInWords,
+                CopyType = copyType,
+                InvoiceFormat = original.InvoiceFormat,
+                TransactionType = original.TransactionType,
+                ReferenceNumber = original.ReferenceNumber,
+                Notes = original.Notes
             };
         }
 
-        private void ComposeStandardHeader(IContainer container, InvoiceModel invoice)
+        // Compact layout methods for A5 and slip formats
+        private void ComposeCompactHeader(IContainer container, InvoiceModel invoiceModel, CopyType copyType)
         {
             container.Row(row =>
             {
-                row.RelativeItem(2).Column(col =>
+                row.RelativeItem(2).Column(column =>
                 {
-                    col.Item().Text(invoice.CompanyName).Bold().FontSize(16);
-                    col.Item().Text($"GSTIN: {invoice.CompanyGSTIN}").FontSize(8);
-                    col.Item().Text($"Phone: {invoice.CompanyPhone}").FontSize(8);
-                    col.Item().Text($"Email: {invoice.CompanyEmail}").FontSize(8);
+                    column.Item().Text(invoiceModel.CompanyName).FontSize(12).Bold().FontColor(Colors.Blue.Medium);
+                    column.Item().Text($"GSTIN: {invoiceModel.CompanyGSTIN}").FontSize(7).FontColor(Colors.Grey.Medium);
                 });
 
-                row.RelativeItem(1).Column(col =>
+                row.RelativeItem(1).Column(column =>
                 {
-                    col.Item().AlignRight().Text("TAX INVOICE").Bold().FontSize(14);
-                    col.Item().AlignRight().Text($"Invoice No: {invoice.InvoiceNumber}").FontSize(10);
-                    col.Item().AlignRight().Text($"Date: {invoice.InvoiceDate:dd-MM-yyyy}").FontSize(10);
-                    col.Item().AlignRight().Text($"Copy: {invoice.CopyType}").FontSize(10);
+                    column.Item().AlignRight().Text("INVOICE").FontSize(14).Bold().FontColor(Colors.Blue.Medium);
+                    column.Item().AlignRight().Text($"#{invoiceModel.InvoiceNumber}").FontSize(10).Bold();
+                    column.Item().AlignRight().Text($"Copy: {copyType}").FontSize(7).FontColor(Colors.Grey.Medium);
                 });
             });
         }
 
-        private void ComposeSlipHeader(IContainer container, InvoiceModel invoice)
-        {
-            container.Column(col =>
-            {
-                col.Item().AlignCenter().Text(invoice.CompanyName).Bold().FontSize(12);
-                col.Item().AlignCenter().Text($"GSTIN: {invoice.CompanyGSTIN}").FontSize(6);
-                col.Item().AlignCenter().Text("TAX INVOICE").Bold().FontSize(10);
-                col.Item().AlignCenter().Text($"Invoice: {invoice.InvoiceNumber} / {invoice.InvoiceDate:dd-MM-yyyy}").FontSize(6);
-                col.Item().AlignCenter().Text($"Copy: {invoice.CopyType}").FontSize(6);
-            });
-        }
-
-        private void ComposeStandardContent(IContainer container, InvoiceModel invoice)
-        {
-            container.Column(col =>
-            {
-                // Customer Information
-                col.Item().PaddingBottom(10).Element(x => ComposeCustomerInfo(x, invoice));
-
-                // Items Table
-                col.Item().PaddingBottom(10).Element(x => ComposeItemsTable(x, invoice));
-
-                // Summary
-                col.Item().Element(x => ComposeSummary(x, invoice));
-            });
-        }
-
-        private void ComposeSlipContent(IContainer container, InvoiceModel invoice)
-        {
-            container.Column(col =>
-            {
-                // Customer Info (compact)
-                col.Item().Text($"Customer: {invoice.CustomerName}").FontSize(6);
-                col.Item().Text($"GSTIN: {invoice.CustomerGSTIN}").FontSize(6);
-
-                // Items (compact)
-                col.Item().PaddingTop(5).Element(x => ComposeSlipItemsTable(x, invoice));
-
-                // Summary (compact)
-                col.Item().PaddingTop(5).Element(x => ComposeSlipSummary(x, invoice));
-            });
-        }
-
-        private void ComposeCustomerInfo(IContainer container, InvoiceModel invoice)
-        {
-            container.Border(1).Padding(10).Column(col =>
-            {
-                col.Item().Text("Bill To:").Bold();
-                col.Item().Text(invoice.CustomerName);
-                col.Item().Text(invoice.CustomerAddress);
-                col.Item().Text($"GSTIN: {invoice.CustomerGSTIN}");
-                col.Item().Text($"Mobile: {invoice.CustomerMobile}");
-                col.Item().Text($"Place of Supply: {invoice.PlaceOfSupply}");
-            });
-        }
-
-        private void ComposeItemsTable(IContainer container, InvoiceModel invoice)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(0.5f); // S.No
-                    columns.RelativeColumn(2f);   // Product
-                    columns.RelativeColumn(1f);   // HSN
-                    columns.RelativeColumn(0.8f); // Qty
-                    columns.RelativeColumn(0.8f); // Unit
-                    columns.RelativeColumn(1f);   // Price
-                    columns.RelativeColumn(1f);   // Amount
-                });
-
-                // Header
-                table.Header(header =>
-                {
-                    header.Cell().Text("S.No").Bold();
-                    header.Cell().Text("Product").Bold();
-                    header.Cell().Text("HSN").Bold();
-                    header.Cell().Text("Qty").Bold();
-                    header.Cell().Text("Unit").Bold();
-                    header.Cell().Text("Price").Bold();
-                    header.Cell().Text("Amount").Bold();
-                });
-
-                // Items
-                foreach (var item in invoice.Items)
-                {
-                    table.Cell().Text(item.SerialNumber);
-                    table.Cell().Text(item.ProductName);
-                    table.Cell().Text(item.HSNCode);
-                    table.Cell().Text(item.Quantity.ToString("N2"));
-                    table.Cell().Text(item.Unit);
-                    table.Cell().Text(item.UnitPrice.ToString("N2"));
-                    table.Cell().Text(item.LineTotal.ToString("N2"));
-                }
-            });
-        }
-
-        private void ComposeSlipItemsTable(IContainer container, InvoiceModel invoice)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(0.3f); // S.No
-                    columns.RelativeColumn(1.5f); // Product
-                    columns.RelativeColumn(0.8f); // Qty
-                    columns.RelativeColumn(0.8f); // Price
-                    columns.RelativeColumn(0.8f); // Amount
-                });
-
-                // Header
-                table.Header(header =>
-                {
-                    header.Cell().Text("S.No").Bold().FontSize(6);
-                    header.Cell().Text("Product").Bold().FontSize(6);
-                    header.Cell().Text("Qty").Bold().FontSize(6);
-                    header.Cell().Text("Price").Bold().FontSize(6);
-                    header.Cell().Text("Amount").Bold().FontSize(6);
-                });
-
-                // Items
-                foreach (var item in invoice.Items)
-                {
-                    table.Cell().Text(item.SerialNumber).FontSize(6);
-                    table.Cell().Text(item.ProductName).FontSize(6);
-                    table.Cell().Text(item.Quantity.ToString("N2")).FontSize(6);
-                    table.Cell().Text(item.UnitPrice.ToString("N2")).FontSize(6);
-                    table.Cell().Text(item.LineTotal.ToString("N2")).FontSize(6);
-                }
-            });
-        }
-
-        private void ComposeSummary(IContainer container, InvoiceModel invoice)
-        {
-            container.Row(row =>
-            {
-                row.RelativeItem(2).Column(col =>
-                {
-                    col.Item().Text($"Amount in Words: {invoice.AmountInWords}").Italic();
-                    col.Item().Text($"Tax Rate: {invoice.Items.FirstOrDefault()?.TaxRate:N2}%");
-                    col.Item().Text($"Taxable Amount: {invoice.SubTotal:N2}");
-                });
-
-                row.RelativeItem(1).Column(col =>
-                {
-                    col.Item().Row(r => { r.RelativeItem().Text("Sub Total:"); r.RelativeItem().Text(invoice.SubTotal.ToString("N2")); });
-                    col.Item().Row(r => { r.RelativeItem().Text("Discount:"); r.RelativeItem().Text(invoice.DiscountAmount.ToString("N2")); });
-                    col.Item().Row(r => { r.RelativeItem().Text("Tax Amount:"); r.RelativeItem().Text(invoice.TaxAmount.ToString("N2")); });
-                    col.Item().Row(r => { r.RelativeItem().Text("Round Off:"); r.RelativeItem().Text(invoice.RoundOff.ToString("N2")); });
-                    col.Item().Row(r => { r.RelativeItem().Text("Net Payable:").Bold(); r.RelativeItem().Text(invoice.NetPayable.ToString("N2")).Bold(); });
-                });
-            });
-        }
-
-        private void ComposeSlipSummary(IContainer container, InvoiceModel invoice)
-        {
-            container.Column(col =>
-            {
-                col.Item().Row(r => { r.RelativeItem().Text("Sub Total:").FontSize(6); r.RelativeItem().Text(invoice.SubTotal.ToString("N2")).FontSize(6); });
-                col.Item().Row(r => { r.RelativeItem().Text("Tax Amount:").FontSize(6); r.RelativeItem().Text(invoice.TaxAmount.ToString("N2")).FontSize(6); });
-                col.Item().Row(r => { r.RelativeItem().Text("Net Payable:").Bold().FontSize(6); r.RelativeItem().Text(invoice.NetPayable.ToString("N2")).Bold().FontSize(6); });
-                col.Item().Text($"Amount: {invoice.AmountInWords}").FontSize(6).Italic();
-            });
-        }
-
-        private void ComposeStandardFooter(IContainer container, InvoiceModel invoice)
-        {
-            container.Row(row =>
-            {
-                row.RelativeItem(1).Text("Receiver's Signature").Italic();
-                row.RelativeItem(1).AlignRight().Text("Authorised Signatory").Italic();
-            });
-        }
-
-        private void ComposeSlipFooter(IContainer container, InvoiceModel invoice)
-        {
-            container.Column(col =>
-            {
-                col.Item().AlignCenter().Text("THANK YOU. VISIT US AGAIN.").Bold().FontSize(8);
-                col.Item().Row(r => { r.RelativeItem().Text("Signature").FontSize(6); r.RelativeItem().AlignRight().Text("Authorised").FontSize(6); });
-            });
-        }
-
-        private void ComposeHeaderWithCopyType(IContainer container, InvoiceModel invoice, string copyType)
-        {
-            if (invoice.InvoiceFormat.Contains("Slip"))
-            {
-                ComposeSlipHeaderWithCopyType(container, invoice, copyType);
-            }
-            else
-            {
-                ComposeStandardHeaderWithCopyType(container, invoice, copyType);
-            }
-        }
-
-        private void ComposeStandardHeaderWithCopyType(IContainer container, InvoiceModel invoice, string copyType)
+        private void ComposeCompactContent(IContainer container, InvoiceModel invoiceModel)
         {
             container.Column(column =>
             {
-                column.Item().Element(ComposeCompanyHeader);
-                column.Item().Element(ComposeBillingAndInvoiceDetails);
-                column.Item().Element(ComposeInvoiceTitle);
-                column.Item().Element(ComposePartyAndInvoiceDetails);
-                column.Item().Element(x => ComposeCopyTypeIndicator(x, copyType));
+                // Customer info
+                column.Item().Text($"Bill To: {invoiceModel.CustomerName}").FontSize(8);
+                
+                // Items (simplified)
+                column.Item().Element(container => ComposeCompactItems(container, invoiceModel));
+                
+                // Totals
+                column.Item().Element(container => ComposeCompactTotals(container, invoiceModel));
             });
         }
 
-        private void ComposeSlipHeaderWithCopyType(IContainer container, InvoiceModel invoice, string copyType)
+        private void ComposeCompactItems(IContainer container, InvoiceModel invoiceModel)
         {
-            container.Column(col =>
-            {
-                col.Item().AlignCenter().Text(invoice.CompanyName).Bold().FontSize(12);
-                col.Item().AlignCenter().Text($"GSTIN: {invoice.CompanyGSTIN}").FontSize(6);
-                col.Item().AlignCenter().Text("").FontSize(10); // Empty title
-                col.Item().AlignCenter().Text($"Invoice: {invoice.InvoiceNumber} / {invoice.InvoiceDate:dd-MM-yyyy}").FontSize(6);
-                col.Item().AlignCenter().Text($"Copy: {copyType}").FontSize(6).Bold().FontColor(Colors.Red.Medium);
-            });
-        }
-
-        private void ComposeContentForCombined(IContainer container, InvoiceModel invoice)
-        {
-            if (invoice.InvoiceFormat.Contains("Slip"))
-            {
-                ComposeSlipContent(container, invoice);
-            }
-            else
-            {
-                ComposeStandardContent(container, invoice);
-            }
-        }
-
-        private void ComposeFooterForCombined(IContainer container, InvoiceModel invoice)
-        {
-            if (invoice.InvoiceFormat.Contains("Slip"))
-            {
-                ComposeSlipFooter(container, invoice);
-            }
-            else
-            {
-                ComposeStandardFooter(container, invoice);
-            }
-        }
-
-        private void ComposeCompanyHeader(IContainer container)
-        {
-            container.Row(row =>
-            {
-                // Company Logo/Name (Left side) - Empty grid structure
-                row.RelativeItem(2).Element(ComposeCompanyDetailsGrid);
-
-                // Company Tax Details (Right side) - Empty grid structure
-                row.RelativeItem(1).Element(ComposeCompanyTaxGrid);
-            });
-        }
-
-        private void ComposeCompanyDetailsGrid(IContainer container)
-        {
-            container.Border(1).BorderColor(Colors.Grey.Medium).Padding(5).Column(column =>
+            container.Column(column =>
             {
                 // Header
-                column.Item().Text("Company Details").FontSize(11).Bold().Italic();
-
-                // Grid rows
-                for (int i = 0; i < 5; i++)
+                column.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
                 {
-                    column.Item().Row(row =>
+                    row.RelativeItem(3).Text("Item").FontSize(7).Bold();
+                    row.ConstantItem(40).Text("Qty").FontSize(7).Bold();
+                    row.ConstantItem(50).Text("Rate").FontSize(7).Bold();
+                    row.ConstantItem(50).Text("Amount").FontSize(7).Bold();
+                });
+
+                // Items
+                foreach (var item in invoiceModel.Items)
+                {
+                    column.Item().Padding(2).Row(row =>
                     {
-                        row.RelativeItem(1).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                        row.RelativeItem(2).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
+                        row.RelativeItem(3).Text(item.ProductName).FontSize(7);
+                        row.ConstantItem(40).Text(item.Quantity.ToString("N2")).FontSize(7);
+                        row.ConstantItem(50).Text(item.UnitPrice.ToString("N2")).FontSize(7);
+                        row.ConstantItem(50).Text(item.LineTotal.ToString("N2")).FontSize(7);
                     });
                 }
             });
         }
 
-        private void ComposeCompanyTaxGrid(IContainer container)
+        private void ComposeCompactTotals(IContainer container, InvoiceModel invoiceModel)
         {
-            container.Border(1).BorderColor(Colors.Grey.Medium).Padding(5).Column(column =>
+            container.AlignRight().Column(column =>
             {
-                // Header
-                column.Item().Text("Company Tax Details").FontSize(11).Bold().Italic();
-
-                // Grid rows
-                for (int i = 0; i < 5; i++)
+                column.Item().Row(row =>
                 {
-                    column.Item().Row(row =>
-                    {
-                        row.RelativeItem(1).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                        row.RelativeItem(2).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                    });
+                    row.ConstantItem(60).Text("Total:").FontSize(8).Bold();
+                    row.ConstantItem(50).Text(invoiceModel.NetPayable.ToString("N2")).FontSize(8).Bold();
+                });
+            });
+        }
+
+        private void ComposeCompactFooter(IContainer container)
+        {
+            container.Text($"Generated: {DateTime.Now:dd/MM/yyyy}").FontSize(6).FontColor(Colors.Grey.Medium);
+        }
+
+        // Slip layout methods
+        private void ComposeSlipHeader(IContainer container, InvoiceModel invoiceModel, CopyType copyType)
+        {
+            container.Column(column =>
+            {
+                column.Item().Text(invoiceModel.CompanyName).FontSize(8).Bold().AlignCenter();
+                column.Item().Text($"INVOICE #{invoiceModel.InvoiceNumber}").FontSize(7).Bold().AlignCenter();
+                column.Item().Text($"Copy: {copyType}").FontSize(6).FontColor(Colors.Grey.Medium).AlignCenter();
+            });
+        }
+
+        private void ComposeSlipContent(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.Column(column =>
+            {
+                column.Item().Text($"Customer: {invoiceModel.CustomerName}").FontSize(6);
+                column.Item().Element(container => ComposeSlipItems(container, invoiceModel));
+                column.Item().Text($"Total: {invoiceModel.NetPayable:N2}").FontSize(7).Bold().AlignRight();
+            });
+        }
+
+        private void ComposeSlipItems(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.Column(column =>
+            {
+                foreach (var item in invoiceModel.Items.Take(3)) // Limit items for slip
+                {
+                    column.Item().Text($"{item.ProductName} x{item.Quantity} @{item.UnitPrice:N2}").FontSize(6);
                 }
             });
         }
 
-        private void ComposeInvoiceTitle(IContainer container)
+        private void ComposeSlipFooter(IContainer container)
+        {
+            container.Text(DateTime.Now.ToString("dd/MM/yyyy")).FontSize(5).FontColor(Colors.Grey.Medium).AlignCenter();
+        }
+
+        // Standard layout methods (reused from InvoiceDocument)
+        private void ComposeHeader(IContainer container, InvoiceModel invoiceModel, CopyType copyType)
         {
             container.Row(row =>
             {
-                row.ConstantItem(0).Text(""); // Spacer
-                row.RelativeItem(1).AlignCenter().Text("").FontSize(16).Bold().Underline(); // Empty title
-                row.ConstantItem(0).Text(""); // Spacer
-            });
-        }
-
-        private void ComposePartyAndInvoiceDetails(IContainer container)
-        {
-            container.Row(row =>
-            {
-                // Party Details (Left side) - Empty grid structure
-                row.RelativeItem(2).Element(ComposePartyDetailsGrid);
-
-                // Invoice Details (Right side) - Empty grid structure
-                row.RelativeItem(1).Element(ComposeInvoiceDetailsGrid);
-            });
-        }
-
-        private void ComposeBillingAndInvoiceDetails(IContainer container)
-        {
-            container.Row(row =>
-            {
-                // Left side - Party Details Grid
-                row.RelativeItem(1).Element(ComposePartyDetailsGrid);
-
-                // Spacer between columns
-                row.ConstantItem(50);
-
-                // Right side - Invoice Details Grid
-                row.RelativeItem(1).Element(ComposeInvoiceDetailsGrid);
-            });
-        }
-
-        private void ComposePartyDetailsGrid(IContainer container)
-        {
-            container.Border(1).BorderColor(Colors.Grey.Medium).Padding(5).Column(column =>
-            {
-                // Header
-                column.Item().Text("Party Details").FontSize(11).Bold().Italic();
-
-                // Grid rows
-                for (int i = 0; i < 6; i++)
+                row.RelativeItem(2).Column(column =>
                 {
-                    column.Item().Row(row =>
-                    {
-                        row.RelativeItem(1).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                        row.RelativeItem(2).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                    });
+                    column.Item().Text(invoiceModel.CompanyName).FontSize(16).Bold().FontColor(Colors.Blue.Medium);
+                    column.Item().Text($"GSTIN: {invoiceModel.CompanyGSTIN}").FontSize(9).FontColor(Colors.Grey.Medium);
+                    column.Item().Text($"Phone: {invoiceModel.CompanyPhone}").FontSize(9).FontColor(Colors.Grey.Medium);
+                    column.Item().Text($"Email: {invoiceModel.CompanyEmail}").FontSize(9).FontColor(Colors.Grey.Medium);
+                });
+
+                row.RelativeItem(1).Column(column =>
+                {
+                    column.Item().AlignRight().Text("INVOICE").FontSize(20).Bold().FontColor(Colors.Blue.Medium);
+                    column.Item().AlignRight().Text($"#{invoiceModel.InvoiceNumber}").FontSize(14).Bold();
+                    column.Item().AlignRight().Text($"Date: {invoiceModel.InvoiceDate:dd/MM/yyyy}").FontSize(9);
+                    column.Item().AlignRight().Text($"Copy: {copyType}").FontSize(9).FontColor(Colors.Grey.Medium);
+                });
+            });
+        }
+
+        private void ComposeContent(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.Column(column =>
+            {
+                column.Item().Element(container => ComposeCustomerInfo(container, invoiceModel));
+                column.Item().Element(container => ComposeItemsTable(container, invoiceModel));
+                column.Item().Element(container => ComposeTotals(container, invoiceModel));
+            });
+        }
+
+        private void ComposeCustomerInfo(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.Row(row =>
+            {
+                row.RelativeItem(2).Column(column =>
+                {
+                    column.Item().Text("Bill To:").FontSize(11).Bold();
+                    column.Item().Text(invoiceModel.CustomerName).FontSize(11);
+                    column.Item().Text(invoiceModel.CustomerAddress).FontSize(9).FontColor(Colors.Grey.Medium);
+                });
+
+                row.RelativeItem(1).Column(column =>
+                {
+                    column.Item().Text("Invoice Details:").FontSize(11).Bold();
+                    column.Item().Text($"Type: {invoiceModel.TransactionType}").FontSize(9);
+                    column.Item().Text($"Reference: {invoiceModel.ReferenceNumber}").FontSize(9);
+                });
+            });
+        }
+
+        private void ComposeItemsTable(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.Column(column =>
+            {
+                column.Item().Element(container => ComposeTableHeader(container));
+                
+                foreach (var item in invoiceModel.Items)
+                {
+                    column.Item().Element(container => ComposeTableRow(container, item));
                 }
             });
         }
 
-        private void ComposeInvoiceDetailsGrid(IContainer container)
+        private void ComposeTableHeader(IContainer container)
         {
-            container.Border(1).BorderColor(Colors.Grey.Medium).Padding(5).Column(column =>
+            container.Background(Colors.Grey.Lighten3).Padding(5).Row(row =>
             {
-                // Header
-                column.Item().Text("Invoice Details").FontSize(11).Bold().Italic();
-
-                // Grid rows
-                for (int i = 0; i < 7; i++)
-                {
-                    column.Item().Row(row =>
-                    {
-                        row.RelativeItem(1).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                        row.RelativeItem(2).Border(1).BorderColor(Colors.Grey.Medium).Padding(3).Text("").FontSize(10);
-                    });
-                }
+                row.ConstantItem(40).Text("S.No").FontSize(9).Bold();
+                row.RelativeItem(3).Text("Description").FontSize(9).Bold();
+                row.ConstantItem(60).Text("HSN Code").FontSize(9).Bold();
+                row.ConstantItem(50).Text("Qty").FontSize(9).Bold();
+                row.ConstantItem(40).Text("Unit").FontSize(9).Bold();
+                row.ConstantItem(70).Text("Rate").FontSize(9).Bold();
+                row.ConstantItem(60).Text("Discount").FontSize(9).Bold();
+                row.ConstantItem(70).Text("Amount").FontSize(9).Bold();
             });
         }
 
-        private void ComposeCopyTypeIndicator(IContainer container, string copyType)
+        private void ComposeTableRow(IContainer container, InvoiceItemModel item)
+        {
+            container.Padding(5).Row(row =>
+            {
+                row.ConstantItem(40).Text(item.SerialNumber.ToString()).FontSize(9);
+                row.RelativeItem(3).Text(item.ProductName).FontSize(9);
+                row.ConstantItem(60).Text(item.HSNCode).FontSize(9);
+                row.ConstantItem(50).Text(item.Quantity.ToString("N2")).FontSize(9);
+                row.ConstantItem(40).Text(item.Unit).FontSize(9);
+                row.ConstantItem(70).Text(item.UnitPrice.ToString("N2")).FontSize(9);
+                row.ConstantItem(60).Text(item.DiscountAmount.ToString("N2")).FontSize(9);
+                row.ConstantItem(70).Text(item.LineTotal.ToString("N2")).FontSize(9);
+            });
+        }
+
+        private void ComposeTotals(IContainer container, InvoiceModel invoiceModel)
+        {
+            container.AlignRight().Column(column =>
+            {
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Sub Total:").FontSize(10).Bold();
+                    row.ConstantItem(80).Text(invoiceModel.SubTotal.ToString("N2")).FontSize(10);
+                });
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Tax Amount:").FontSize(10);
+                    row.ConstantItem(80).Text(invoiceModel.TaxAmount.ToString("N2")).FontSize(10);
+                });
+
+                column.Item().Element(container =>
+                    container.PaddingTop(5).PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Medium)
+                );
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Total Amount:").FontSize(12).Bold();
+                    row.ConstantItem(80).Text(invoiceModel.NetPayable.ToString("N2")).FontSize(12).Bold();
+                });
+            });
+        }
+
+        private void ComposeFooter(IContainer container)
         {
             container.Row(row =>
             {
-                row.RelativeItem(1).Text(""); // Spacer
-                row.RelativeItem(1).AlignRight().Text(copyType).FontSize(12).Bold().Italic().FontColor(Colors.Red.Medium);
+                row.RelativeItem().Text($"Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Medium);
+                row.RelativeItem().AlignRight().Text($"Page ").FontSize(8).FontColor(Colors.Grey.Medium);
+                //row.ConstantItem(20).Text(x => x.CurrentPageNumber()).FontSize(8).FontColor(Colors.Grey.Medium);
+                row.ConstantItem(10).Text(" of ").FontSize(8).FontColor(Colors.Grey.Medium);
+                // Replace this line:
+                // column.Item().LineHorizontal(1).LineColor(Colors.Grey.Medium).PaddingTop(5).PaddingBottom(5);
+
+                // With the following block:
+                //column.Item().Element(container =>
+                //{
+                //    container.PaddingTop(5).PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                //});
+                //row.ConstantItem(20).Text(x => x.TotalPages()).FontSize(8).FontColor(Colors.Grey.Medium);
             });
         }
     }

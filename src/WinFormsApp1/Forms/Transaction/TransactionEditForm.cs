@@ -2751,7 +2751,7 @@ Ledger Selection:
                 Console.WriteLine($"  Number of Copies: {numberOfCopies}");
                 Console.WriteLine($"  Invoice Format: {invoiceFormat}");
 
-                var pdfGenerator = new InvoicePdfGenerator();
+                var pdfGenerator = new WinFormsApp1.Documents.ExportPdf.InvoicePdfGenerator();
                 var copyTypes = GetCopyTypesToPrint(copyType);
 
                 Console.WriteLine($"Copy types to generate: {string.Join(", ", copyTypes)}");
@@ -2781,7 +2781,11 @@ Ledger Selection:
                                 // Generate individual PDF
                                 var invoiceModel = CreateInvoiceModel(copy, invoiceFormat);
                                 Console.WriteLine($"Invoice model created with format: {invoiceModel.InvoiceFormat}");
-                                pdfBytes = pdfGenerator.GenerateInvoicePdf(invoiceModel);
+                                // Generate PDF using the new InvoicePdfGenerator
+                                var tempFilePath = Path.GetTempFileName() + ".pdf";
+                                pdfGenerator.SaveInvoicePdf(invoiceModel, tempFilePath, GetCopyTypeFromString(copy), invoiceFormat);
+                                pdfBytes = await File.ReadAllBytesAsync(tempFilePath);
+                                File.Delete(tempFilePath); // Clean up temp file
                             }
                             
                             Console.WriteLine($"PDF generated successfully. Size: {pdfBytes.Length} bytes");
@@ -2938,13 +2942,16 @@ Ledger Selection:
                     throw new InvalidOperationException("GenerateCombinedPdf should only be called for CopyType.All");
                 }
 
-                var pdfGenerator = new InvoicePdfGenerator();
+                var pdfGenerator = new WinFormsApp1.Documents.ExportPdf.InvoicePdfGenerator();
                 
                 // Create a special invoice model for combined PDF
                 var combinedInvoiceModel = CreateInvoiceModel("Combined", invoiceFormat);
                 
-                // Generate the combined PDF with all three copies
-                var pdfBytes = pdfGenerator.GenerateCombinedInvoicePdf(combinedInvoiceModel);
+                // Generate the combined PDF with all three copies using the new method
+                var tempFilePath = Path.GetTempFileName() + ".pdf";
+                pdfGenerator.SaveInvoicePdfWithMultipleCopies(combinedInvoiceModel, tempFilePath, CopyType.All, 3, invoiceFormat);
+                var pdfBytes = await File.ReadAllBytesAsync(tempFilePath);
+                File.Delete(tempFilePath); // Clean up temp file
                 
                 Console.WriteLine($"Combined PDF generated successfully. Size: {pdfBytes.Length} bytes");
                 return pdfBytes;
@@ -2954,6 +2961,19 @@ Ledger Selection:
                 Console.WriteLine($"Error generating combined PDF: {ex.Message}");
                 throw new InvalidOperationException($"Failed to generate combined PDF: {ex.Message}", ex);
             }
+        }
+
+        private CopyType GetCopyTypeFromString(string copyTypeString)
+        {
+            return copyTypeString switch
+            {
+                "Original" => CopyType.Original,
+                "Duplicate" => CopyType.Duplicate,
+                "Triplicate" => CopyType.Triplicate,
+                "OriginalDuplicate" => CopyType.OriginalDuplicate,
+                "All" => CopyType.All,
+                _ => CopyType.Original
+            };
         }
 
         private string GetInvoiceFormatString(InvoiceFormat format)
