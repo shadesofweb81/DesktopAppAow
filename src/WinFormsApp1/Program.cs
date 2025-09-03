@@ -1,6 +1,7 @@
 using WinFormsApp1.Forms;
 using WinFormsApp1.Forms.Auth;
 using WinFormsApp1.Services;
+using QuestPDF.Infrastructure;
 
 namespace WinFormsApp1
 {
@@ -12,6 +13,9 @@ namespace WinFormsApp1
         [STAThread]
         static void Main()
         {
+            // Configure QuestPDF license for Community (MIT) usage
+            QuestPDF.Settings.License = LicenseType.Community;
+            
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();

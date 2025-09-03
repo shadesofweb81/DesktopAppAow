@@ -1,6 +1,7 @@
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms;
+using WinFormsApp1.Documents.ExportPdf;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -11,6 +12,7 @@ namespace WinFormsApp1.Forms.Transaction
         private readonly ProductService _productService;
         private readonly TaxService _taxService;
         private readonly LedgerService _ledgerService;
+        private readonly PdfExportService _pdfExportService;
         private List<TransactionListDto> _transactions = new List<TransactionListDto>();
         private List<TransactionListDto> _allTransactions = new List<TransactionListDto>(); // Store all transactions
         private TransactionListDto? _selectedTransaction;
@@ -22,6 +24,7 @@ namespace WinFormsApp1.Forms.Transaction
         private Button btnView = null!;
         private Button btnDelete = null!;
         private Button btnRefresh = null!;
+        private Button btnExportPdf = null!;
         private Label lblStatus = null!;
         private Label lblInstructions = null!;
         private Label lblCompanyInfo = null!;
@@ -55,6 +58,7 @@ namespace WinFormsApp1.Forms.Transaction
             _productService = productService ?? new ProductService(authService);
             _taxService = taxService ?? new TaxService(authService);
             _ledgerService = ledgerService ?? new LedgerService(authService);
+            _pdfExportService = new PdfExportService();
             
             InitializeComponent();
             SetupForm();
@@ -69,6 +73,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnView = new Button();
             btnDelete = new Button();
             btnRefresh = new Button();
+            btnExportPdf = new Button();
             lblStatus = new Label();
             lblInstructions = new Label();
             lblCompanyInfo = new Label();
@@ -82,7 +87,7 @@ namespace WinFormsApp1.Forms.Transaction
             // 
             lblCompanyInfo.Location = new Point(12, 9);
             lblCompanyInfo.Name = "lblCompanyInfo";
-            lblCompanyInfo.Size = new Size(600, 25);
+            lblCompanyInfo.Size = new Size(700, 25);
             lblCompanyInfo.Text = _selectedCompany != null ? $"Transactions for: {_selectedCompany.DisplayName}" : "No company selected";
             lblCompanyInfo.ForeColor = Color.DarkBlue;
             lblCompanyInfo.Font = new Font("Arial", 10, FontStyle.Bold);
@@ -92,7 +97,7 @@ namespace WinFormsApp1.Forms.Transaction
             // 
             lblInstructions.Location = new Point(12, 40);
             lblInstructions.Name = "lblInstructions";
-            lblInstructions.Size = new Size(600, 40);
+            lblInstructions.Size = new Size(700, 40);
             lblInstructions.Text = GetInstructionsText();
             lblInstructions.ForeColor = Color.Blue;
             lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
@@ -132,7 +137,7 @@ namespace WinFormsApp1.Forms.Transaction
             // 
             dgvTransactions.Location = new Point(12, 115);
             dgvTransactions.Name = "dgvTransactions";
-            dgvTransactions.Size = new Size(800, 350);
+            dgvTransactions.Size = new Size(900, 350);
             dgvTransactions.TabIndex = 0;
             dgvTransactions.AllowUserToAddRows = false;
             dgvTransactions.AllowUserToDeleteRows = false;
@@ -205,6 +210,17 @@ namespace WinFormsApp1.Forms.Transaction
             btnRefresh.Click += new EventHandler(btnRefresh_Click);
             
             // 
+            // btnExportPdf
+            // 
+            btnExportPdf.Location = new Point(420, 82);
+            btnExportPdf.Name = "btnExportPdf";
+            btnExportPdf.Size = new Size(100, 30);
+            btnExportPdf.TabIndex = 6;
+            btnExportPdf.Text = "&Export PDF";
+            btnExportPdf.UseVisualStyleBackColor = true;
+            btnExportPdf.Click += new EventHandler(btnExportPdf_Click);
+            
+            // 
             // lblStatus
             // 
             lblStatus.Location = new Point(12, 450);
@@ -218,9 +234,10 @@ namespace WinFormsApp1.Forms.Transaction
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 600);
+            ClientSize = new Size(900, 600);
             Controls.Add(lblStatus);
             Controls.Add(btnRefresh);
+            Controls.Add(btnExportPdf);
             Controls.Add(btnDelete);
             Controls.Add(btnView);
             Controls.Add(btnEdit);
@@ -699,6 +716,7 @@ namespace WinFormsApp1.Forms.Transaction
             lblFilter.Location = new Point(12, 85);
             cmbFilter.Location = new Point(120, 82);
             btnTestFilter.Location = new Point(330, 82);
+            btnExportPdf.Location = new Point(440, 82);
         }
 
         private void TransactionListForm_Resize(object? sender, EventArgs e)
@@ -916,9 +934,49 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        private async void btnRefresh_Click(object? sender, EventArgs e)
+                private async void btnRefresh_Click(object? sender, EventArgs e)
         {
-            await LoadTransactions();
+                                await LoadTransactions();
+        }
+
+        private async void btnExportPdf_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (_selectedCompany == null || _selectedFinancialYear == null)
+                {
+                    MessageBox.Show("Please select a company and financial year first.", "Selection Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (_transactions.Count == 0)
+                {
+                    MessageBox.Show("No transactions to export.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var filterApplied = cmbFilter.SelectedItem?.ToString() ?? "All";
+                
+                var success = await _pdfExportService.ExportTransactionListToPdfAsync(
+                    _transactions,
+                    _selectedCompany,
+                    _selectedFinancialYear,
+                    TransactionType,
+                    filterApplied
+                );
+
+                if (success)
+                {
+                    lblStatus.Text = "PDF exported successfully";
+                    lblStatus.ForeColor = Color.Green;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting PDF: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblStatus.Text = $"Export error: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+            }
         }
 
         private void NewTransaction()
@@ -1092,7 +1150,7 @@ namespace WinFormsApp1.Forms.Transaction
         private string GetInstructionsText()
         {
             var typeText = !string.IsNullOrEmpty(TransactionType) ? $"{TransactionType} " : "";
-            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Use filter dropdown to refine results | Uses selected company from local storage";
+            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Transactions | Use filter dropdown to refine results | Export PDF button to save as PDF | Uses selected company from local storage";
         }
 
         private void SetupFilterDropdown()

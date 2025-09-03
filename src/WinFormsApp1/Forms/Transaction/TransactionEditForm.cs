@@ -184,6 +184,7 @@ namespace WinFormsApp1.Forms.Transaction
         // Action Buttons
         private Button btnSave = null!;
         private Button btnCancel = null!;
+        private Button btnPrint = null!;
         
         // Group Boxes
         private GroupBox itemsGroupBox = null!;
@@ -388,6 +389,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             btnSave = new Button();
             btnCancel = new Button();
+            btnPrint = new Button();
             
             itemsGroupBox = new GroupBox();
             taxGroupBox = new GroupBox();
@@ -694,13 +696,22 @@ namespace WinFormsApp1.Forms.Transaction
             yPosition += 150;
 
             // Action Buttons
-            btnSave.Location = new Point(1000, yPosition);
+            btnSave.Location = new Point(900, yPosition);
             btnSave.Size = new Size(80, 35);
             btnSave.Text = "&Save";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += BtnSave_Click;
 
-            btnCancel.Location = new Point(1090, yPosition);
+            btnPrint.Location = new Point(990, yPosition);
+            btnPrint.Size = new Size(80, 35);
+            btnPrint.Text = "&Print";
+            btnPrint.UseVisualStyleBackColor = true;
+            btnPrint.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnPrint.BackColor = Color.LightBlue;
+            btnPrint.ForeColor = Color.DarkBlue;
+            btnPrint.Click += BtnPrint_Click;
+
+            btnCancel.Location = new Point(1080, yPosition);
             btnCancel.Size = new Size(80, 35);
             btnCancel.Text = "&Cancel";
             btnCancel.UseVisualStyleBackColor = true;
@@ -728,7 +739,7 @@ namespace WinFormsApp1.Forms.Transaction
                 }
             }
 
-            Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnCancel });
+            Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnPrint, btnCancel });
         }
 
         private void AddLabelAndControl(string labelText, Control control, int x, int y, int labelWidth, int controlWidth)
@@ -2685,6 +2696,42 @@ Ledger Selection:
         {
             DialogResult = DialogResult.Cancel;
             Close();
+        }
+
+        private void BtnPrint_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Show print options dialog
+                var printDialog = new PrintOptionsDialog();
+                var result = printDialog.ShowDialog(this);
+                
+                if (result == DialogResult.OK)
+                {
+                    // Get the selected print options
+                    var copyType = printDialog.SelectedCopyType;
+                    var numberOfCopies = printDialog.NumberOfCopies;
+                    var invoiceFormat = printDialog.SelectedInvoiceFormat;
+                    
+                    // TODO: Implement actual printing logic here
+                    var message = $"Printing Transaction:\n\n" +
+                                $"Transaction: {txtTransactionNumber.Text}\n" +
+                                $"Copy Type: {copyType}\n" +
+                                $"Number of Copies: {numberOfCopies}\n" +
+                                $"Invoice Format: {invoiceFormat}\n\n" +
+                                $"Print functionality will be implemented here.";
+                    
+                    MessageBox.Show(message, "Print Transaction", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    
+                    // Log the print request for debugging
+                    Console.WriteLine($"Print request - Copy Type: {copyType}, Copies: {numberOfCopies}, Format: {invoiceFormat}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening print dialog: {ex.Message}", "Print Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Print error: {ex.Message}");
+            }
         }
 
         #region Item Management and Grid Events
