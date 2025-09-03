@@ -117,28 +117,114 @@ namespace WinFormsApp1.Documents.ExportPdf
                 // Separator line
                 column.Item().PaddingTop(20).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
-                // Placeholder content
-                column.Item().PaddingTop(30).Text("Invoice Content Coming Soon")
-                    .FontSize(16).FontColor(Colors.Grey.Medium);
-                
-                column.Item().PaddingTop(20).Text("This is a test invoice")
-                    .FontSize(12).FontColor(Colors.Grey.Medium);
-                
-                column.Item().PaddingTop(10).Text("Copy Type: " + _copyType)
-                    .FontSize(10).FontColor(Colors.Grey.Medium);
+                // Items Table
+                column.Item().PaddingTop(30).Element(ComposeTable);
+
+                // Totals Section
+                column.Item().PaddingTop(30).Element(ComposeTotals);
             });
         }
 
-        // Placeholder methods - will be implemented later
-        // private void ComposeItemsTable(IContainer container) { }
-        // private void ComposeTableHeader(IContainer container) { }
-        // private void ComposeTableRow(IContainer container, InvoiceItemModel item) { }
+        private void ComposeTable(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(30);  // S.No
+                    columns.RelativeColumn(3);   // Description
+                    columns.RelativeColumn();    // HSN Code
+                    columns.RelativeColumn();    // Qty
+                    columns.RelativeColumn();    // Unit
+                    columns.RelativeColumn();    // Rate
+                    columns.RelativeColumn();    // Amount
+                });
+                
+                table.Header(header =>
+                {
+                    header.Cell().Element(CellHeaderStyle).Text("S.No");
+                    header.Cell().Element(CellHeaderStyle).Text("Description");
+                    header.Cell().Element(CellHeaderStyle).Text("HSN Code");
+                    header.Cell().Element(CellHeaderStyle).AlignCenter().Text("Qty");
+                    header.Cell().Element(CellHeaderStyle).AlignCenter().Text("Unit");
+                    header.Cell().Element(CellHeaderStyle).AlignRight().Text("Rate");
+                    header.Cell().Element(CellHeaderStyle).AlignRight().Text("Amount");
+                    
+                    static IContainer CellHeaderStyle(IContainer container)
+                    {
+                        return container
+                            .DefaultTextStyle(x => x.SemiBold())
+                            .PaddingVertical(8)
+                            .PaddingHorizontal(5)
+                            .BorderBottom(1)
+                            .BorderColor(Colors.Black)
+                            .Background(Colors.Grey.Lighten3);
+                    }
+                });
+                
+                foreach (var item in _invoiceModel.Items)
+                {
+                    table.Cell().Element(CellStyle).Text(item.SerialNumber);
+                    table.Cell().Element(CellStyle).Text(item.ProductName);
+                    table.Cell().Element(CellStyle).Text(item.HSNCode);
+                    table.Cell().Element(CellStyle).AlignCenter().Text(item.Quantity.ToString("N2"));
+                    table.Cell().Element(CellStyle).AlignCenter().Text(item.Unit);
+                    table.Cell().Element(CellStyle).AlignRight().Text(item.UnitPrice.ToString("N2"));
+                    table.Cell().Element(CellStyle).AlignRight().Text(item.LineTotal.ToString("N2"));
+                    
+                    static IContainer CellStyle(IContainer container)
+                    {
+                        return container
+                            .BorderBottom(1)
+                            .BorderColor(Colors.Grey.Lighten2)
+                            .PaddingVertical(6)
+                            .PaddingHorizontal(5);
+                    }
+                }
+            });
+        }
 
-        // Placeholder method - will be implemented later
-        // private void ComposeTotals(IContainer container) { }
+        private void ComposeTotals(IContainer container)
+        {
+            container.AlignRight().Column(column =>
+            {
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Sub Total:").FontSize(10).Bold();
+                    row.ConstantItem(80).Text(_invoiceModel.SubTotal.ToString("N2")).FontSize(10);
+                });
 
-        // Placeholder method - will be implemented later
-        // private void ComposeNotes(IContainer container) { }
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Discount:").FontSize(10);
+                    row.ConstantItem(80).Text(_invoiceModel.DiscountAmount.ToString("N2")).FontSize(10);
+                });
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Tax Amount:").FontSize(10);
+                    row.ConstantItem(80).Text(_invoiceModel.TaxAmount.ToString("N2")).FontSize(10);
+                });
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Round Off:").FontSize(10);
+                    row.ConstantItem(80).Text(_invoiceModel.RoundOff.ToString("N2")).FontSize(10);
+                });
+
+                // Separator line
+                column.Item().PaddingTop(5).PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(100).Text("Total Amount:").FontSize(12).Bold();
+                    row.ConstantItem(80).Text(_invoiceModel.NetPayable.ToString("N2")).FontSize(12).Bold();
+                });
+
+                column.Item().PaddingTop(5).Text($"Amount in Words: {_invoiceModel.AmountInWords}")
+                    .FontSize(9).FontColor(Colors.Grey.Medium);
+            });
+        }
 
         public void ComposeFooter(IContainer container)
         {
