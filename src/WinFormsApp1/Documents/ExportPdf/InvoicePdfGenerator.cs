@@ -1,8 +1,6 @@
 ﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using System.Data.Common;
-using WinFormsApp1.Documents;
 using WinFormsApp1.Forms.Transaction;
 
 namespace WinFormsApp1.Documents.ExportPdf

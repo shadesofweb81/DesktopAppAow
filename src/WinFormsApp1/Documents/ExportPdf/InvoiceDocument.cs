@@ -39,26 +39,26 @@ namespace WinFormsApp1.Documents.ExportPdf
             {
                 // Company Information
                 column.Item().Text(_invoiceModel.CompanyName)
-                    .FontSize(18).Bold().FontColor(Colors.Blue.Medium);
+                    .FontSize(16).Bold().FontColor(Colors.Blue.Medium);
 
                 column.Item().Text($"GSTIN: {_invoiceModel.CompanyGSTIN}")
-                    .FontSize(10).FontColor(Colors.Grey.Medium);
+                    .FontSize(9).FontColor(Colors.Grey.Medium);
 
                 column.Item().Text($"Phone: {_invoiceModel.CompanyPhone}")
-                    .FontSize(10).FontColor(Colors.Grey.Medium);
+                    .FontSize(9).FontColor(Colors.Grey.Medium);
 
                 column.Item().Text($"Email: {_invoiceModel.CompanyEmail}")
-                    .FontSize(10).FontColor(Colors.Grey.Medium);
+                    .FontSize(9).FontColor(Colors.Grey.Medium);
 
                 // Invoice Title
-                column.Item().PaddingTop(20).AlignCenter().Text("INVOICE")
-                    .FontSize(24).Bold().FontColor(Colors.Blue.Medium);
+                column.Item().PaddingTop(15).AlignCenter().Text("INVOICE")
+                    .FontSize(20).Bold().FontColor(Colors.Blue.Medium);
 
                 column.Item().AlignCenter().Text($"Copy: {_copyType}")
-                    .FontSize(12).Bold().FontColor(Colors.Grey.Medium);
+                    .FontSize(11).Bold().FontColor(Colors.Grey.Medium);
 
                 // Simple line separator
-                column.Item().PaddingTop(20).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Medium);
             });
         }
 
@@ -67,7 +67,7 @@ namespace WinFormsApp1.Documents.ExportPdf
             container.Column(column =>
             {
                 // Party Details and Invoice Details Row
-                column.Item().PaddingTop(30).Row(row =>
+                column.Item().PaddingTop(20).Row(row =>
                 {
                     // Left Column - Party Details
                     row.RelativeItem(2).Column(partyColumn =>
@@ -115,13 +115,16 @@ namespace WinFormsApp1.Documents.ExportPdf
                 });
 
                 // Separator line
-                column.Item().PaddingTop(20).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
                 // Items Table
-                column.Item().PaddingTop(30).Element(ComposeTable);
+                column.Item().PaddingTop(20).Element(ComposeTable);
 
                 // Totals Section
-                column.Item().PaddingTop(30).Element(ComposeTotals);
+                column.Item().PaddingTop(20).Element(ComposeTotals);
+
+                // Lower Section - Terms, Bank Details, and Signature
+                column.Item().PaddingTop(25).Element(ComposeLowerSection);
             });
         }
 
@@ -154,8 +157,8 @@ namespace WinFormsApp1.Documents.ExportPdf
                     {
                         return container
                             .DefaultTextStyle(x => x.SemiBold())
-                            .PaddingVertical(8)
-                            .PaddingHorizontal(5)
+                            .PaddingVertical(6)
+                            .PaddingHorizontal(4)
                             .BorderBottom(1)
                             .BorderColor(Colors.Black)
                             .Background(Colors.Grey.Lighten3);
@@ -177,8 +180,8 @@ namespace WinFormsApp1.Documents.ExportPdf
                         return container
                             .BorderBottom(1)
                             .BorderColor(Colors.Grey.Lighten2)
-                            .PaddingVertical(6)
-                            .PaddingHorizontal(5);
+                            .PaddingVertical(4)
+                            .PaddingHorizontal(4);
                     }
                 }
             });
@@ -213,7 +216,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                 });
 
                 // Separator line
-                column.Item().PaddingTop(5).PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                column.Item().PaddingTop(3).PaddingBottom(3).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
                 column.Item().Row(row =>
                 {
@@ -223,6 +226,72 @@ namespace WinFormsApp1.Documents.ExportPdf
 
                 column.Item().PaddingTop(5).Text($"Amount in Words: {_invoiceModel.AmountInWords}")
                     .FontSize(9).FontColor(Colors.Grey.Medium);
+            });
+        }
+
+        private void ComposeLowerSection(IContainer container)
+        {
+            container.Row(row =>
+            {
+                // Left Column - Terms and Conditions
+                row.RelativeItem(2).Column(termsColumn =>
+                {
+                    termsColumn.Item().Text("Terms & Conditions:")
+                        .FontSize(11).Bold().FontColor(Colors.Blue.Medium);
+                    
+                    termsColumn.Item().PaddingTop(3).Text("1. Payment is due within 30 days of invoice date")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    termsColumn.Item().Text("2. Late payments may incur additional charges")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    termsColumn.Item().Text("3. Goods once sold will not be taken back")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    termsColumn.Item().Text("4. All disputes are subject to local jurisdiction")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    termsColumn.Item().Text("5. This is a computer generated invoice")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                });
+
+                // Spacer column
+                row.ConstantItem(30);
+
+                // Right Column - Bank Details and Signature
+                row.RelativeItem(1).Column(rightColumn =>
+                {
+                    // Bank Details
+                    rightColumn.Item().Text("Bank Details:")
+                        .FontSize(11).Bold().FontColor(Colors.Blue.Medium);
+                    
+                    rightColumn.Item().PaddingTop(3).Text("Bank Name: Sample Bank Ltd.")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    rightColumn.Item().Text("Account No: 1234567890")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    rightColumn.Item().Text("IFSC Code: SAMPLE000123")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    rightColumn.Item().Text("Branch: Main Branch")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+
+                    // Signature Section
+                    rightColumn.Item().PaddingTop(15).Text("Authorized Signature:")
+                        .FontSize(11).Bold().FontColor(Colors.Blue.Medium);
+                    
+                    rightColumn.Item().PaddingTop(10).LineHorizontal(80).LineColor(Colors.Black);
+                    
+                    rightColumn.Item().PaddingTop(3).Text("Name: _________________")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    rightColumn.Item().Text("Designation: _________________")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    
+                    rightColumn.Item().Text("Date: _________________")
+                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                });
             });
         }
 
