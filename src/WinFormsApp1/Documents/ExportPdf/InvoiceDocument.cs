@@ -281,16 +281,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                     rightColumn.Item().PaddingTop(15).Text("Authorized Signature:")
                         .FontSize(11).Bold().FontColor(Colors.Blue.Medium);
                     
-                    rightColumn.Item().PaddingTop(10).LineHorizontal(80).LineColor(Colors.Black);
-                    
-                    rightColumn.Item().PaddingTop(3).Text("Name: _________________")
-                        .FontSize(9).FontColor(Colors.Grey.Medium);
-                    
-                    rightColumn.Item().Text("Designation: _________________")
-                        .FontSize(9).FontColor(Colors.Grey.Medium);
-                    
-                    rightColumn.Item().Text("Date: _________________")
-                        .FontSize(9).FontColor(Colors.Grey.Medium);
+                    rightColumn.Item().PaddingTop(10).LineHorizontal(80).LineColor(Colors.White);
                 });
             });
         }
