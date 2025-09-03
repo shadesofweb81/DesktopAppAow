@@ -1,7 +1,8 @@
-
 using AccountingERP.WebApi.Models.Requests;
+using WinFormsApp1.Documents;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
+using System.Windows.Forms;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -702,14 +703,19 @@ namespace WinFormsApp1.Forms.Transaction
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += BtnSave_Click;
 
-            btnPrint.Location = new Point(990, yPosition);
-            btnPrint.Size = new Size(80, 35);
-            btnPrint.Text = "&Print";
-            btnPrint.UseVisualStyleBackColor = true;
-            btnPrint.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnPrint.BackColor = Color.LightBlue;
-            btnPrint.ForeColor = Color.DarkBlue;
-            btnPrint.Click += BtnPrint_Click;
+            // Add a download PDF button (without printing)
+            var btnDownloadPdf = new Button
+            {
+                Location = new Point(1080 + 100, yPosition),
+                Size = new Size(80, 35),
+                Text = "Download",
+                UseVisualStyleBackColor = true,
+                Font = new Font("Segoe UI", 9F),
+                BackColor = Color.LightGreen,
+                ForeColor = Color.DarkGreen
+            };
+            btnDownloadPdf.Click += BtnDownloadPdf_Click;
+            Controls.Add(btnDownloadPdf);
 
             btnCancel.Location = new Point(1080, yPosition);
             btnCancel.Size = new Size(80, 35);
@@ -739,7 +745,7 @@ namespace WinFormsApp1.Forms.Transaction
                 }
             }
 
-            Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnPrint, btnCancel });
+            Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnCancel });
         }
 
         private void AddLabelAndControl(string labelText, Control control, int x, int y, int labelWidth, int controlWidth)
@@ -1546,7 +1552,7 @@ namespace WinFormsApp1.Forms.Transaction
 
                 // Convert items to display format using DTO and sort by serial number
                 var itemDisplays = _transactionDto.Items
-                    .Select(item => CreateTransactionItemDisplay(item))
+                    .Select(itemDto => CreateTransactionItemDisplay(itemDto))
                     .OrderBy(item => item.SerialNumber)
                     .ToList();
 
@@ -2698,40 +2704,397 @@ Ledger Selection:
             Close();
         }
 
-        private void BtnPrint_Click(object? sender, EventArgs e)
+
+
+
+
+        private async void BtnDownloadPdf_Click(object? sender, EventArgs e)
         {
             try
             {
-                // Show print options dialog
+                Console.WriteLine("Download PDF button clicked");
+                
+                // Show print options dialog to get format and copy type preferences
                 var printDialog = new PrintOptionsDialog();
                 var result = printDialog.ShowDialog(this);
-                
+
                 if (result == DialogResult.OK)
                 {
-                    // Get the selected print options
+                    // Get the selected options
                     var copyType = printDialog.SelectedCopyType;
                     var numberOfCopies = printDialog.NumberOfCopies;
                     var invoiceFormat = printDialog.SelectedInvoiceFormat;
+
+                    Console.WriteLine($"Download options - Copy Type: {copyType}, Copies: {numberOfCopies}, Format: {invoiceFormat}");
                     
-                    // TODO: Implement actual printing logic here
-                    var message = $"Printing Transaction:\n\n" +
-                                $"Transaction: {txtTransactionNumber.Text}\n" +
-                                $"Copy Type: {copyType}\n" +
-                                $"Number of Copies: {numberOfCopies}\n" +
-                                $"Invoice Format: {invoiceFormat}\n\n" +
-                                $"Print functionality will be implemented here.";
-                    
-                    MessageBox.Show(message, "Print Transaction", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    
-                    // Log the print request for debugging
-                    Console.WriteLine($"Print request - Copy Type: {copyType}, Copies: {numberOfCopies}, Format: {invoiceFormat}");
+                    // Generate and download PDFs based on options (without printing)
+                    await GenerateAndDownloadPdfs(copyType, numberOfCopies, invoiceFormat);
+                }
+                else
+                {
+                    Console.WriteLine("Download PDF dialog was cancelled");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error opening print dialog: {ex.Message}", "Print Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Console.WriteLine($"Print error: {ex.Message}");
+                Console.WriteLine($"Error in download PDF: {ex.Message}");
+                MessageBox.Show($"Error opening download dialog: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private async Task GenerateAndDownloadPdfs(CopyType copyType, int numberOfCopies, InvoiceFormat invoiceFormat)
+        {
+            try
+            {
+                Console.WriteLine($"GenerateAndDownloadPdfs called with:");
+                Console.WriteLine($"  Copy Type: {copyType}");
+                Console.WriteLine($"  Number of Copies: {numberOfCopies}");
+                Console.WriteLine($"  Invoice Format: {invoiceFormat}");
+
+                var pdfGenerator = new InvoicePdfGenerator();
+                var copyTypes = GetCopyTypesToPrint(copyType);
+
+                Console.WriteLine($"Copy types to generate: {string.Join(", ", copyTypes)}");
+                Console.WriteLine($"Total PDFs to generate: {copyTypes.Count * numberOfCopies}");
+
+                var successCount = 0;
+                var savedFiles = new List<string>();
+
+                foreach (var copy in copyTypes)
+                {
+                    for (int i = 0; i < numberOfCopies; i++)
+                    {
+                        try
+                        {
+                            Console.WriteLine($"Generating PDF for copy: {copy} (copy #{i + 1})");
+
+                            byte[] pdfBytes;
+                            
+                            if (copy == "All")
+                            {
+                                // Generate combined PDF with all three copies
+                                Console.WriteLine("Generating combined PDF with Original, Duplicate, and Triplicate");
+                                pdfBytes = await GenerateCombinedPdf(copyType, invoiceFormat);
+                            }
+                            else
+                            {
+                                // Generate individual PDF
+                                var invoiceModel = CreateInvoiceModel(copy, invoiceFormat);
+                                Console.WriteLine($"Invoice model created with format: {invoiceModel.InvoiceFormat}");
+                                pdfBytes = pdfGenerator.GenerateInvoicePdf(invoiceModel);
+                            }
+                            
+                            Console.WriteLine($"PDF generated successfully. Size: {pdfBytes.Length} bytes");
+
+                            // Ask user where to save the PDF
+                            var savedFilePath = await SavePdfWithDialog(pdfBytes, copy, i + 1, invoiceFormat);
+                            if (!string.IsNullOrEmpty(savedFilePath))
+                            {
+                                savedFiles.Add(savedFilePath);
+                                successCount++;
+                                Console.WriteLine($"PDF saved to: {savedFilePath}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"User cancelled saving PDF for copy {copy} #{i + 1}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error processing copy {copy} #{i + 1}: {ex.Message}");
+                            MessageBox.Show($"Error generating PDF for {copy} copy #{i + 1}: {ex.Message}",
+                                "PDF Generation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+
+                if (successCount > 0)
+                {
+                    var message = $"Successfully generated and downloaded {successCount} PDF(s)!\n\n" +
+                        $"Copy Types: {string.Join(", ", copyTypes)}\n" +
+                        $"Format: {GetInvoiceFormatDescription(invoiceFormat)}\n" +
+                        $"Copies per type: {numberOfCopies}\n\n" +
+                        $"Saved files:\n{string.Join("\n", savedFiles)}";
+
+                    MessageBox.Show(message, "PDF Download Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("No PDFs were generated. Please check the console for errors.",
+                        "PDF Generation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GenerateAndDownloadPdfs: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Error generating PDFs: {ex.Message}\n\nStack trace:\n{ex.StackTrace}",
+                    "PDF Generation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private List<string> GetCopyTypesToPrint(CopyType copyType)
+        {
+            return copyType switch
+            {
+                CopyType.All => new List<string> { "All" }, // Special case for combined PDF
+                CopyType.OriginalDuplicate => new List<string> { "Original", "Duplicate" },
+                CopyType.Original => new List<string> { "Original" },
+                CopyType.Duplicate => new List<string> { "Duplicate" },
+                CopyType.Triplicate => new List<string> { "Triplicate" },
+                _ => new List<string> { "Original" }
+            };
+        }
+
+        private InvoiceModel CreateInvoiceModel(string copyType, InvoiceFormat invoiceFormat)
+        {
+            try
+            {
+                Console.WriteLine($"Creating invoice model for copy: {copyType}, format: {invoiceFormat}");
+                
+                // Validate required data before creating invoice
+                if (string.IsNullOrEmpty(txtTransactionNumber.Text))
+                {
+                    throw new InvalidOperationException("Transaction number is required");
+                }
+                
+                if (_selectedPartyLedger == null)
+                {
+                    throw new InvalidOperationException("Party ledger must be selected");
+                }
+                
+                var items = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+                if (!items.Any())
+                {
+                    throw new InvalidOperationException("At least one item must be added to the transaction");
+                }
+                
+                Console.WriteLine($"Creating invoice with {items.Count} items");
+                
+                var invoiceModel = new InvoiceModel
+                {
+                    InvoiceNumber = txtTransactionNumber.Text,
+                    InvoiceDate = dtpTransactionDate.Value,
+                    CustomerName = _selectedPartyLedger?.Name ?? "Unknown Customer",
+                    CustomerAddress = "Customer Address", // You can add address field to your form
+                    CustomerGSTIN = "Customer GSTIN", // You can add GSTIN field to your form
+                    CustomerMobile = "Customer Mobile", // You can add mobile field to your form
+                    CompanyName = _selectedCompany.DisplayName,
+                    CompanyGSTIN = _selectedCompany.TaxId ?? "Company GSTIN",
+                    CompanyPhone = "Company Phone", // You can add phone field to company
+                    CompanyEmail = "Company Email", // You can add email field to company
+                    PlaceOfSupply = "Place of Supply", // You can add this field
+                    CopyType = copyType,
+                    InvoiceFormat = GetInvoiceFormatString(invoiceFormat),
+                    TransactionType = cmbTransactionType.SelectedItem?.ToString() ?? "Sale Invoice",
+                    ReferenceNumber = txtReferenceNumber.Text,
+                    Notes = txtNotes.Text,
+                    SubTotal = decimal.Parse(txtSubTotal.Text),
+                    DiscountAmount = decimal.Parse(txtDiscountAmount.Text),
+                    TaxAmount = decimal.Parse(txtTaxAmount.Text),
+                    TotalAmount = decimal.Parse(txtTotal.Text),
+                    RoundOff = decimal.Parse(txtRoundOff.Text),
+                    NetPayable = decimal.Parse(txtTotal.Text),
+                    AmountInWords = ConvertToWords(decimal.Parse(txtTotal.Text))
+                };
+
+                // Add items
+                foreach (var item in items)
+                {
+                    invoiceModel.Items.Add(new InvoiceItemModel
+                    {
+                        SerialNumber = item.SerialNumber,
+                        ProductName = item.ProductName,
+                        HSNCode = "HSN Code", // You can add HSN code field to products
+                        Quantity = item.Quantity,
+                        Unit = "Pcs", // You can add unit field to products
+                        UnitPrice = item.UnitPrice,
+                        DiscountPercentage = item.DiscountRate,
+                        DiscountAmount = item.DiscountAmount,
+                        TaxRate = item.TaxRate,
+                        TaxAmount = item.TaxAmount,
+                        LineTotal = item.LineTotal
+                    });
+                }
+
+                Console.WriteLine($"Invoice model created successfully with {invoiceModel.Items.Count} items");
+                return invoiceModel;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating invoice model: {ex.Message}");
+                throw new InvalidOperationException($"Failed to create invoice model: {ex.Message}", ex);
+            }
+        }
+
+        private async Task<byte[]> GenerateCombinedPdf(CopyType copyType, InvoiceFormat invoiceFormat)
+        {
+            try
+            {
+                Console.WriteLine($"Generating combined PDF for copy type: {copyType}");
+                
+                if (copyType != CopyType.All)
+                {
+                    throw new InvalidOperationException("GenerateCombinedPdf should only be called for CopyType.All");
+                }
+
+                var pdfGenerator = new InvoicePdfGenerator();
+                
+                // Create a special invoice model for combined PDF
+                var combinedInvoiceModel = CreateInvoiceModel("Combined", invoiceFormat);
+                
+                // Generate the combined PDF with all three copies
+                var pdfBytes = pdfGenerator.GenerateCombinedInvoicePdf(combinedInvoiceModel);
+                
+                Console.WriteLine($"Combined PDF generated successfully. Size: {pdfBytes.Length} bytes");
+                return pdfBytes;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating combined PDF: {ex.Message}");
+                throw new InvalidOperationException($"Failed to generate combined PDF: {ex.Message}", ex);
+            }
+        }
+
+        private string GetInvoiceFormatString(InvoiceFormat format)
+        {
+            return format switch
+            {
+                InvoiceFormat.StandardA4 => "Standard A4",
+                InvoiceFormat.A5HalfPage => "A5 Half Page",
+                InvoiceFormat.Slip3Inch => "Slip 3 inch",
+                InvoiceFormat.Slip4Inch => "Slip 4 inch",
+                _ => "Standard A4"
+            };
+        }
+
+        private void CleanupTempFiles(List<string> tempFiles)
+        {
+            try
+            {
+                foreach (var file in tempFiles)
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                        Console.WriteLine($"Cleaned up temp file: {file}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cleaning up temp files: {ex.Message}");
+            }
+        }
+
+        private async Task<string> SavePdfWithDialog(byte[] pdfBytes, string copyType, int copyNumber, InvoiceFormat invoiceFormat)
+        {
+            try
+            {
+                // Create a default filename based on transaction details
+                string defaultFileName;
+                string dialogTitle;
+                
+                if (copyType == "All")
+                {
+                    defaultFileName = $"Invoice_{txtTransactionNumber.Text}_Combined_AllCopies_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                    dialogTitle = $"Save Combined PDF (Original + Duplicate + Triplicate)";
+                }
+                else
+                {
+                    defaultFileName = $"Invoice_{txtTransactionNumber.Text}_{copyType}_{copyNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                    dialogTitle = $"Save {copyType} PDF - Copy #{copyNumber}";
+                }
+                
+                // Create save file dialog
+                using var saveDialog = new SaveFileDialog
+                {
+                    Title = dialogTitle,
+                    Filter = "PDF Files (*.pdf)|*.pdf|All Files (*.*)|*.*",
+                    FileName = defaultFileName,
+                    DefaultExt = "pdf",
+                    AddExtension = true,
+                    OverwritePrompt = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                };
+
+                // Show the save dialog
+                var result = saveDialog.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrEmpty(saveDialog.FileName))
+                {
+                    var filePath = saveDialog.FileName;
+                    
+                    // Ensure the file has .pdf extension
+                    if (!filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        filePath += ".pdf";
+                    }
+                    
+                    // Save the PDF bytes to the selected location
+                    await File.WriteAllBytesAsync(filePath, pdfBytes);
+                    
+                    Console.WriteLine($"PDF saved successfully to: {filePath}");
+                    return filePath;
+                }
+                else
+                {
+                    Console.WriteLine("User cancelled PDF save dialog");
+                    return string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving PDF: {ex.Message}");
+                MessageBox.Show($"Error saving PDF: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return string.Empty;
+            }
+        }
+
+        private string GetInvoiceFormatDescription(InvoiceFormat format)
+        {
+            return format switch
+            {
+                InvoiceFormat.StandardA4 => "Standard A4 (210 x 297 mm)",
+                InvoiceFormat.A5HalfPage => "A5 Half Page (148 x 210 mm)",
+                InvoiceFormat.Slip3Inch => "Slip 3 inch (76 x 210 mm)",
+                InvoiceFormat.Slip4Inch => "Slip 4 inch (101 x 210 mm)",
+                _ => "Unknown Format"
+            };
+        }
+
+
+
+        private string ConvertToWords(decimal amount)
+        {
+            // Simple number to words conversion (you can enhance this)
+            var wholePart = (int)Math.Floor(amount);
+            var decimalPart = (int)Math.Round((amount - wholePart) * 100);
+
+            var words = NumberToWords(wholePart) + " Rupees";
+            if (decimalPart > 0)
+            {
+                words += " and " + NumberToWords(decimalPart) + " Paise";
+            }
+
+            return words + " Only";
+        }
+
+        private string NumberToWords(int number)
+        {
+            if (number == 0) return "Zero";
+
+            var units = new[] { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" };
+            var teens = new[] { "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+            var tens = new[] { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+
+            if (number < 10) return units[number];
+            if (number < 20) return teens[number - 10];
+            if (number < 100) return tens[number / 10] + (number % 10 > 0 ? " " + units[number % 10] : "");
+            if (number < 1000) return units[number / 100] + " Hundred" + (number % 100 > 0 ? " " + NumberToWords(number % 100) : "");
+            if (number < 100000) return NumberToWords(number / 1000) + " Thousand" + (number % 1000 > 0 ? " " + NumberToWords(number % 1000) : "");
+            if (number < 10000000) return NumberToWords(number / 100000) + " Lakh" + (number % 100000 > 0 ? " " + NumberToWords(number % 100000) : "");
+
+            return NumberToWords(number / 10000000) + " Crore" + (number % 10000000 > 0 ? " " + NumberToWords(number % 10000000) : "");
         }
 
         #region Item Management and Grid Events
@@ -3289,3 +3652,4 @@ Ledger Selection:
         #endregion
     }
 }
+

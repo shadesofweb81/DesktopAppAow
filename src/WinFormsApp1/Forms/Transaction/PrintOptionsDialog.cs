@@ -344,9 +344,38 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void BtnPrint_Click(object? sender, EventArgs e)
         {
-            // Set the selected values and close with OK result
-            DialogResult = DialogResult.OK;
-            Close();
+            try
+            {
+                // Capture the selected values before closing
+                CaptureSelectedValues();
+
+                // Set the selected values and close with OK result
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error preparing print: {ex.Message}", "Print Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void CaptureSelectedValues()
+        {
+            // Capture selected copy type
+            if (rbAll.Checked) SelectedCopyType = CopyType.All;
+            else if (rbOriginal.Checked) SelectedCopyType = CopyType.Original;
+            else if (rbDuplicate.Checked) SelectedCopyType = CopyType.Duplicate;
+            else if (rbTriplicate.Checked) SelectedCopyType = CopyType.Triplicate;
+            else if (rbOriginalDuplicate.Checked) SelectedCopyType = CopyType.OriginalDuplicate;
+
+            // Capture number of copies
+            NumberOfCopies = (int)numCopies.Value;
+
+            // Capture selected invoice format
+            if (rbStandardA4.Checked) SelectedInvoiceFormat = InvoiceFormat.StandardA4;
+            else if (rbA5HalfPage.Checked) SelectedInvoiceFormat = InvoiceFormat.A5HalfPage;
+            else if (rbSlip3Inch.Checked) SelectedInvoiceFormat = InvoiceFormat.Slip3Inch;
+            else if (rbSlip4Inch.Checked) SelectedInvoiceFormat = InvoiceFormat.Slip4Inch;
         }
 
         private void BtnCancel_Click(object? sender, EventArgs e)
