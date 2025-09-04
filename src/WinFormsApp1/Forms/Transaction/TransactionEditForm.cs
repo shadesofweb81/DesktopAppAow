@@ -1834,28 +1834,44 @@ namespace WinFormsApp1.Forms.Transaction
                 BtnSave_Click(null, EventArgs.Empty);
                 return true;
             }
-            
+
             // Enter on save button
             if (ActiveControl == btnSave)
             {
                 BtnSave_Click(null, EventArgs.Empty);
                 return true;
             }
-            
+
             // Enter on cancel button
             if (ActiveControl == btnCancel)
             {
                 BtnCancel_Click(null, EventArgs.Empty);
                 return true;
             }
-            
+
+            // Enter on party ledger textbox - open ledger selection
+            if (ActiveControl == txtPartyLedger)
+            {
+                Console.WriteLine("Enter pressed on Party Ledger TextBox - opening modal");
+                ShowPartyLedgerSelectionDialog();
+                return true;
+            }
+
+            // Enter on account ledger textbox - open ledger selection
+            if (ActiveControl == txtAccountLedger)
+            {
+                Console.WriteLine("Enter pressed on Account Ledger TextBox - opening modal");
+                ShowAccountLedgerSelectionDialog();
+                return true;
+            }
+
             // Enter on items grid - enter edit mode
             if (ActiveControl == dgvItems && dgvItems.SelectedRows.Count > 0)
             {
                 dgvItems.BeginEdit(true);
                 return true;
             }
-            
+
             return false; // Let BaseForm handle navigation
         }
         
