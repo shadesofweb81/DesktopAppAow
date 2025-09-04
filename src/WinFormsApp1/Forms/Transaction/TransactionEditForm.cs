@@ -3164,7 +3164,7 @@ Ledger Selection:
             
             var newItem = new TransactionItemDisplay(new TransactionItem
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Empty, // Don't assign ID for new items - let API generate it
                 TransactionId = _transaction?.Id ?? Guid.Empty,
                 ProductId = Guid.Parse(product.Id),
                 Description = product.Name,
@@ -3223,7 +3223,7 @@ Ledger Selection:
             
             var newTax = new TransactionTaxDisplay(new TransactionTax
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Empty, // Don't assign ID for new taxes - let API generate it
                 TransactionId = _transaction?.Id ?? Guid.Empty,
                 TaxId = Guid.Parse(taxResult.Tax.Id),
                 TaxableAmount = taxableAmount,
