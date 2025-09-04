@@ -173,13 +173,7 @@ namespace WinFormsApp1.Documents.ExportPdf
                     
                     static IContainer CellHeaderStyle(IContainer container)
                     {
-                        return container
-                            .DefaultTextStyle(x => x.SemiBold())
-                            .PaddingVertical(6)
-                            .PaddingHorizontal(4)
-                            .BorderBottom(1)
-                            .BorderColor(Colors.Black)
-                            .Background(Colors.Grey.Lighten3);
+                        return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Black);
                     }
                 });
                 
