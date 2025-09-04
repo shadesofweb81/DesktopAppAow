@@ -1865,11 +1865,47 @@ namespace WinFormsApp1.Forms.Transaction
                 return true;
             }
 
-            // Enter on items grid - enter edit mode
-            if (ActiveControl == dgvItems && dgvItems.SelectedRows.Count > 0)
+            // Enter on Add Item button - open item selection dialog
+            if (ActiveControl == btnAddItem)
             {
-                dgvItems.BeginEdit(true);
+                Console.WriteLine("Enter pressed on Add Item button - opening item selection dialog");
+                ShowItemSelectionDialog();
                 return true;
+            }
+
+            // Enter on items grid
+            if (ActiveControl == dgvItems)
+            {
+                if (dgvItems.CurrentCell != null && !dgvItems.IsCurrentCellInEditMode)
+                {
+                    // If not in edit mode, start editing current cell
+                    if (!dgvItems.Columns[dgvItems.CurrentCell.ColumnIndex].ReadOnly)
+                    {
+                        dgvItems.BeginEdit(true);
+                        return true;
+                    }
+                }
+                else if (dgvItems.IsCurrentCellInEditMode)
+                {
+                    // If in edit mode, end editing and move to next field
+                    dgvItems.EndEdit();
+                    return true;
+                }
+                else if (dgvItems.SelectedRows.Count > 0)
+                {
+                    // If no current cell but rows selected, start editing first editable cell
+                    var selectedRow = dgvItems.SelectedRows[0];
+                    for (int i = 0; i < dgvItems.Columns.Count; i++)
+                    {
+                        if (!dgvItems.Columns[i].ReadOnly)
+                        {
+                            dgvItems.CurrentCell = selectedRow.Cells[i];
+                            dgvItems.BeginEdit(true);
+                            return true;
+                        }
+                    }
+                }
+                return true; // Handle Enter key for grid
             }
 
             return false; // Let BaseForm handle navigation
@@ -3201,11 +3237,18 @@ Ledger Selection:
             dgvItems.DataSource = null;
             dgvItems.DataSource = items.OrderBy(i => i.SerialNumber).ToList();
             
-            // Select the new item
+            // Select the new item and start editing description
             if (dgvItems.Rows.Count > 0)
             {
-                dgvItems.Rows[dgvItems.Rows.Count - 1].Selected = true;
-                dgvItems.CurrentCell = dgvItems.Rows[dgvItems.Rows.Count - 1].Cells[1]; // Focus on description
+                var newRowIndex = dgvItems.Rows.Count - 1;
+                dgvItems.Rows[newRowIndex].Selected = true;
+                // Focus on description column (index 2) and start editing immediately
+                dgvItems.CurrentCell = dgvItems.Rows[newRowIndex].Cells[2]; // Description column
+                // Begin edit mode for keyboard-only workflow
+                if (!dgvItems.IsCurrentCellInEditMode)
+                {
+                    dgvItems.BeginEdit(true);
+                }
             }
             
             CalculateTotals();
@@ -3284,20 +3327,35 @@ Ledger Selection:
                 BtnDeleteItem_Click(null, EventArgs.Empty);
                 e.Handled = true;
             }
-            else if (e.KeyCode == Keys.Enter && dgvItems.SelectedRows.Count > 0)
+            else if (e.KeyCode == Keys.Enter)
             {
-                // Start editing the first editable cell
-                var selectedRow = dgvItems.SelectedRows[0];
-                for (int i = 0; i < dgvItems.Columns.Count; i++)
+                if (dgvItems.CurrentCell != null && !dgvItems.IsCurrentCellInEditMode && !dgvItems.Columns[dgvItems.CurrentCell.ColumnIndex].ReadOnly)
                 {
-                    if (!dgvItems.Columns[i].ReadOnly)
+                    // Start editing current editable cell
+                    dgvItems.BeginEdit(true);
+                    e.Handled = true;
+                }
+                else if (dgvItems.IsCurrentCellInEditMode)
+                {
+                    // End editing current cell (will trigger CellEndEdit and auto-advance)
+                    dgvItems.EndEdit();
+                    e.Handled = true;
+                }
+                else if (dgvItems.SelectedRows.Count > 0)
+                {
+                    // Start editing the first editable cell in selected row
+                    var selectedRow = dgvItems.SelectedRows[0];
+                    for (int i = 0; i < dgvItems.Columns.Count; i++)
                     {
-                        dgvItems.CurrentCell = selectedRow.Cells[i];
-                        dgvItems.BeginEdit(true);
-                        break;
+                        if (!dgvItems.Columns[i].ReadOnly)
+                        {
+                            dgvItems.CurrentCell = selectedRow.Cells[i];
+                            dgvItems.BeginEdit(true);
+                            e.Handled = true;
+                            break;
+                        }
                     }
                 }
-                e.Handled = true;
             }
         }
 
@@ -3325,14 +3383,44 @@ Ledger Selection:
                     if (columnName == "Quantity" || columnName == "UnitPrice" || columnName == "DiscountRate" || columnName == "TaxRate")
                     {
                         RecalculateItemTotals(item);
-                        
+
                         // Refresh the grid to show updated calculated fields
                         dgvItems.RefreshEdit();
                         dgvItems.Refresh();
-                        
+
                         CalculateTotals();
                     }
                 }
+
+                // Auto-advance to next editable field for keyboard-only workflow
+                MoveToNextEditableField(e.RowIndex, e.ColumnIndex);
+            }
+        }
+
+        private void MoveToNextEditableField(int rowIndex, int currentColumnIndex)
+        {
+            // Define the editable columns in order: Description(2), Quantity(3), UnitPrice(4), DiscountRate(5), TaxRate(7)
+            int[] editableColumnIndexes = { 2, 3, 4, 5, 7 };
+
+            // Find current position in editable columns
+            int currentEditableIndex = Array.IndexOf(editableColumnIndexes, currentColumnIndex);
+
+            if (currentEditableIndex >= 0 && currentEditableIndex < editableColumnIndexes.Length - 1)
+            {
+                // Move to next editable column
+                int nextColumnIndex = editableColumnIndexes[currentEditableIndex + 1];
+                dgvItems.CurrentCell = dgvItems.Rows[rowIndex].Cells[nextColumnIndex];
+                // Start editing the next field
+                if (!dgvItems.IsCurrentCellInEditMode)
+                {
+                    dgvItems.BeginEdit(true);
+                }
+            }
+            else if (currentEditableIndex == editableColumnIndexes.Length - 1)
+            {
+                // We've reached the last editable field, move focus to Add Item button
+                Console.WriteLine("Reached last editable field, moving focus to Add Item button");
+                btnAddItem.Focus();
             }
         }
 
