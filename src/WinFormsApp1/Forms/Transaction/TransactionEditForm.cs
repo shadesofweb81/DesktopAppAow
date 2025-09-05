@@ -967,6 +967,8 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTaxes.KeyDown += DgvTaxes_KeyDown;
             dgvTaxes.CellDoubleClick += DgvTaxes_CellDoubleClick;
             dgvTaxes.MouseClick += DgvTaxes_MouseClick; // Add mouse click handler for context menu
+            dgvTaxes.CurrentCellDirtyStateChanged += DgvTaxes_CurrentCellDirtyStateChanged;
+            dgvTaxes.EditingControlShowing += DgvTaxes_EditingControlShowing;
 
             // Serial Number Column (First Column)
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
@@ -1041,13 +1043,14 @@ namespace WinFormsApp1.Forms.Transaction
                 DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
             });
 
-            dgvTaxes.Columns.Add(new DataGridViewCheckBoxColumn
-            {
-                Name = "IsApplied",
-                HeaderText = "Applied",
-                DataPropertyName = "IsApplied",
-                Width = 80
-            });
+            // Removed "Is Applied" column as requested
+            // dgvTaxes.Columns.Add(new DataGridViewCheckBoxColumn
+            // {
+            //     Name = "IsApplied",
+            //     HeaderText = "Applied",
+            //     DataPropertyName = "IsApplied",
+            //     Width = 80
+            // });
 
             dgvTaxes.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -1070,8 +1073,9 @@ namespace WinFormsApp1.Forms.Transaction
             // Add event handler for transaction date validation
             dtpTransactionDate.ValueChanged += DtpTransactionDate_ValueChanged;
 
-            // Add event handler for taxes DataGridView
+            // Add event handlers for taxes DataGridView
             dgvTaxes.CellValueChanged += DgvTaxes_CellValueChanged;
+            dgvTaxes.CellEndEdit += DgvTaxes_CellEndEdit;
         }
 
         private void SetupContextMenus()
@@ -1160,11 +1164,212 @@ namespace WinFormsApp1.Forms.Transaction
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
             {
                 var column = dgvTaxes.Columns[e.ColumnIndex];
+                Console.WriteLine($"Cell value changed: Column={column.Name}, Row={e.RowIndex}");
+
                 if (column.Name == "CalculationMethod")
                 {
-                    // Recalculate totals when calculation method changes
-                    CalculateTotals();
+                    var taxes = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
+                    if (taxes != null && e.RowIndex < taxes.Count)
+                    {
+                        var tax = taxes[e.RowIndex];
+                        var newValue = dgvTaxes.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
+                        var oldValue = tax.CalculationMethod;
+
+                        Console.WriteLine($"Tax calculation method changed for '{tax.TaxName}' from '{oldValue}' to '{newValue}'");
+
+                        // Update the tax object with the new calculation method
+                        tax.CalculationMethod = newValue;
+
+                        // Temporarily suspend data binding to avoid conflicts
+                        var currentDataSource = dgvTaxes.DataSource;
+                        CurrencyManager currencyManager = null;
+
+                        try
+                        {
+                            currencyManager = (CurrencyManager)BindingContext[currentDataSource];
+                            currencyManager.SuspendBinding();
+                        }
+                        catch
+                        {
+                            // Ignore if binding context is not available
+                        }
+
+                        // Recalculate totals when calculation method changes
+                        Console.WriteLine("Recalculating totals after calculation method change...");
+                        CalculateTotals();
+
+                        // Debug: Check if the tax values were updated
+                        Console.WriteLine($"After calculation - Taxable: {tax.TaxableAmount:N2}, Amount: {tax.TaxAmount:N2}, Method: {tax.CalculationMethod}");
+
+                        // Resume data binding
+                        try
+                        {
+                            if (currencyManager != null)
+                            {
+                                currencyManager.ResumeBinding();
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore if binding context is not available
+                        }
+
+                        // Force a complete refresh of the grid
+                        dgvTaxes.Refresh();
+
+                        // The data binding should now reflect the updated values after ResumeBinding
+
+                        // Also refresh the items grid in case tax changes affect item calculations
+                        dgvItems.Refresh();
+
+                        Console.WriteLine($"Tax calculation method changed for row {e.RowIndex + 1}, totals recalculated");
+                        Console.WriteLine($"New values - Taxable: {tax.TaxableAmount:N2}, Amount: {tax.TaxAmount:N2}");
+
+                        // Update the total tax amount display
+                        UpdateTotalTaxDisplay();
+                    }
                 }
+            }
+        }
+
+        private void DgvTaxes_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+        {
+            // Handle when the current cell becomes dirty (value changed) - important for ComboBox
+            if (dgvTaxes.IsCurrentCellDirty)
+            {
+                // For ComboBox columns, commit the change immediately
+                var currentCell = dgvTaxes.CurrentCell;
+                if (currentCell != null && currentCell.ColumnIndex >= 0 && currentCell.RowIndex >= 0)
+                {
+                    var column = dgvTaxes.Columns[currentCell.ColumnIndex];
+                    if (column.Name == "CalculationMethod")
+                    {
+                        // Get the new value before committing
+                        var newValue = currentCell.Value?.ToString();
+                        Console.WriteLine($"Calculation method ComboBox value changed to: '{newValue}' for row {currentCell.RowIndex}");
+
+                        // Commit the change immediately for ComboBox
+                        dgvTaxes.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                        Console.WriteLine($"Calculation method ComboBox change committed for row {currentCell.RowIndex}");
+                    }
+                }
+            }
+        }
+
+        private void DgvTaxes_EditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
+        {
+            // Handle when a cell enters edit mode - attach events to the editing control
+            if (dgvTaxes.CurrentCell != null && dgvTaxes.CurrentCell.ColumnIndex >= 0)
+            {
+                var column = dgvTaxes.Columns[dgvTaxes.CurrentCell.ColumnIndex];
+                if (column.Name == "CalculationMethod" && e.Control is ComboBox comboBox)
+                {
+                    // Remove previous event handler to avoid duplicates
+                    comboBox.SelectedIndexChanged -= CalculationMethodComboBox_SelectedIndexChanged;
+
+                    // Attach new event handler
+                    comboBox.SelectedIndexChanged += CalculationMethodComboBox_SelectedIndexChanged;
+
+                    Console.WriteLine($"Attached SelectedIndexChanged event to CalculationMethod ComboBox for row {dgvTaxes.CurrentCell.RowIndex}");
+                }
+            }
+        }
+
+        private void CalculationMethodComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            // Handle when user selects a different item from the CalculationMethod ComboBox
+            if (sender is ComboBox comboBox && dgvTaxes.CurrentCell != null)
+            {
+                var selectedValue = comboBox.SelectedItem?.ToString();
+                var rowIndex = dgvTaxes.CurrentCell.RowIndex;
+
+                Console.WriteLine($"CalculationMethod ComboBox selection changed to: '{selectedValue}' for row {rowIndex}");
+
+                // Update the underlying data immediately
+                var taxes = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
+                if (taxes != null && rowIndex < taxes.Count)
+                {
+                    var tax = taxes[rowIndex];
+                    tax.CalculationMethod = selectedValue;
+
+                    // Update the cell value
+                    dgvTaxes.CurrentCell.Value = selectedValue;
+
+                    // Recalculate totals immediately
+                    Console.WriteLine("Recalculating totals after ComboBox selection change...");
+                    CalculateTotals();
+
+                    // Update the total tax amount display
+                    UpdateTotalTaxDisplay();
+
+                    Console.WriteLine($"Tax calculation method changed via ComboBox for row {rowIndex + 1}, totals recalculated");
+                }
+            }
+        }
+
+        private void DgvTaxes_CellEndEdit(object? sender, DataGridViewCellEventArgs e)
+        {
+            // Handle when user finishes editing a cell in the taxes grid
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var column = dgvTaxes.Columns[e.ColumnIndex];
+                Console.WriteLine($"Cell editing ended: Column={column.Name}, Row={e.RowIndex}");
+
+                if (column.Name == "CalculationMethod")
+                {
+                    var taxes = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
+                    if (taxes != null && e.RowIndex < taxes.Count)
+                    {
+                        var tax = taxes[e.RowIndex];
+                        var newValue = dgvTaxes.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
+
+                        Console.WriteLine($"Tax calculation method editing completed for '{tax.TaxName}': '{newValue}'");
+
+                        // Update the tax object with the new calculation method
+                        tax.CalculationMethod = newValue;
+
+                        // Recalculate totals when calculation method changes
+                        Console.WriteLine("Recalculating totals after calculation method edit completion...");
+                        CalculateTotals();
+
+                        // Update the total tax amount display
+                        UpdateTotalTaxDisplay();
+
+                        Console.WriteLine($"Tax calculation method updated for row {e.RowIndex + 1}, totals recalculated");
+                    }
+                }
+            }
+        }
+
+        private void UpdateTotalTaxDisplay()
+        {
+            try
+            {
+                var taxesSource = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
+                if (taxesSource != null)
+                {
+                    var totalTaxAmount = taxesSource.Sum(t => t.TaxAmount);
+                    txtTaxAmount.Text = totalTaxAmount.ToString("N2");
+
+                    // Also update the main total
+                    decimal subtotal = 0;
+                    decimal.TryParse(txtSubTotal.Text, out subtotal);
+
+                    decimal freight = 0;
+                    decimal.TryParse(txtFreight.Text, out freight);
+
+                    decimal roundOff = 0;
+                    decimal.TryParse(txtRoundOff.Text, out roundOff);
+
+                    var finalTotal = subtotal + totalTaxAmount + (chkFreightIncluded.Checked ? 0 : freight) + roundOff;
+                    txtTotal.Text = finalTotal.ToString("N2");
+
+                    Console.WriteLine($"Updated display - Total Tax: {totalTaxAmount:N2}, Final Total: {finalTotal:N2}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating total tax display: {ex.Message}");
             }
         }
 
@@ -2029,7 +2234,11 @@ Field Order:
 9. Party Ledger (TextBox - click or Enter to open selection modal)
 10. Account Ledger (TextBox - click or Enter to open selection modal)
 11. Transaction Items (DataGrid) - S.No, Product, Description, Qty, Unit Price, Disc %, Disc Amt, Tax %, Tax Amt, Line Total
-12. Transaction Taxes (DataGrid) - S.No, Tax Name, Tax Components, Description, Taxable Amount, Tax Amount, Calculation Method
+12. Transaction Taxes (DataGrid) - S.No, Tax Name, Tax Components, Component Rates, Total Rate %, Taxable Amount, Tax Amount, Calculation Method, Description
+    - Calculation Method options:
+      • ItemSubtotal: Tax calculated on items total only
+      • AboveRowAmount: Tax calculated on items total + all taxes above this row
+      • Total: Tax calculated on final total (including all other taxes)
 13. Subtotal (read-only)
 14. Discount Percent
 15. Discount Amount
@@ -2077,10 +2286,13 @@ Ledger Selection:
 
         private void CalculateTotals()
         {
+            Console.WriteLine("CalculateTotals called");
             try
             {
                 var itemsSource = dgvItems.DataSource as List<TransactionItemDisplay>;
                 var taxesSource = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
+
+                Console.WriteLine($"Items source: {itemsSource?.Count ?? 0} items, Taxes source: {taxesSource?.Count ?? 0} taxes");
 
                 if (itemsSource == null) itemsSource = new List<TransactionItemDisplay>();
                 if (taxesSource == null) taxesSource = new List<TransactionTaxDisplay>();
@@ -2109,25 +2321,119 @@ Ledger Selection:
 
                 var discountedSubtotal = subtotal - discountAmount;
 
-                // Calculate tax amount from all taxes
+                // Calculate tax amount from all taxes based on calculation method
                 var totalTaxAmount = 0m;
-                foreach (var tax in taxesSource)
+                var runningTaxTotal = 0m;
+
+                // Sort taxes by serial number to ensure proper calculation order
+                var sortedTaxes = taxesSource.OrderBy(t => t.SerialNumber).ToList();
+
+                foreach (var tax in sortedTaxes)
                 {
-                    // For loaded transactions, use the stored tax amount
-                    // For new calculations, recalculate based on components
-                    if (tax.TaxAmount > 0)
+                    decimal taxableAmount = 0;
+                    decimal taxAmount = 0;
+
+                    // Determine taxable amount based on calculation method
+                    switch (tax.CalculationMethod?.ToLower())
                     {
-                        totalTaxAmount += tax.TaxAmount;
+                        case "itemsubtotal":
+                            // Tax calculated on items total only (discounted subtotal)
+                            taxableAmount = discountedSubtotal;
+                            Console.WriteLine($"Tax {tax.TaxName}: ItemSubtotal - Taxable={taxableAmount:N2}");
+                            break;
+
+                        case "aboverowamount":
+                            // Tax calculated on items total + all taxes above this row
+                            taxableAmount = discountedSubtotal + runningTaxTotal;
+                            Console.WriteLine($"Tax {tax.TaxName}: AboveRowAmount - Taxable={taxableAmount:N2} (Items={discountedSubtotal:N2} + PreviousTaxes={runningTaxTotal:N2})");
+                            break;
+
+                        case "total":
+                            // Tax calculated on final total (we'll need to calculate this after all other taxes)
+                            // For now, set to discounted subtotal, will be recalculated later
+                            taxableAmount = discountedSubtotal;
+                            Console.WriteLine($"Tax {tax.TaxName}: Total - Will recalculate after other taxes");
+                            break;
+
+                        default:
+                            // Default to ItemSubtotal if method is not specified
+                            taxableAmount = discountedSubtotal;
+                            Console.WriteLine($"Tax {tax.TaxName}: Default ItemSubtotal - Taxable={taxableAmount:N2}");
+                            break;
                     }
-                    else if (tax.SelectedComponents.Any())
+
+                    // Update the taxable amount in the display object
+                    tax.TaxableAmount = taxableAmount;
+
+                    // Calculate tax amount based on components
+                    if (tax.SelectedComponents.Any())
                     {
-                        // Recalculate based on components
-                        var componentBasedAmount = tax.TaxableAmount * (tax.TotalComponentRate / 100);
-                        totalTaxAmount += componentBasedAmount;
-                        
-                        // Update the tax amount in the display object
-                        tax.TaxAmount = componentBasedAmount;
+                        taxAmount = taxableAmount * (tax.TotalComponentRate / 100);
+                        Console.WriteLine($"Tax {tax.TaxName}: Calculated {taxAmount:N2} ({taxableAmount:N2} * {tax.TotalComponentRate:N2}%)");
                     }
+                    else if (tax.TaxAmount > 0)
+                    {
+                        // Use stored tax amount if no components selected
+                        taxAmount = tax.TaxAmount;
+                        Console.WriteLine($"Tax {tax.TaxName}: Using stored amount {taxAmount:N2}");
+                    }
+
+                    // Update the tax amount in the display object
+                    tax.TaxableAmount = taxableAmount;
+                    tax.TaxAmount = taxAmount;
+
+                    Console.WriteLine($"Updated tax object - {tax.TaxName}: Taxable={taxableAmount:N2}, Amount={taxAmount:N2}");
+
+                    // Add to running total for AboveRowAmount calculations
+                    runningTaxTotal += taxAmount;
+
+                    // Add to total tax amount
+                    totalTaxAmount += taxAmount;
+
+                    Console.WriteLine($"Tax {tax.TaxName}: Final - Taxable={taxableAmount:N2}, Amount={taxAmount:N2}, RunningTotal={runningTaxTotal:N2}");
+                }
+
+                // Second pass for "Total" calculation method - recalculate taxes that depend on final total
+                var finalTotalBeforeRoundOff = discountedSubtotal + totalTaxAmount;
+                if (!chkFreightIncluded.Checked)
+                {
+                    decimal freightAmount = 0;
+                    decimal.TryParse(txtFreight.Text, out freightAmount);
+                    finalTotalBeforeRoundOff += freightAmount;
+                }
+
+                foreach (var tax in sortedTaxes)
+                {
+                    if (tax.CalculationMethod?.ToLower() == "total")
+                    {
+                        // Recalculate this tax based on final total
+                        decimal newTaxableAmount = finalTotalBeforeRoundOff - tax.TaxAmount; // Subtract current tax to avoid circular reference
+                        decimal newTaxAmount = 0;
+
+                        if (tax.SelectedComponents.Any())
+                        {
+                            newTaxAmount = newTaxableAmount * (tax.TotalComponentRate / 100);
+                        }
+
+                        // Update the difference
+                        var difference = newTaxAmount - tax.TaxAmount;
+                        totalTaxAmount += difference;
+                        runningTaxTotal += difference;
+
+                        // Update the tax object
+                        tax.TaxableAmount = newTaxableAmount;
+                        tax.TaxAmount = newTaxAmount;
+
+                        Console.WriteLine($"Recalculated 'Total' tax {tax.TaxName}: Taxable={newTaxableAmount:N2}, Amount={newTaxAmount:N2}");
+                    }
+                }
+
+                // Force refresh of data binding to ensure grid shows updated values
+                if (dgvTaxes.DataSource != null)
+                {
+                    // Use proper refresh methods instead of resetting DataSource
+                    dgvTaxes.Refresh();
+                    dgvTaxes.Invalidate();
                 }
                 txtTaxAmount.Text = totalTaxAmount.ToString("N2");
 
@@ -2326,8 +2632,9 @@ Ledger Selection:
                 if (taxes != null && selectedTax != null)
                 {
                     taxes.Remove(selectedTax);
-                    dgvTaxes.DataSource = null;
-                    dgvTaxes.DataSource = taxes;
+                    // Use proper refresh methods instead of resetting DataSource
+                    dgvTaxes.Refresh();
+                    dgvTaxes.Invalidate();
                     CalculateTotals();
                 }
             }
@@ -3287,7 +3594,7 @@ Ledger Selection:
                 TaxId = Guid.Parse(taxResult.Tax.Id),
                 TaxableAmount = taxableAmount,
                 TaxAmount = taxAmount,
-                CalculationMethod = "ItemSubtotal", // Default calculation method
+                CalculationMethod = "ItemSubtotal", // Default: calculate tax on items total
                 IsApplied = true,
                 AppliedDate = DateTime.Now,
                 ReferenceNumber = null,
@@ -3299,8 +3606,9 @@ Ledger Selection:
             Console.WriteLine($"Added tax to list. New count: {taxes.Count}");
             
             // Refresh the grid
-            dgvTaxes.DataSource = null;
             dgvTaxes.DataSource = taxes.OrderBy(t => t.SerialNumber).ToList();
+            dgvTaxes.Refresh();
+            dgvTaxes.Invalidate();
             Console.WriteLine($"Refreshed grid. Grid rows count: {dgvTaxes.Rows.Count}");
             
             // Select the new tax
