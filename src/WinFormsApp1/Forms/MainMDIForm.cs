@@ -67,6 +67,7 @@ namespace WinFormsApp1.Forms
 
         // Navigation state
         private bool isNavigationVisible = true;
+        private Button? _lastFocusedButton = null; // Track the last focused button before opening a form
 
         // Button navigation order for arrow key navigation within sections
         private Button[] mastersButtons = null!;
@@ -580,6 +581,11 @@ namespace WinFormsApp1.Forms
             // Set focus to navigation panel after form is loaded
             this.Load += (s, e) => 
             {
+                // Initialize the last focused button to the first button if not set
+                if (_lastFocusedButton == null)
+                {
+                    _lastFocusedButton = productsListButton;
+                }
                 SetFocusToNavigation();
                 // Ensure company display is updated after form loads
                 UpdateTitleWithSelectedCompany();
@@ -898,8 +904,7 @@ namespace WinFormsApp1.Forms
                         {
                             this.BeginInvoke(new Action(() =>
                             {
-                                // Clear all highlights and show navigation panel with first button focused
-                                ClearAllButtonHighlights();
+                                // Show navigation panel and restore focus to last focused button
                                 ShowNavigationPanel();
                                 Console.WriteLine("Last MDI form closed, Navigation panel shown");
                             }));
@@ -929,8 +934,7 @@ namespace WinFormsApp1.Forms
                         {
                             this.BeginInvoke(new Action(() =>
                             {
-                                // Clear all highlights and show navigation panel with first button focused
-                                ClearAllButtonHighlights();
+                                // Show navigation panel and restore focus to last focused button
                                 ShowNavigationPanel();
                                 Console.WriteLine("Last MDI form closed with Ctrl+W, Navigation panel shown");
                             }));
@@ -1088,8 +1092,7 @@ namespace WinFormsApp1.Forms
                 {
                     if (this.MdiChildren.Length == 0)
                     {
-                        // Clear all highlights and show navigation panel with first button focused
-                        ClearAllButtonHighlights();
+                        // Show navigation panel and restore focus to last focused button
                         ShowNavigationPanel();
                     }
                 }));
@@ -1130,8 +1133,7 @@ namespace WinFormsApp1.Forms
                 {
                     if (this.MdiChildren.Length == 0)
                     {
-                        // Clear all highlights and show navigation panel with first button focused
-                        ClearAllButtonHighlights();
+                        // Show navigation panel and restore focus to last focused button
                         ShowNavigationPanel();
                     }
                 }));
@@ -1172,8 +1174,7 @@ namespace WinFormsApp1.Forms
                 {
                     if (this.MdiChildren.Length == 0)
                     {
-                        // Clear all highlights and show navigation panel with first button focused
-                        ClearAllButtonHighlights();
+                        // Show navigation panel and restore focus to last focused button
                         ShowNavigationPanel();
                     }
                 }));
@@ -1214,8 +1215,7 @@ namespace WinFormsApp1.Forms
                 {
                     if (this.MdiChildren.Length == 0)
                     {
-                        // Clear all highlights and show navigation panel with first button focused
-                        ClearAllButtonHighlights();
+                        // Show navigation panel and restore focus to last focused button
                         ShowNavigationPanel();
                     }
                 }));
@@ -1614,14 +1614,25 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Always clear all highlights first to ensure clean state
             ClearAllButtonHighlights();
 
-            // Focus the first button in Masters section and highlight it
-            if (productsListButton.Visible)
+            // Restore focus to the last focused button, or default to first button
+            Button buttonToFocus = _lastFocusedButton ?? productsListButton;
+            
+            // Ensure the button is valid and visible
+            if (buttonToFocus != null && buttonToFocus.Visible)
             {
-                HighlightButton(productsListButton);
-                productsListButton.Focus();
+                HighlightButton(buttonToFocus);
+                buttonToFocus.Focus();
                 
                 // Ensure the button is visible in the viewport
+                buttonToFocus.BringToFront();
+            }
+            else if (productsListButton.Visible)
+            {
+                // Fallback to first button if the last focused button is not valid
+                HighlightButton(productsListButton);
+                productsListButton.Focus();
                 productsListButton.BringToFront();
+                _lastFocusedButton = productsListButton; // Update the last focused button
             }
         }
 
@@ -1638,20 +1649,25 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // Clear previous highlights and focus the first button in the specified section
             ClearAllButtonHighlights();
 
+            Button buttonToFocus = null;
             if (sectionName == "masters" && productsListButton.Visible)
             {
-                HighlightButton(productsListButton);
-                productsListButton.Focus();
+                buttonToFocus = productsListButton;
             }
             else if (sectionName == "transactions" && saleButton.Visible)
             {
-                HighlightButton(saleButton);
-                saleButton.Focus();
+                buttonToFocus = saleButton;
             }
             else if (sectionName == "reports" && stockReportButton.Visible)
             {
-                HighlightButton(stockReportButton);
-                stockReportButton.Focus();
+                buttonToFocus = stockReportButton;
+            }
+
+            if (buttonToFocus != null)
+            {
+                HighlightButton(buttonToFocus);
+                buttonToFocus.Focus();
+                _lastFocusedButton = buttonToFocus; // Update the last focused button
             }
         }
 
@@ -1690,7 +1706,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 }
                 else
                 {
-                    // Show navigation panel for other forms
+                    // Show navigation panel for other forms and restore focus to last focused button
                     ShowNavigationPanel();
                 }
             }
@@ -1757,12 +1773,12 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             else if (this.ActiveMdiChild != null)
             {
-                // Show navigation panel for other forms
+                // Show navigation panel for other forms and restore focus to last focused button
                 ShowNavigationPanel();
             }
             else
             {
-                // No child forms, show navigation panel
+                // No child forms, show navigation panel and restore focus to last focused button
                 ShowNavigationPanel();
             }
         }
@@ -1793,6 +1809,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
 
             HighlightButton(previousButton);
             previousButton.Focus();
+            _lastFocusedButton = previousButton; // Update the last focused button
 
             return true;
         }
@@ -1822,6 +1839,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
 
             HighlightButton(nextButton);
             nextButton.Focus();
+            _lastFocusedButton = nextButton; // Update the last focused button
 
             return true;
         }
@@ -1936,6 +1954,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             if (sender is Button btn)
             {
                 HighlightButton(btn);
+                _lastFocusedButton = btn; // Update the last focused button
             }
         }
 
@@ -1945,105 +1964,170 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             {
                 HighlightButton(btn);
                 btn.Focus(); // Ensure focus stays on the clicked button
+                _lastFocusedButton = btn; // Update the last focused button
             }
         }
 
         // Masters Section Button Handlers
         private void productsListButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenProductForm();
         }
 
         private void companyListButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenCompanyFormMaximized();
         }
 
         private void selectCompanyButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenCompanySelectForm();
         }
 
         private void financialYearListButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenFinancialYearListForm();
         }
 
         private void accountsButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenLedgerListForm();
         }
 
         private void taxButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTaxListForm();
         }
 
         // Transactions Section Button Handlers
         private void saleButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTransactionListForm("Sale");
         }
 
         private void purchaseButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTransactionListForm("Purchase");
         }
 
         private void receiptButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTransactionListForm("Receipt");
         }
 
         private void paymentButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTransactionListForm("Payment");
         }
 
         private void journalButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             OpenTransactionListForm("Journal");
         }
 
         // Reports Section Button Handlers
         private void stockReportButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             MessageBox.Show("Stock Report feature will be implemented here.", "Stock Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void taxReportButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             MessageBox.Show("Tax Report feature will be implemented here.", "Tax Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void salesReportButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             MessageBox.Show("Sales Report feature will be implemented here.", "Sales Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void purchaseReportButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             MessageBox.Show("Purchase Report feature will be implemented here.", "Purchase Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void profitLossButton_Click(object? sender, EventArgs e)
         {
-            if (sender is Button btn) HighlightButton(btn);
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
             MessageBox.Show("Profit & Loss Report feature will be implemented here.", "Profit & Loss", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
