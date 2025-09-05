@@ -19,6 +19,7 @@ namespace WinFormsApp1.Forms
         private readonly LedgerService _ledgerService;
         private readonly TaxService _taxService;
         private readonly TransactionService _transactionService;
+        private readonly JournalEntryService _journalEntryService;
         private MenuStrip menuStrip = null!;
         private ToolStripMenuItem fileMenu = null!;
         private ToolStripMenuItem companyMenuItem = null!;
@@ -83,6 +84,7 @@ namespace WinFormsApp1.Forms
             _ledgerService = new LedgerService(authService);
             _taxService = new TaxService(authService);
             _transactionService = new TransactionService(authService);
+            _journalEntryService = new JournalEntryService(authService);
             InitializeComponent();
             SetupForm();
         }
@@ -455,7 +457,7 @@ namespace WinFormsApp1.Forms
             journalButton.Name = "journalButton";
             journalButton.Size = new Size(302, 37);
             journalButton.TabIndex = 11;
-            journalButton.Text = "&Journal Entries (F11) - Manual Entries";
+            journalButton.Text = "&Journal Entries (F11) - Debit/Credit Entries";
             journalButton.UseVisualStyleBackColor = true;
             journalButton.Click += journalButton_Click;
             // 
@@ -1222,6 +1224,70 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private async void OpenJournalEntryForm()
+        {
+            try
+            {
+                // Get selected company and financial year
+                var selectedCompany = await _localStorageService.GetSelectedCompanyAsync();
+                var selectedFinancialYear = await _localStorageService.GetSelectedFinancialYearAsync();
+
+                if (selectedCompany == null)
+                {
+                    MessageBox.Show("Please select a company first.", "No Company Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (selectedFinancialYear == null)
+                {
+                    MessageBox.Show("Please select a financial year first.", "No Financial Year Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Check if JournalEntryForm is already open
+                foreach (Form childForm in this.MdiChildren)
+                {
+                    if (childForm is JournalEntryForm)
+                    {
+                        childForm.BringToFront();
+                        childForm.Activate();
+                        return;
+                    }
+                }
+
+                // Create new journal entry form
+                var journalEntryForm = new JournalEntryForm(_journalEntryService, _localStorageService, _ledgerService, selectedCompany, selectedFinancialYear)
+                {
+                    MdiParent = this,
+                    Text = "Journal Entry",
+                    WindowState = FormWindowState.Maximized
+                };
+
+                journalEntryForm.Show();
+                
+                // Hide navigation panel when JournalEntryForm is opened
+                HideNavigationPanel();
+                
+                // Add form closing event to ensure proper focus management
+                journalEntryForm.FormClosed += (s, e) =>
+                {
+                    // Ensure proper focus when form is closed
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        if (this.MdiChildren.Length == 0)
+                        {
+                            // Show navigation panel and restore focus to last focused button
+                            ShowNavigationPanel();
+                        }
+                    }));
+                };
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening journal entry form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1402,7 +1468,7 @@ TRANSACTIONS SECTION:
 • F8 - Purchases (Bills, Orders, Quotes)
 • F9 - Receipts (Customer Payments)
 • F10 - Payments (Supplier Payments)
-• F11 - Journal Entries (Manual Entries)
+• F11 - Journal Entries (Debit/Credit Entries)
 
 REPORTS SECTION:
 • Ctrl+F1 - Stock Report
@@ -2077,7 +2143,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            OpenTransactionListForm("Journal");
+            OpenJournalEntryForm();
         }
 
         // Reports Section Button Handlers
