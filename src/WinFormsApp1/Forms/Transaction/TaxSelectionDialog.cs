@@ -75,7 +75,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 Location = new Point(500, 25),
                 Size = new Size(460, 20),
-                Text = "Navigation: Tab → Components, Shift+Tab → Back, Space → Select, Enter → OK",
+                Text = "Navigation: Tab → Components, Shift+Tab → Back, Space → Select, Enter/Double-Click → Quick Add",
                 Font = new Font("Segoe UI", 8F, FontStyle.Italic),
                 ForeColor = Color.DarkBlue
             };
@@ -120,6 +120,7 @@ namespace WinFormsApp1.Forms.Transaction
             dgvTaxes.KeyDown += DgvTaxes_KeyDown;
             dgvTaxes.DoubleClick += DgvTaxes_DoubleClick;
             dgvComponents.KeyDown += DgvComponents_KeyDown;
+            dgvComponents.DoubleClick += DgvComponents_DoubleClick;
         }
 
         private void SetupTaxGrid()
@@ -156,6 +157,10 @@ namespace WinFormsApp1.Forms.Transaction
                 DataPropertyName = "HSNCode",
                 Width = 100
             });
+            
+            // Add tooltip to indicate double-click functionality
+            var taxToolTip = new ToolTip();
+            taxToolTip.SetToolTip(dgvTaxes, "Double-click on a tax to add it with all selected components to the transaction.");
         }
 
         private void SetupComponentGrid()
@@ -190,6 +195,10 @@ namespace WinFormsApp1.Forms.Transaction
             dgvComponents.DefaultCellStyle.SelectionForeColor = Color.Black;
             dgvComponents.GridColor = Color.LightGray;
             dgvComponents.BorderStyle = BorderStyle.Fixed3D;
+            
+            // Add tooltip to indicate quick add functionality
+            var toolTip = new ToolTip();
+            toolTip.SetToolTip(dgvComponents, "Double-click or press Enter on a component to quickly add the tax with that component to the transaction.");
         }
 
         private void LoadTaxes()
@@ -234,7 +243,7 @@ namespace WinFormsApp1.Forms.Transaction
                 if (_selectedTax?.Components != null && _selectedTax.Components.Any())
                 {
                     dgvComponents.DataSource = _selectedTax.Components.ToList();
-                    lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' (Click to select):";
+                    lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' (Click to select, Double-click/Enter to quick add):";
                     
                     // Do NOT select all components by default - user must manually select
                     dgvComponents.ClearSelection();
@@ -309,8 +318,8 @@ namespace WinFormsApp1.Forms.Transaction
             }
             else if (e.KeyCode == Keys.Enter)
             {
-                // Enter: Move to OK button
-                btnOK.Focus();
+                // Enter: Select current component and add tax to transaction
+                SelectCurrentComponentAndAddTax();
                 e.Handled = true;
             }
             else if (e.KeyCode == Keys.Space)
@@ -331,13 +340,49 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 var selectedCount = dgvComponents.SelectedRows.Count;
                 var totalCount = _selectedTax.Components?.Count ?? 0;
-                lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' ({selectedCount}/{totalCount} selected):";
+                lblComponents.Text = $"Select Tax Components for '{_selectedTax.Name}' ({selectedCount}/{totalCount} selected, Double-click/Enter to quick add):";
             }
         }
 
         private void DgvTaxes_DoubleClick(object? sender, EventArgs e)
         {
             BtnOK_Click(null, EventArgs.Empty);
+        }
+
+        private void DgvComponents_DoubleClick(object? sender, EventArgs e)
+        {
+            SelectCurrentComponentAndAddTax();
+        }
+
+        private void SelectCurrentComponentAndAddTax()
+        {
+            if (dgvTaxes.SelectedRows.Count > 0 && dgvComponents.CurrentRow != null)
+            {
+                var selectedTax = dgvTaxes.SelectedRows[0].DataBoundItem as TaxListDto;
+                var currentComponent = dgvComponents.CurrentRow.DataBoundItem as TaxComponentDto;
+                
+                if (selectedTax != null && currentComponent != null)
+                {
+                    // Select only the current component
+                    dgvComponents.ClearSelection();
+                    dgvComponents.CurrentRow.Selected = true;
+                    
+                    // Create tax result with the single selected component
+                    var componentsDisplay = currentComponent.DisplayName;
+                    
+                    var taxResult = new TaxSelectionResult
+                    {
+                        Tax = selectedTax,
+                        SelectedComponents = new List<TaxComponentDto> { currentComponent },
+                        ComponentsDisplay = componentsDisplay
+                    };
+
+                    SelectedTaxes.Add(taxResult);
+                    
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+            }
         }
 
         private void BtnOK_Click(object? sender, EventArgs e)
