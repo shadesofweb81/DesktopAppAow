@@ -11,6 +11,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
     <PackageReference Include="QuestPDF" Version="2025.7.1" />
+    <PackageReference Include="Syncfusion.Core.WinForms" Version="26.2.14" />
+    <PackageReference Include="Syncfusion.Grid.Windows" Version="26.2.14" />
+    <PackageReference Include="Syncfusion.SfDataGrid.WinForms" Version="26.2.14" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 
