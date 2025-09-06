@@ -9,8 +9,8 @@ namespace WinFormsApp1.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
-        private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
-        //private readonly string _erpBaseUrl = "https://localhost:7046";
+        //private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
+        private readonly string _erpBaseUrl = "https://localhost:7046";
         private readonly string _tokenFilePath;
         private string? _jwtToken;
 

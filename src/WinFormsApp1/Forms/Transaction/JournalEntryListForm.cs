@@ -1013,7 +1013,7 @@ namespace WinFormsApp1.Forms.Transaction
 
                 // Create a new JournalEntryForm for editing
                 var journalEntryForm = new JournalEntryForm(_journalEntryService, _localStorageService,
-                    _ledgerService, _selectedCompany, _selectedFinancialYear)
+                    _ledgerService, _selectedCompany, _selectedFinancialYear, Guid.Parse(selectedEntry.Id))
                 {
                     Text = $"Edit Journal Entry - {selectedEntry.TransactionNumber}",
                     MdiParent = this.MdiParent,

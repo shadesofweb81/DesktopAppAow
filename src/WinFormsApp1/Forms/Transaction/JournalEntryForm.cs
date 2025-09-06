@@ -76,15 +76,20 @@ namespace WinFormsApp1.Forms.Transaction
         private List<EditableJournalEntryDisplay> _ledgerEntries = new List<EditableJournalEntryDisplay>();
         private List<LedgerModel> _availableLedgers = new List<LedgerModel>();
         private int _nextSerialNumber = 1;
+        private Guid? _journalEntryId = null; // For editing existing entries
+        private bool _isEditMode = false;
 
         public JournalEntryForm(JournalEntryService journalEntryService, LocalStorageService localStorageService, 
-            LedgerService ledgerService, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear)
+            LedgerService ledgerService, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear, 
+            Guid? journalEntryId = null)
         {
             _journalEntryService = journalEntryService;
             _localStorageService = localStorageService;
             _ledgerService = ledgerService;
             _selectedCompany = selectedCompany;
             _selectedFinancialYear = selectedFinancialYear;
+            _journalEntryId = journalEntryId;
+            _isEditMode = journalEntryId.HasValue;
             
             InitializeComponent();
             SetupForm();
@@ -293,7 +298,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             // Journal Type ComboBox
             cmbJournalType.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbJournalType.DataSource = Enum.GetValues<JournalEntryType>();
+            cmbJournalType.DataSource = Enum.GetValues<TransactionType>();
             cmbJournalType.SelectedIndex = 0;
 
             // Set default values
@@ -473,10 +478,72 @@ namespace WinFormsApp1.Forms.Transaction
                 // Load available ledgers
                 _availableLedgers = await _ledgerService.GetAllLedgersAsync(Guid.Parse(_selectedCompany.Id));
                 UpdateStatus("Ledgers loaded successfully");
+
+                // If in edit mode, load the existing journal entry data
+                if (_isEditMode && _journalEntryId.HasValue)
+                {
+                    await LoadExistingJournalEntry();
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateStatus($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task LoadExistingJournalEntry()
+        {
+            try
+            {
+                UpdateStatus("Loading journal entry data...");
+                
+                var journalEntry = await _journalEntryService.GetJournalEntryByIdAsync(_journalEntryId!.Value);
+                
+                if (journalEntry != null)
+                {
+                    // Populate form fields with existing data
+                    txtTransactionNumber.Text = journalEntry.EntryNumber;
+                    cmbJournalType.SelectedItem = journalEntry.TypeEnum;
+                    dtpTransactionDate.Value = journalEntry.EntryDate;
+                    txtReferenceNumber.Text = ""; // API doesn't provide reference number
+                    txtNotes.Text = journalEntry.Notes ?? "";
+
+                    // Convert ledger entries to editable format
+                    _ledgerEntries.Clear();
+                    _nextSerialNumber = 1;
+                    
+                    foreach (var entry in journalEntry.LedgerEntries)
+                    {
+                        var editableEntry = new EditableJournalEntryDisplay
+                        {
+                            Id = Guid.Parse(entry.Id),
+                            LedgerId = Guid.Parse(entry.LedgerId),
+                            LedgerName = entry.LedgerName ?? "",
+                            LedgerCode = entry.LedgerCode ?? "",
+                            EntryType = entry.Type,
+                            Amount = entry.Amount,
+                            Description = entry.Description ?? "",
+                            SerialNumber = _nextSerialNumber++
+                        };
+                        _ledgerEntries.Add(editableEntry);
+                    }
+
+                    // Refresh the grid and update totals
+                    RefreshGrid();
+                    UpdateTotals();
+                    
+                    UpdateStatus("Journal entry loaded successfully");
+                }
+                else
+                {
+                    MessageBox.Show("Failed to load journal entry data.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    UpdateStatus("Failed to load journal entry data");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading journal entry: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus($"Error: {ex.Message}");
             }
         }
@@ -759,26 +826,41 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 btnSave.Enabled = false;
-                UpdateStatus("Saving journal entry...");
+                UpdateStatus(_isEditMode ? "Updating journal entry..." : "Saving journal entry...");
 
-                var request = CreateJournalEntryRequestFromForm();
-                var result = await _journalEntryService.CreateJournalEntryAsync(request);
+                JournalEntryByIdDto? result = null;
+
+                if (_isEditMode && _journalEntryId.HasValue)
+                {
+                    // Update existing journal entry
+                    var updateRequest = CreateUpdateJournalEntryRequestFromForm();
+                    result = await _journalEntryService.UpdateJournalEntryAsync(_journalEntryId.Value, updateRequest);
+                }
+                else
+                {
+                    // Create new journal entry
+                    var createRequest = CreateJournalEntryRequestFromForm();
+                    result = await _journalEntryService.CreateJournalEntryAsync(createRequest);
+                }
 
                 if (result != null)
                 {
-                    MessageBox.Show("Journal entry saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    var message = _isEditMode ? "Journal entry updated successfully!" : "Journal entry saved successfully!";
+                    MessageBox.Show(message, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     DialogResult = DialogResult.OK;
                     Close();
                 }
                 else
                 {
-                    MessageBox.Show("Failed to save journal entry.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    UpdateStatus("Failed to save journal entry");
+                    var errorMessage = _isEditMode ? "Failed to update journal entry." : "Failed to save journal entry.";
+                    MessageBox.Show(errorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    UpdateStatus(errorMessage);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error saving journal entry: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                var errorMessage = _isEditMode ? "Error updating journal entry" : "Error saving journal entry";
+                MessageBox.Show($"{errorMessage}: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus($"Error: {ex.Message}");
             }
             finally
@@ -836,7 +918,7 @@ namespace WinFormsApp1.Forms.Transaction
             var request = new CreateJournalEntryRequest
             {
                 EntryNumber = txtTransactionNumber.Text,
-                Type = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.Journal,
+                Type = cmbJournalType.SelectedItem is TransactionType type ? type : TransactionType.JournalEntry,
                 TransactionDate = dtpTransactionDate.Value,
                 ReferenceNumber = txtReferenceNumber.Text,
                 Notes = txtNotes.Text,
@@ -851,6 +933,36 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 request.LedgerEntries.Add(new CreateJournalEntryLedgerRequest
                 {
+                    LedgerId = entry.LedgerId.ToString(),
+                    EntryType = entry.EntryType,
+                    Amount = entry.Amount,
+                    Description = entry.Description,
+                    SerialNumber = entry.SerialNumber
+                });
+            }
+
+            return request;
+        }
+
+        private UpdateJournalEntryRequest CreateUpdateJournalEntryRequestFromForm()
+        {
+            var request = new UpdateJournalEntryRequest
+            {
+                TransactionNumber = txtTransactionNumber.Text,
+                JournalEntryType = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.Journal,
+                TransactionDate = dtpTransactionDate.Value,
+                ReferenceNumber = txtReferenceNumber.Text,
+                Notes = txtNotes.Text,
+                Status = "Draft",
+                LedgerEntries = new List<UpdateJournalEntryLedgerRequest>()
+            };
+
+            // Add ledger entries
+            foreach (var entry in _ledgerEntries)
+            {
+                request.LedgerEntries.Add(new UpdateJournalEntryLedgerRequest
+                {
+                    Id = entry.Id.ToString(),
                     LedgerId = entry.LedgerId.ToString(),
                     EntryType = entry.EntryType,
                     Amount = entry.Amount,

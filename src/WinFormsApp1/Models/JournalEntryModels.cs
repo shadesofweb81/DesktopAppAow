@@ -73,7 +73,7 @@ namespace WinFormsApp1.Models
         public string EntryNumber { get; set; } = string.Empty;
         
         [Required]
-        public JournalEntryType Type { get; set; }
+        public TransactionType Type { get; set; }
 
         
         [Required]
@@ -111,13 +111,13 @@ namespace WinFormsApp1.Models
     public class UpdateJournalEntryRequest
     {
         [Required]
-        public string EntryNumber { get; set; } = string.Empty;
+        public string TransactionNumber { get; set; } = string.Empty;
         
         [Required]
-        public JournalEntryType Type { get; set; }
+        public JournalEntryType JournalEntryType { get; set; }
         
         [Required]
-        public DateTime EntryDate { get; set; }
+        public DateTime TransactionDate { get; set; }
         
         public string? ReferenceNumber { get; set; }
         public string? Notes { get; set; }
@@ -130,7 +130,7 @@ namespace WinFormsApp1.Models
     {
         public string? Id { get; set; } // Null for new entries
         public string LedgerId { get; set; } = string.Empty;
-        public JournalEntryLedgerType Type { get; set; }
+        public JournalEntryLedgerType EntryType { get; set; }
         public decimal Amount { get; set; }
         public string? Description { get; set; }
         public int SerialNumber { get; set; }
@@ -167,25 +167,57 @@ namespace WinFormsApp1.Models
         public decimal Amount { get; set; }
     }
 
-    // DTO for detailed journal entry view
+    // DTO for detailed journal entry view (matches actual API response)
     public class JournalEntryByIdDto
     {
         public string Id { get; set; } = string.Empty;
-        public string EntryNumber { get; set; } = string.Empty;
-        public JournalEntryType Type { get; set; }
-        public DateTime EntryDate { get; set; }
-        public string? ReferenceNumber { get; set; }
-        public string? Notes { get; set; }
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string TransactionType { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
-        public decimal TotalDebit { get; set; }
-        public decimal TotalCredit { get; set; }
-        public decimal Difference { get; set; }
-        public bool IsBalanced { get; set; }
-        public string CompanyId { get; set; } = string.Empty;
-        public string FinancialYearId { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+        public string JournalEntryType { get; set; } = string.Empty;
+        public decimal SubTotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal Total { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public string PartyLedgerId { get; set; } = string.Empty;
+        public string PartyName { get; set; } = string.Empty;
+        public string AccountLedgerId { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
+        public decimal Discount { get; set; }
+        public decimal Freight { get; set; }
+        public bool IsFreightIncluded { get; set; }
+        public decimal RoundOff { get; set; }
+        public List<object> Items { get; set; } = new List<object>();
+        public List<object> Taxes { get; set; } = new List<object>();
         public List<JournalEntryLedgerDto> LedgerEntries { get; set; } = new List<JournalEntryLedgerDto>();
+        
+        // Computed properties for backward compatibility
+        public string EntryNumber => TransactionNumber;
+        public DateTime EntryDate => TransactionDate;
+        public TransactionType TypeEnum 
+        { 
+            get 
+            {
+                // Map API values to enum values
+                return JournalEntryType switch
+                {
+                    "JournalEntry" => WinFormsApp1.Models.TransactionType.JournalEntry,
+                    "Sale" => WinFormsApp1.Models.TransactionType.SaleInvoice,
+                    "Purchase" => WinFormsApp1.Models.TransactionType.PurchaseBill,
+                    "Receipt" => WinFormsApp1.Models.TransactionType.CashReceipt,
+                    "Payment" => WinFormsApp1.Models.TransactionType.CashPayment,
+                    _ => WinFormsApp1.Models.TransactionType.JournalEntry
+                };
+            }
+        }
+        public decimal TotalDebit => LedgerEntries.Where(le => le.EntryType == "Debit").Sum(le => le.Amount);
+        public decimal TotalCredit => LedgerEntries.Where(le => le.EntryType == "Credit").Sum(le => le.Amount);
+        public decimal Difference => TotalDebit - TotalCredit;
+        public bool IsBalanced => Math.Abs(Difference) < 0.01m;
     }
 
     public class JournalEntryLedgerDto
@@ -194,10 +226,15 @@ namespace WinFormsApp1.Models
         public string LedgerId { get; set; } = string.Empty;
         public string? LedgerName { get; set; }
         public string? LedgerCode { get; set; }
-        public JournalEntryLedgerType Type { get; set; }
+        public string EntryType { get; set; } = string.Empty; // "Debit" or "Credit"
         public decimal Amount { get; set; }
         public string? Description { get; set; }
-        public int SerialNumber { get; set; }
+        public bool IsMainEntry { get; set; }
+        public bool IsSystemEntry { get; set; }
+        
+        // Computed properties for backward compatibility
+        public JournalEntryLedgerType Type => Enum.TryParse<JournalEntryLedgerType>(EntryType, true, out var type) ? type : JournalEntryLedgerType.Debit;
+        public int SerialNumber { get; set; } = 1; // Default value since API doesn't provide this
     }
 
     // Paginated response for journal entry list

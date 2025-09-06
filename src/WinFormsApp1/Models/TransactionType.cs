@@ -16,4 +16,8 @@ namespace WinFormsApp1.Models
         CashReceipt,
         JournalEntry
     }
+
+   
+
+
 } 

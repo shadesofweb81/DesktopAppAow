@@ -41,7 +41,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                
+
                 var queryParams = new List<string>
                 {
                     $"page={page}",
@@ -50,10 +50,10 @@ namespace WinFormsApp1.Services
 
                 if (!string.IsNullOrEmpty(searchTerm))
                     queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
-                
+
                 if (type.HasValue)
                     queryParams.Add($"type={type.Value}");
-                
+
                 if (!string.IsNullOrEmpty(status))
                     queryParams.Add($"status={Uri.EscapeDataString(status)}");
 
@@ -214,7 +214,7 @@ namespace WinFormsApp1.Services
                     WriteIndented = true,
                     Converters = { new JsonStringEnumConverter() }
                 });
-
+               
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 Console.WriteLine($"Updating journal entry {id} via: {_baseUrl}/{id} with data: {json}");
