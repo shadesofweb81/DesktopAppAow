@@ -1,9 +1,50 @@
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using System.Windows.Forms;
+using Syncfusion.WinForms.DataGrid;
+using Syncfusion.WinForms.DataGrid.Enums;
+using System.ComponentModel;
 
 namespace WinFormsApp1.Forms.Transaction
 {
+    // Custom class for grid editing with settable debit/credit amounts
+    public class EditableJournalEntryDisplay : JournalEntryDisplay
+    {
+        public new decimal DebitAmount
+        {
+            get => EntryType == JournalEntryLedgerType.Debit ? Amount : 0;
+            set
+            {
+                if (value > 0)
+                {
+                    Amount = value;
+                    EntryType = JournalEntryLedgerType.Debit;
+                }
+                else
+                {
+                    Amount = 0;
+                }
+            }
+        }
+
+        public new decimal CreditAmount
+        {
+            get => EntryType == JournalEntryLedgerType.Credit ? Amount : 0;
+            set
+            {
+                if (value > 0)
+                {
+                    Amount = value;
+                    EntryType = JournalEntryLedgerType.Credit;
+                }
+                else
+                {
+                    Amount = 0;
+                }
+            }
+        }
+    }
+
     public partial class JournalEntryForm : BaseForm
     {
         private readonly JournalEntryService _journalEntryService;
@@ -18,7 +59,7 @@ namespace WinFormsApp1.Forms.Transaction
         private DateTimePicker dtpTransactionDate = null!;
         private TextBox txtReferenceNumber = null!;
         private TextBox txtNotes = null!;
-        private DataGridView dgvLedgerEntries = null!;
+        private SfDataGrid sfDataGrid = null!;
         private Button btnAddEntry = null!;
         private Button btnEditEntry = null!;
         private Button btnDeleteEntry = null!;
@@ -29,9 +70,10 @@ namespace WinFormsApp1.Forms.Transaction
         private Button btnSave = null!;
         private Button btnCancel = null!;
         private Label lblStatus = null!;
+        private ContextMenuStrip contextMenuStrip = null!;
 
         // Data
-        private List<JournalEntryDisplay> _ledgerEntries = new List<JournalEntryDisplay>();
+        private List<EditableJournalEntryDisplay> _ledgerEntries = new List<EditableJournalEntryDisplay>();
         private List<LedgerModel> _availableLedgers = new List<LedgerModel>();
         private int _nextSerialNumber = 1;
 
@@ -62,7 +104,7 @@ namespace WinFormsApp1.Forms.Transaction
             dtpTransactionDate = new DateTimePicker();
             txtReferenceNumber = new TextBox();
             txtNotes = new TextBox();
-            dgvLedgerEntries = new DataGridView();
+            sfDataGrid = new SfDataGrid();
             btnAddEntry = new Button();
             btnEditEntry = new Button();
             btnDeleteEntry = new Button();
@@ -73,6 +115,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnSave = new Button();
             btnCancel = new Button();
             lblStatus = new Label();
+            contextMenuStrip = new ContextMenuStrip();
 
             SuspendLayout();
             SetupLayout();
@@ -117,11 +160,11 @@ namespace WinFormsApp1.Forms.Transaction
             };
             Controls.Add(entriesGroup);
 
-            // Ledger Entries Grid
-            dgvLedgerEntries.Location = new Point(10, 25);
-            dgvLedgerEntries.Size = new Size(1120, 300);
-            dgvLedgerEntries.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            entriesGroup.Controls.Add(dgvLedgerEntries);
+            // SfDataGrid for ledger entries
+            sfDataGrid.Location = new Point(10, 25);
+            sfDataGrid.Size = new Size(1120, 300);
+            sfDataGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            entriesGroup.Controls.Add(sfDataGrid);
 
             // Buttons for ledger entries
             btnAddEntry.Location = new Point(10, 335);
@@ -239,7 +282,8 @@ namespace WinFormsApp1.Forms.Transaction
         private void SetupForm()
         {
             SetupComboBoxes();
-            SetupDataGridView();
+            SetupSfDataGrid();
+            SetupContextMenu();
             SetupEventHandlers();
             LoadData();
             UpdateTotals();
@@ -257,73 +301,147 @@ namespace WinFormsApp1.Forms.Transaction
             dtpTransactionDate.Value = DateTime.Today;
         }
 
-        private void SetupDataGridView()
+        private void SetupContextMenu()
         {
-            dgvLedgerEntries.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvLedgerEntries.MultiSelect = false;
-            dgvLedgerEntries.AllowUserToAddRows = false;
-            dgvLedgerEntries.AllowUserToDeleteRows = false;
-            dgvLedgerEntries.ReadOnly = true;
-            dgvLedgerEntries.RowHeadersVisible = false;
-            dgvLedgerEntries.AutoGenerateColumns = false;
-            dgvLedgerEntries.DataSource = _ledgerEntries;
-
-            // Add columns
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
+            try
             {
-                Name = "SerialNumber",
-                HeaderText = "S.No",
-                DataPropertyName = "SerialNumber",
-                Width = 50
-            });
+                // Create context menu items
+                var editMenuItem = new ToolStripMenuItem("&Edit Entry", null, ContextMenu_Edit_Click)
+                {
+                    ShortcutKeys = Keys.F3,
+                    Tag = "Edit"
+                };
 
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
+                var deleteMenuItem = new ToolStripMenuItem("&Delete Entry", null, ContextMenu_Delete_Click)
+                {
+                    ShortcutKeys = Keys.Delete,
+                    Tag = "Delete"
+                };
+
+                // Add separator and items to context menu
+                contextMenuStrip.Items.Add(editMenuItem);
+                contextMenuStrip.Items.Add(new ToolStripSeparator());
+                contextMenuStrip.Items.Add(deleteMenuItem);
+
+                // Assign context menu to the grid
+                sfDataGrid.ContextMenuStrip = contextMenuStrip;
+
+                // Enable/disable menu items based on selection
+                contextMenuStrip.Opening += ContextMenuStrip_Opening;
+                
+                // Set context menu properties
+                contextMenuStrip.ShowCheckMargin = false;
+                contextMenuStrip.ShowImageMargin = false;
+            }
+            catch (Exception ex)
             {
-                Name = "LedgerName",
-                HeaderText = "Ledger Name",
-                DataPropertyName = "LedgerName",
-                Width = 300
-            });
+                UpdateStatus($"Error setting up context menu: {ex.Message}");
+                Console.WriteLine($"Error setting up context menu: {ex}");
+            }
+        }
 
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
+        private void SetupSfDataGrid()
+        {
+            try
             {
-                Name = "LedgerCode",
-                HeaderText = "Code",
-                DataPropertyName = "LedgerCode",
-                Width = 100
-            });
+                // Configure SfDataGrid properties
+                sfDataGrid.AutoGenerateColumns = false;
+                sfDataGrid.AllowEditing = true;
+                sfDataGrid.AllowDeleting = true;
+                sfDataGrid.AllowGrouping = false;
+                sfDataGrid.AllowSorting = false;
+                sfDataGrid.AllowFiltering = false;
+                sfDataGrid.ShowRowHeader = false;
+                
+                // Disable adding new rows directly in the grid
+                sfDataGrid.AddNewRowPosition = RowPosition.None;
+                
+                // Configure editing behavior
+                sfDataGrid.EditMode = EditMode.SingleClick;
 
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
+                // Set data source
+                if (_ledgerEntries == null)
+                {
+                    _ledgerEntries = new List<EditableJournalEntryDisplay>();
+                }
+                sfDataGrid.DataSource = _ledgerEntries;
+
+                // Add columns
+                sfDataGrid.Columns.Add(new GridTextColumn()
+                {
+                    MappingName = "SerialNumber",
+                    HeaderText = "S.No",
+                    Width = 50,
+                    AllowEditing = false
+                });
+
+                sfDataGrid.Columns.Add(new GridTextColumn()
+                {
+                    MappingName = "LedgerName",
+                    HeaderText = "Ledger Name",
+                    Width = 300,
+                    AllowEditing = false
+                });
+
+                sfDataGrid.Columns.Add(new GridTextColumn()
+                {
+                    MappingName = "LedgerCode",
+                    HeaderText = "Code",
+                    Width = 100,
+                    AllowEditing = false
+                });
+
+                // Configure Debit Amount column for inline editing
+                var debitColumn = new GridNumericColumn()
+                {
+                    MappingName = "DebitAmount",
+                    HeaderText = "Debit Amount",
+                    Width = 120,
+                    AllowEditing = true
+                };
+                sfDataGrid.Columns.Add(debitColumn);
+
+                // Configure Credit Amount column for inline editing
+                var creditColumn = new GridNumericColumn()
+                {
+                    MappingName = "CreditAmount",
+                    HeaderText = "Credit Amount",
+                    Width = 120,
+                    AllowEditing = true
+                };
+                sfDataGrid.Columns.Add(creditColumn);
+
+                // Configure Description column for inline editing
+                var descriptionColumn = new GridTextColumn()
+                {
+                    MappingName = "Description",
+                    HeaderText = "Description",
+                    Width = 200,
+                    AllowEditing = true
+                };
+                sfDataGrid.Columns.Add(descriptionColumn);
+
+                // Configure selection
+                sfDataGrid.SelectionMode = GridSelectionMode.Single;
+                sfDataGrid.SelectionUnit = SelectionUnit.Cell;
+
+                // Configure appearance
+                sfDataGrid.Style.BorderColor = Color.LightGray;
+
+                // Add event handlers for inline editing
+                sfDataGrid.CurrentCellBeginEdit += SfDataGrid_CurrentCellBeginEdit;
+                sfDataGrid.CurrentCellEndEdit += SfDataGrid_CurrentCellEndEdit;
+                sfDataGrid.RecordDeleted += SfDataGrid_RecordDeleted;
+                sfDataGrid.CellClick += SfDataGrid_CellClick;
+                sfDataGrid.MouseClick += SfDataGrid_MouseClick;
+                sfDataGrid.SelectionChanged += SfDataGrid_SelectionChanged;
+                sfDataGrid.KeyDown += SfDataGrid_KeyDown;
+            }
+            catch (Exception ex)
             {
-                Name = "DebitAmount",
-                HeaderText = "Debit Amount",
-                DataPropertyName = "DebitAmount",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "CreditAmount",
-                HeaderText = "Credit Amount",
-                DataPropertyName = "CreditAmount",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvLedgerEntries.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Description",
-                HeaderText = "Description",
-                DataPropertyName = "Description",
-                Width = 200
-            });
-
-            // Set up visual styling
-            dgvLedgerEntries.DefaultCellStyle.SelectionBackColor = Color.LightBlue;
-            dgvLedgerEntries.DefaultCellStyle.SelectionForeColor = Color.Black;
-            dgvLedgerEntries.GridColor = Color.LightGray;
-            dgvLedgerEntries.BorderStyle = BorderStyle.Fixed3D;
+                UpdateStatus($"Error setting up SfDataGrid: {ex.Message}");
+                Console.WriteLine($"Error setting up SfDataGrid: {ex}");
+            }
         }
 
         private void SetupEventHandlers()
@@ -332,14 +450,20 @@ namespace WinFormsApp1.Forms.Transaction
             KeyDown += JournalEntryForm_KeyDown;
             Load += JournalEntryForm_Load;
 
-            // Grid events
-            dgvLedgerEntries.KeyDown += DgvLedgerEntries_KeyDown;
-            dgvLedgerEntries.DoubleClick += DgvLedgerEntries_DoubleClick;
-            dgvLedgerEntries.SelectionChanged += DgvLedgerEntries_SelectionChanged;
-
             // Control events
             txtTransactionNumber.TextChanged += (s, e) => UpdateStatus();
             dtpTransactionDate.ValueChanged += (s, e) => UpdateStatus();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Intercept Enter key at the form level to prevent tab behavior
+            if (keyData == Keys.Enter && sfDataGrid.Focused)
+            {
+                // Let the grid handle the Enter key
+                return false;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         private async void LoadData()
@@ -402,13 +526,30 @@ namespace WinFormsApp1.Forms.Transaction
         // Event Handlers
         private void JournalEntryForm_Load(object? sender, EventArgs e)
         {
-            cmbJournalType.Focus();
+            try
+            {
+                // Ensure SfDataGrid is properly initialized
+                if (sfDataGrid != null && _ledgerEntries != null)
+                {
+                    RefreshGrid();
+                }
+
+                cmbJournalType.Focus();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error loading form: {ex.Message}");
+                Console.WriteLine($"Error in Form_Load: {ex}");
+            }
         }
 
         private void JournalEntryForm_KeyDown(object? sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
             {
+                case Keys.Enter:
+                    e.Handled = true;
+                    break;                  
                 case Keys.F2:
                     BtnAddEntry_Click(null, EventArgs.Empty);
                     e.Handled = true;
@@ -422,7 +563,7 @@ namespace WinFormsApp1.Forms.Transaction
                     e.Handled = true;
                     break;
                 case Keys.Delete:
-                    if (dgvLedgerEntries.Focused)
+                    if (sfDataGrid.Focused)
                     {
                         BtnDeleteEntry_Click(null, EventArgs.Empty);
                         e.Handled = true;
@@ -439,41 +580,40 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        private void DgvLedgerEntries_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnEditEntry_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Delete)
-            {
-                BtnDeleteEntry_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
 
-        private void DgvLedgerEntries_DoubleClick(object? sender, EventArgs e)
-        {
-            BtnEditEntry_Click(null, EventArgs.Empty);
-        }
 
-        private void DgvLedgerEntries_SelectionChanged(object? sender, EventArgs e)
+        private void SfDataGrid_RecordDeleted(object? sender, Syncfusion.WinForms.DataGrid.Events.RecordDeletedEventArgs e)
         {
-            btnEditEntry.Enabled = dgvLedgerEntries.SelectedRows.Count > 0;
-            btnDeleteEntry.Enabled = dgvLedgerEntries.SelectedRows.Count > 0;
+            try
+            {
+                // Update totals when record is deleted
+                UpdateTotals();
+                UpdateStatus("Entry deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error deleting record: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_RecordDeleted: {ex}");
+            }
         }
 
         private void BtnAddEntry_Click(object? sender, EventArgs e)
         {
-            ShowLedgerEntryDialog();
+            // Add a new entry directly to the grid for inline editing
+            var newEntry = CreateNewEntry();
+            _ledgerEntries.Add(newEntry);
+            RefreshGrid();
+            
+            // Select the new row and focus on the first editable cell
+            sfDataGrid.SelectedIndex = _ledgerEntries.Count - 1;
+            UpdateStatus("New entry added - double-click on Ledger Name to select a ledger, then enter amounts");
         }
 
         private void BtnEditEntry_Click(object? sender, EventArgs e)
         {
-            if (dgvLedgerEntries.SelectedRows.Count > 0)
+            if (sfDataGrid.SelectedItem != null)
             {
-                var selectedEntry = dgvLedgerEntries.SelectedRows[0].DataBoundItem as JournalEntryDisplay;
+                var selectedEntry = sfDataGrid.SelectedItem as EditableJournalEntryDisplay;
                 if (selectedEntry != null)
                 {
                     ShowLedgerEntryDialog(selectedEntry);
@@ -483,12 +623,12 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void BtnDeleteEntry_Click(object? sender, EventArgs e)
         {
-            if (dgvLedgerEntries.SelectedRows.Count > 0)
+            if (sfDataGrid.SelectedItem != null)
             {
-                var selectedEntry = dgvLedgerEntries.SelectedRows[0].DataBoundItem as JournalEntryDisplay;
+                var selectedEntry = sfDataGrid.SelectedItem as EditableJournalEntryDisplay;
                 if (selectedEntry != null)
                 {
-                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nType: {selectedEntry.EntryType}\nAmount: {selectedEntry.Amount:N2}", 
+                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}", 
                         "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     
                     if (result == DialogResult.Yes)
@@ -507,7 +647,7 @@ namespace WinFormsApp1.Forms.Transaction
             ShowLedgerSelectionDialog();
         }
 
-        private void ShowLedgerEntryDialog(JournalEntryDisplay? existingEntry = null)
+        private void ShowLedgerEntryDialog(EditableJournalEntryDisplay? existingEntry = null)
         {
             try
             {
@@ -516,28 +656,41 @@ namespace WinFormsApp1.Forms.Transaction
                 
                 if (dialog.ShowDialog(this) == DialogResult.OK && dialog.JournalEntry != null)
                 {
+                    // Convert JournalEntryDisplay to EditableJournalEntryDisplay
+                    var editableEntry = new EditableJournalEntryDisplay
+                    {
+                        Id = dialog.JournalEntry.Id,
+                        LedgerId = dialog.JournalEntry.LedgerId,
+                        LedgerName = dialog.JournalEntry.LedgerName,
+                        LedgerCode = dialog.JournalEntry.LedgerCode,
+                        EntryType = dialog.JournalEntry.EntryType,
+                        Amount = dialog.JournalEntry.Amount,
+                        Description = dialog.JournalEntry.Description,
+                        SerialNumber = dialog.JournalEntry.SerialNumber
+                    };
+
                     if (existingEntry != null)
                     {
                         // Update existing entry
                         var index = _ledgerEntries.IndexOf(existingEntry);
                         if (index >= 0 && index < _ledgerEntries.Count)
                         {
-                            _ledgerEntries[index] = dialog.JournalEntry;
+                            _ledgerEntries[index] = editableEntry;
                             UpdateStatus("Entry updated successfully");
                         }
                         else
                         {
                             // If entry not found, add as new entry
-                            dialog.JournalEntry.SerialNumber = _nextSerialNumber++;
-                            _ledgerEntries.Add(dialog.JournalEntry);
+                            editableEntry.SerialNumber = _nextSerialNumber++;
+                            _ledgerEntries.Add(editableEntry);
                             UpdateStatus("Entry added successfully");
                         }
                     }
                     else
                     {
                         // Add new entry
-                        dialog.JournalEntry.SerialNumber = _nextSerialNumber++;
-                        _ledgerEntries.Add(dialog.JournalEntry);
+                        editableEntry.SerialNumber = _nextSerialNumber++;
+                        _ledgerEntries.Add(editableEntry);
                         UpdateStatus("Entry added successfully");
                     }
                     
@@ -560,7 +713,7 @@ namespace WinFormsApp1.Forms.Transaction
             if (dialog.ShowDialog(this) == DialogResult.OK && dialog.SelectedLedger != null)
             {
                 // Create a new entry with the selected ledger
-                var newEntry = new JournalEntryDisplay
+                var newEntry = new EditableJournalEntryDisplay
                 {
                     LedgerId = dialog.SelectedLedger.Id,
                     LedgerName = dialog.SelectedLedger.Name,
@@ -576,8 +729,26 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void RefreshGrid()
         {
-            dgvLedgerEntries.DataSource = null;
-            dgvLedgerEntries.DataSource = _ledgerEntries;
+            try
+            {
+                if (sfDataGrid == null || _ledgerEntries == null)
+                    return;
+
+                // Refresh the data source
+                sfDataGrid.DataSource = null;
+                sfDataGrid.DataSource = _ledgerEntries;
+
+                // Ensure the grid reflects the current data
+                if (_ledgerEntries.Count > 0)
+                {
+                    sfDataGrid.Refresh();
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error refreshing grid: {ex.Message}");
+                Console.WriteLine($"Error refreshing grid: {ex}");
+            }
         }
 
         private async void BtnSave_Click(object? sender, EventArgs e)
@@ -665,8 +836,8 @@ namespace WinFormsApp1.Forms.Transaction
             var request = new CreateJournalEntryRequest
             {
                 EntryNumber = txtTransactionNumber.Text,
-                Type = (JournalEntryType)cmbJournalType.SelectedItem,
-                EntryDate = dtpTransactionDate.Value,
+                Type = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.Journal,
+                TransactionDate = dtpTransactionDate.Value,
                 ReferenceNumber = txtReferenceNumber.Text,
                 Notes = txtNotes.Text,
                 Status = "Draft",
@@ -681,7 +852,7 @@ namespace WinFormsApp1.Forms.Transaction
                 request.LedgerEntries.Add(new CreateJournalEntryLedgerRequest
                 {
                     LedgerId = entry.LedgerId.ToString(),
-                    Type = entry.EntryType,
+                    EntryType = entry.EntryType,
                     Amount = entry.Amount,
                     Description = entry.Description,
                     SerialNumber = entry.SerialNumber
@@ -690,6 +861,392 @@ namespace WinFormsApp1.Forms.Transaction
 
             return request;
         }
+
+        private void SfDataGrid_CellClick(object? sender, Syncfusion.WinForms.DataGrid.Events.CellClickEventArgs e)
+        {
+            try
+            {
+                // Handle double-click on Ledger Name column to open ledger selection
+                if (e.MouseEventArgs?.Clicks == 2)
+                {
+                    // Check if we're clicking on the Ledger Name column
+                    var currentCell = sfDataGrid.CurrentCell;
+                    if (currentCell?.Column != null)
+                    {
+                        // Try to get the column name to check if it's LedgerName
+                        var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
+                        if (columnName == "LedgerName")
+                        {
+                            if (sfDataGrid.SelectedItem is EditableJournalEntryDisplay entry)
+                            {
+                                // Open ledger selection dialog
+                                ShowLedgerSelectionDialog();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error handling cell click: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_CellClick: {ex}");
+            }
+        }
+
+
+        private void SfDataGrid_MouseClick(object? sender, MouseEventArgs e)
+        {
+            try
+            {
+                // Handle right-click to show context menu
+                if (e.Button == MouseButtons.Right)
+                {
+                    // Check if we have any entries and a selected item
+                    if (_ledgerEntries.Count > 0 && sfDataGrid.SelectedItem != null)
+                    {
+                        // Show context menu at mouse position
+                        contextMenuStrip.Show(sfDataGrid, e.Location);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error handling mouse click: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_MouseClick: {ex}");
+            }
+        }
+
+        private void SfDataGrid_SelectionChanged(object? sender, Syncfusion.WinForms.DataGrid.Events.SelectionChangedEventArgs e)
+        {
+            try
+            {
+                // Update button states based on current cell selection
+                bool hasSelection = sfDataGrid.SelectedItem != null;
+                btnEditEntry.Enabled = hasSelection;
+                btnDeleteEntry.Enabled = hasSelection;
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error handling selection change: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_SelectionChanged: {ex}");
+            }
+        }
+
+        private void SfDataGrid_KeyDown(object? sender, KeyEventArgs e)
+        {
+            try
+            {
+                // Handle Enter key to start editing the current cell
+                if (e.KeyCode == Keys.Enter)
+                {
+                    // Always prevent default Enter behavior when grid has focus
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                    
+                    // Check if we have a selected item and the current column is editable
+                    if (sfDataGrid.SelectedItem != null)
+                    {
+                        var currentCell = sfDataGrid.CurrentCell;
+                        if (currentCell != null && currentCell.Column.AllowEditing)
+                        {
+                            // Start editing by simulating a mouse double-click on the current cell
+                            StartCellEditingDirect();
+                            
+                            UpdateStatus("Cell ready for editing - start typing to edit");
+                            return;
+                        }
+                    }
+                    
+                    // If we reach here, just prevent the default behavior without starting edit
+                    UpdateStatus("Enter key pressed - focus stays in grid");
+                    return;
+                }
+                // Handle F2 key to start editing (standard Windows behavior)
+                else if (e.KeyCode == Keys.F2)
+                {
+                    if (sfDataGrid.SelectedItem != null)
+                    {
+                        var currentCell = sfDataGrid.CurrentCell;
+                        if (currentCell != null && currentCell.Column.AllowEditing)
+                        {
+                            e.Handled = true;
+                            e.SuppressKeyPress = true;
+                            
+                            StartCellEditingDirect();
+                            
+                            UpdateStatus("Cell ready for editing - start typing to edit");
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error handling key down: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_KeyDown: {ex}");
+            }
+        }
+
+        private void StartCellEditingDirect()
+        {
+            try
+            {
+                var currentCell = sfDataGrid.CurrentCell;
+                if (currentCell != null)
+                {
+                    // Get the column mapping name to identify the column type
+                    var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
+                    
+                    // Check if the column allows editing
+                    if (!currentCell.Column.AllowEditing)
+                    {
+                        UpdateStatus($"Column '{columnName}' does not allow editing");
+                        return;
+                    }
+                    
+                    // Ensure the grid has focus
+                    sfDataGrid.Focus();
+                    
+                    // Use a timer to delay the SendKeys to ensure focus is properly set
+                    var timer = new System.Windows.Forms.Timer();
+                    timer.Interval = 50; // 50ms delay
+                    timer.Tick += (s, e) =>
+                    {
+                        timer.Stop();
+                        timer.Dispose();
+                        
+                        try
+                        {
+                            // Check if cell is now in editing mode
+                            if (sfDataGrid.CurrentCell != null && sfDataGrid.CurrentCell.IsEditing)
+                            {
+                                UpdateStatus($"Cell is now in editing mode - {columnName} (AllowEditing: {currentCell.Column.AllowEditing})");
+                                return;
+                            }
+                            
+                            // For numeric columns (DebitAmount, CreditAmount), trigger edit mode differently
+                            if (columnName == "DebitAmount" || columnName == "CreditAmount")
+                            {
+                                // For numeric columns, simulate typing a number to trigger edit mode
+                                SendKeys.SendWait("0");
+                                SendKeys.SendWait("{BACKSPACE}");
+                                UpdateStatus($"Editing {columnName} - enter numeric value (AllowEditing: {currentCell.Column.AllowEditing}, IsEditing: {sfDataGrid.CurrentCell?.IsEditing})");
+                            }
+                            else if (columnName == "Description")
+                            {
+                                // For text columns, simulate typing a character
+                                SendKeys.SendWait("a");
+                                SendKeys.SendWait("{BACKSPACE}");
+                                UpdateStatus($"Editing {columnName} - enter text value (AllowEditing: {currentCell.Column.AllowEditing}, IsEditing: {sfDataGrid.CurrentCell?.IsEditing})");
+                            }
+                            else
+                            {
+                                UpdateStatus($"Column '{columnName}' - AllowEditing: {currentCell.Column.AllowEditing}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            UpdateStatus($"Error in timer callback: {ex.Message}");
+                        }
+                    };
+                    timer.Start();
+                }
+                else
+                {
+                    UpdateStatus("No cell selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error starting cell editing: {ex.Message}");
+                Console.WriteLine($"Error in StartCellEditingDirect: {ex}");
+            }
+        }
+
+        private void SfDataGrid_CurrentCellBeginEdit(object? sender, Syncfusion.WinForms.DataGrid.Events.CurrentCellBeginEditEventArgs e)
+        {
+            try
+            {
+                // Customize editing behavior when cell editing begins
+                var currentCell = sfDataGrid.CurrentCell;
+                if (currentCell != null)
+                {
+                    // Get the column mapping name to identify the column type
+                    var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
+                    
+                    // Check if the column allows editing
+                    bool allowEditing = currentCell.Column.AllowEditing;
+                    bool isEditing = currentCell.IsEditing;
+                    
+                    // Only proceed if editing is allowed
+                    if (allowEditing)
+                    {
+                        // Provide specific feedback for different column types
+                        switch (columnName)
+                        {
+                            case "DebitAmount":
+                                UpdateStatus($"Editing Debit Amount - enter numeric value (AllowEditing: {allowEditing}, IsEditing: {isEditing})");
+                                break;
+                            case "CreditAmount":
+                                UpdateStatus($"Editing Credit Amount - enter numeric value (AllowEditing: {allowEditing}, IsEditing: {isEditing})");
+                                break;
+                            case "Description":
+                                UpdateStatus($"Editing Description - enter text value (AllowEditing: {allowEditing}, IsEditing: {isEditing})");
+                                break;
+                            default:
+                                UpdateStatus($"Editing cell... (AllowEditing: {allowEditing}, IsEditing: {isEditing})");
+                                break;
+                        }
+                        
+                        // Ensure the cell is properly focused for editing
+                        sfDataGrid.Focus();
+                    }
+                    else
+                    {
+                        UpdateStatus($"Column '{columnName}' - AllowEditing: {allowEditing} (editing not allowed)");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error beginning cell edit: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_CurrentCellBeginEdit: {ex}");
+            }
+        }
+
+        private void SfDataGrid_CurrentCellEndEdit(object? sender, Syncfusion.WinForms.DataGrid.Events.CurrentCellEndEditEventArgs e)
+        {
+            try
+            {
+                // Handle when cell editing ends
+                var currentCell = sfDataGrid.CurrentCell;
+                if (currentCell != null)
+                {
+                    // Get the column mapping name to identify the column type
+                    var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
+                    
+                    // Update totals when editing ends
+                UpdateTotals();
+                    
+                    // Provide specific feedback for different column types
+                    switch (columnName)
+                    {
+                        case "DebitAmount":
+                        case "CreditAmount":
+                            UpdateStatus("Amount updated - totals recalculated");
+                            break;
+                        case "Description":
+                            UpdateStatus("Description updated");
+                            break;
+                        default:
+                            UpdateStatus("Cell editing completed");
+                            break;
+                    }
+                }
+                else
+                {
+                    UpdateTotals();
+                    UpdateStatus("Cell editing completed");
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error updating cell value: {ex.Message}");
+                Console.WriteLine($"Error in SfDataGrid_CurrentCellEndEdit: {ex}");
+            }
+        }
+
+        private EditableJournalEntryDisplay CreateNewEntry()
+        {
+            // Create a new entry with default values
+            var newEntry = new EditableJournalEntryDisplay
+            {
+                Id = Guid.NewGuid(),
+                LedgerId = Guid.Empty,
+                LedgerName = "",
+                LedgerCode = "",
+                EntryType = JournalEntryLedgerType.Debit,
+                Amount = 0,
+                Description = "",
+                SerialNumber = _nextSerialNumber++
+            };
+            
+            return newEntry;
+        }
+
+        // Context Menu Event Handlers
+        private void ContextMenuStrip_Opening(object? sender, CancelEventArgs e)
+        {
+            try
+            {
+                // Enable/disable menu items based on whether a row is selected
+                bool hasSelection = sfDataGrid.SelectedItem != null && _ledgerEntries.Count > 0;
+                
+                foreach (ToolStripItem item in contextMenuStrip.Items)
+                {
+                    if (item is ToolStripMenuItem menuItem && menuItem != null)
+                    {
+                        menuItem.Enabled = hasSelection;
+                    }
+                }
+                
+                // If no selection, cancel the menu opening
+                if (!hasSelection)
+                {
+                    e.Cancel = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error in context menu opening: {ex.Message}");
+                Console.WriteLine($"Error in ContextMenuStrip_Opening: {ex}");
+                e.Cancel = true;
+            }
+        }
+
+        private void ContextMenu_Edit_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Get the selected item and edit it
+                if (sfDataGrid.SelectedItem is EditableJournalEntryDisplay selectedEntry)
+                {
+                    ShowLedgerEntryDialog(selectedEntry);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error editing entry from context menu: {ex.Message}");
+                Console.WriteLine($"Error in ContextMenu_Edit_Click: {ex}");
+            }
+        }
+
+        private void ContextMenu_Delete_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Get the selected item and delete it
+                if (sfDataGrid.SelectedItem is EditableJournalEntryDisplay selectedEntry)
+                {
+                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}", 
+                        "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    
+                    if (result == DialogResult.Yes)
+                    {
+                        _ledgerEntries.Remove(selectedEntry);
+                        RefreshGrid();
+                        UpdateTotals();
+                        UpdateStatus("Entry deleted successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error deleting entry from context menu: {ex.Message}");
+                Console.WriteLine($"Error in ContextMenu_Delete_Click: {ex}");
+            }
+        }
     }
 
 }
+

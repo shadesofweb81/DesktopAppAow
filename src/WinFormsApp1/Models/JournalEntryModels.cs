@@ -74,10 +74,11 @@ namespace WinFormsApp1.Models
         
         [Required]
         public JournalEntryType Type { get; set; }
+
         
         [Required]
-        public DateTime EntryDate { get; set; }
-        
+        public DateTime TransactionDate { get; set; }
+
         public string? ReferenceNumber { get; set; }
         public string? Notes { get; set; }
         public string Status { get; set; } = "Draft";
@@ -97,7 +98,7 @@ namespace WinFormsApp1.Models
         public string LedgerId { get; set; } = string.Empty;
         
         [Required]
-        public JournalEntryLedgerType Type { get; set; }
+        public JournalEntryLedgerType EntryType { get; set; }
         
         [Required]
         public decimal Amount { get; set; }
@@ -139,20 +140,31 @@ namespace WinFormsApp1.Models
     public class JournalEntryListDto
     {
         public string Id { get; set; } = string.Empty;
-        public string EntryNumber { get; set; } = string.Empty;
-        public JournalEntryType Type { get; set; }
-        public DateTime EntryDate { get; set; }
-        public string? ReferenceNumber { get; set; }
-        public string? Notes { get; set; }
+        public string TransactionNumber { get; set; } = string.Empty;
+        public DateTime TransactionDate { get; set; }
+        public string TransactionType { get; set; } = string.Empty;
+        public string JournalEntryType { get; set; } = string.Empty;
+        public decimal Total { get; set; }
         public string Status { get; set; } = string.Empty;
-        public decimal TotalDebit { get; set; }
-        public decimal TotalCredit { get; set; }
-        public decimal Difference { get; set; }
-        public bool IsBalanced { get; set; }
-        public string CompanyId { get; set; } = string.Empty;
-        public string FinancialYearId { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+        public string? Notes { get; set; }
+        public List<JournalEntryListLedgerDto> LedgerEntries { get; set; } = new List<JournalEntryListLedgerDto>();
+        
+        // Computed properties for display
+        public string EntryNumber => TransactionNumber;
+        public JournalEntryType Type => Enum.TryParse<JournalEntryType>(JournalEntryType, true, out var type) ? type : WinFormsApp1.Models.JournalEntryType.Journal;
+        public DateTime EntryDate => TransactionDate;
+        public decimal TotalDebit => LedgerEntries.Where(le => le.EntryType == "Debit").Sum(le => le.Amount);
+        public decimal TotalCredit => LedgerEntries.Where(le => le.EntryType == "Credit").Sum(le => le.Amount);
+        public decimal Difference => TotalDebit - TotalCredit;
+        public bool IsBalanced => Math.Abs(Difference) < 0.01m;
+    }
+
+    // DTO for ledger entries in journal entry list
+    public class JournalEntryListLedgerDto
+    {
+        public string LedgerName { get; set; } = string.Empty;
+        public string EntryType { get; set; } = string.Empty; // "Debit" or "Credit"
+        public decimal Amount { get; set; }
     }
 
     // DTO for detailed journal entry view

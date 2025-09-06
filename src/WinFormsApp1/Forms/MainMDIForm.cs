@@ -1224,7 +1224,7 @@ namespace WinFormsApp1.Forms
             };
         }
 
-        private async void OpenJournalEntryForm()
+        private async void OpenJournalEntryListForm()
         {
             try
             {
@@ -1244,10 +1244,10 @@ namespace WinFormsApp1.Forms
                     return;
                 }
 
-                // Check if JournalEntryForm is already open
+                // Check if JournalEntryListForm is already open
                 foreach (Form childForm in this.MdiChildren)
                 {
-                    if (childForm is JournalEntryForm)
+                    if (childForm is JournalEntryListForm)
                     {
                         childForm.BringToFront();
                         childForm.Activate();
@@ -1255,21 +1255,21 @@ namespace WinFormsApp1.Forms
                     }
                 }
 
-                // Create new journal entry form
-                var journalEntryForm = new JournalEntryForm(_journalEntryService, _localStorageService, _ledgerService, selectedCompany, selectedFinancialYear)
+                // Create new journal entry list form
+                var journalEntryListForm = new JournalEntryListForm(_journalEntryService, _localStorageService, _ledgerService, selectedCompany, selectedFinancialYear)
                 {
                     MdiParent = this,
-                    Text = "Journal Entry",
+                    Text = "Journal Entries",
                     WindowState = FormWindowState.Maximized
                 };
 
-                journalEntryForm.Show();
+                journalEntryListForm.Show();
                 
-                // Hide navigation panel when JournalEntryForm is opened
+                // Hide navigation panel when JournalEntryListForm is opened
                 HideNavigationPanel();
                 
                 // Add form closing event to ensure proper focus management
-                journalEntryForm.FormClosed += (s, e) =>
+                journalEntryListForm.FormClosed += (s, e) =>
                 {
                     // Ensure proper focus when form is closed
                     this.BeginInvoke(new Action(() =>
@@ -1284,7 +1284,7 @@ namespace WinFormsApp1.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error opening journal entry form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error opening journal entries list form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1756,7 +1756,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             else
             {
-                // Check if the active child form is a company/product/ledger/tax-related form
+                // Check if the active child form is a company/product/ledger/tax/journal-related form
                 if (this.ActiveMdiChild is CompanyForm || 
                     this.ActiveMdiChild is CompanySelectForm || 
                     this.ActiveMdiChild is CompanyEditForm ||
@@ -1765,9 +1765,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     this.ActiveMdiChild is LedgerListForm ||
                     this.ActiveMdiChild is LedgerEditForm ||
                     this.ActiveMdiChild is TaxListForm ||
-                    this.ActiveMdiChild is TaxEditForm)
+                    this.ActiveMdiChild is TaxEditForm ||
+                    this.ActiveMdiChild is JournalEntryListForm)
                 {
-                    // Hide navigation panel when company/product/ledger-related forms are active
+                    // Hide navigation panel when company/product/ledger/journal-related forms are active
                     HideNavigationPanel();
                 }
                 else
@@ -1791,9 +1792,10 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is LedgerListForm ||
                 this.ActiveMdiChild is LedgerEditForm ||
                 this.ActiveMdiChild is TaxListForm ||
-                this.ActiveMdiChild is TaxEditForm)
+                this.ActiveMdiChild is TaxEditForm ||
+                this.ActiveMdiChild is JournalEntryListForm)
             {
-                // Hide navigation panel when company/product/ledger-related forms are active
+                // Hide navigation panel when company/product/ledger/journal-related forms are active
                 HideNavigationPanel();
                 
                 // Ensure forms stay maximized when they're the active form
@@ -2143,7 +2145,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            OpenJournalEntryForm();
+            OpenJournalEntryListForm();
         }
 
         // Reports Section Button Handlers

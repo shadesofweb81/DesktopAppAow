@@ -1,6 +1,7 @@
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using System.Windows.Forms;
+using Syncfusion.WinForms.DataGrid;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -8,6 +9,7 @@ namespace WinFormsApp1.Forms.Transaction
     {
         private readonly JournalEntryService _journalEntryService;
         private readonly LocalStorageService _localStorageService;
+        private readonly LedgerService _ledgerService;
         private Models.Company _selectedCompany;
         private FinancialYearModel _selectedFinancialYear;
 
@@ -25,33 +27,34 @@ namespace WinFormsApp1.Forms.Transaction
         private ComboBox cmbStatusFilter = null!;
         private Label lblStatus = null!;
         private Label lblTotalEntries = null!;
+        private Label lblCompanyInfo = null!;
+        private Label lblInstructions = null!;
+        private Label lblFilter = null!;
 
         // Data
         private List<JournalEntryListDto> _journalEntries = new List<JournalEntryListDto>();
         private int _currentPage = 1;
         private int _pageSize = 50;
         private int _totalPages = 1;
+        private bool _isInitializing = true;
+        private bool _isLoading = false;
+        private System.Windows.Forms.Timer? _searchTimer;
 
-        public JournalEntryListForm(JournalEntryService journalEntryService, LocalStorageService localStorageService, 
-            Models.Company selectedCompany, FinancialYearModel selectedFinancialYear)
+        public JournalEntryListForm(JournalEntryService journalEntryService, LocalStorageService localStorageService,
+            LedgerService ledgerService, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear)
         {
             _journalEntryService = journalEntryService;
             _localStorageService = localStorageService;
+            _ledgerService = ledgerService;
             _selectedCompany = selectedCompany;
             _selectedFinancialYear = selectedFinancialYear;
-            
+
             InitializeComponent();
             SetupForm();
         }
 
         private void InitializeComponent()
         {
-            // Form properties
-            Text = "Journal Entries";
-            Size = new Size(1400, 800);
-            StartPosition = FormStartPosition.CenterParent;
-            KeyPreview = true;
-
             // Initialize controls
             dgvJournalEntries = new DataGridView();
             btnNew = new Button();
@@ -66,199 +69,281 @@ namespace WinFormsApp1.Forms.Transaction
             cmbStatusFilter = new ComboBox();
             lblStatus = new Label();
             lblTotalEntries = new Label();
+            lblCompanyInfo = new Label();
+            lblInstructions = new Label();
+            lblFilter = new Label();
 
             SuspendLayout();
-            SetupLayout();
+
+            // 
+            // lblCompanyInfo
+            // 
+            lblCompanyInfo.Location = new Point(12, 9);
+            lblCompanyInfo.Name = "lblCompanyInfo";
+            lblCompanyInfo.Size = new Size(700, 25);
+            lblCompanyInfo.Text = _selectedCompany != null ? $"Journal Entries for: {_selectedCompany.DisplayName}" : "No company selected";
+            lblCompanyInfo.ForeColor = Color.DarkBlue;
+            lblCompanyInfo.Font = new Font("Arial", 10, FontStyle.Bold);
+
+            // 
+            // lblInstructions
+            // 
+            lblInstructions.Location = new Point(12, 40);
+            lblInstructions.Name = "lblInstructions";
+            lblInstructions.Size = new Size(700, 40);
+            lblInstructions.Text = GetInstructionsText();
+            lblInstructions.ForeColor = Color.Blue;
+            lblInstructions.Font = new Font("Arial", 9, FontStyle.Regular);
+
+            // 
+            // lblFilter
+            // 
+            lblFilter.Location = new Point(12, 85);
+            lblFilter.Name = "lblFilter";
+            lblFilter.Size = new Size(100, 20);
+            lblFilter.Text = "Filter by:";
+            lblFilter.ForeColor = Color.DarkBlue;
+            lblFilter.Font = new Font("Arial", 9, FontStyle.Bold);
+
+            // 
+            // txtSearch
+            // 
+            txtSearch.Location = new Point(120, 82);
+            txtSearch.Name = "txtSearch";
+            txtSearch.Size = new Size(200, 25);
+            txtSearch.PlaceholderText = "Search by entry number, reference...";
+            txtSearch.Font = new Font("Arial", 9, FontStyle.Regular);
+            txtSearch.TextChanged += new EventHandler(txtSearch_TextChanged);
+
+            // 
+            // cmbTypeFilter
+            // 
+            cmbTypeFilter.Location = new Point(330, 82);
+            cmbTypeFilter.Name = "cmbTypeFilter";
+            cmbTypeFilter.Size = new Size(150, 25);
+            cmbTypeFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbTypeFilter.Font = new Font("Arial", 9, FontStyle.Regular);
+            cmbTypeFilter.SelectedIndexChanged += new EventHandler(cmbTypeFilter_SelectedIndexChanged);
+
+            // 
+            // cmbStatusFilter
+            // 
+            cmbStatusFilter.Location = new Point(490, 82);
+            cmbStatusFilter.Name = "cmbStatusFilter";
+            cmbStatusFilter.Size = new Size(100, 25);
+            cmbStatusFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbStatusFilter.Font = new Font("Arial", 9, FontStyle.Regular);
+            cmbStatusFilter.SelectedIndexChanged += new EventHandler(cmbStatusFilter_SelectedIndexChanged);
+
+            // 
+            // dgvJournalEntries
+            // 
+            dgvJournalEntries.Location = new Point(12, 115);
+            dgvJournalEntries.Name = "dgvJournalEntries";
+            dgvJournalEntries.Size = new Size(900, 350);
+            dgvJournalEntries.TabIndex = 0;
+            dgvJournalEntries.AllowUserToAddRows = false;
+            dgvJournalEntries.AllowUserToDeleteRows = false;
+            dgvJournalEntries.ReadOnly = true;
+            dgvJournalEntries.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvJournalEntries.MultiSelect = false;
+            dgvJournalEntries.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvJournalEntries.RowHeadersVisible = false;
+            dgvJournalEntries.AutoGenerateColumns = false;
+            dgvJournalEntries.SelectionChanged += new EventHandler(dgvJournalEntries_SelectionChanged);
+            dgvJournalEntries.DoubleClick += new EventHandler(dgvJournalEntries_DoubleClick);
+            dgvJournalEntries.KeyDown += new KeyEventHandler(dgvJournalEntries_KeyDown);
+
+            // 
+            // btnNew
+            // 
+            btnNew.Location = new Point(530, 115);
+            btnNew.Name = "btnNew";
+            btnNew.Size = new Size(100, 30);
+            btnNew.TabIndex = 1;
+            btnNew.Text = "&New (F2)";
+            btnNew.UseVisualStyleBackColor = true;
+            btnNew.Click += new EventHandler(btnNew_Click);
+
+            // 
+            // btnEdit
+            // 
+            btnEdit.Location = new Point(530, 155);
+            btnEdit.Name = "btnEdit";
+            btnEdit.Size = new Size(100, 30);
+            btnEdit.TabIndex = 2;
+            btnEdit.Text = "&Edit (Enter)";
+            btnEdit.UseVisualStyleBackColor = true;
+            btnEdit.Click += new EventHandler(btnEdit_Click);
+            btnEdit.Enabled = false;
+
+            // 
+            // btnView
+            // 
+            btnView.Location = new Point(530, 195);
+            btnView.Name = "btnView";
+            btnView.Size = new Size(100, 30);
+            btnView.TabIndex = 3;
+            btnView.Text = "&View (V)";
+            btnView.UseVisualStyleBackColor = true;
+            btnView.Click += new EventHandler(btnView_Click);
+            btnView.Enabled = false;
+
+            // 
+            // btnDelete
+            // 
+            btnDelete.Location = new Point(530, 235);
+            btnDelete.Name = "btnDelete";
+            btnDelete.Size = new Size(100, 30);
+            btnDelete.TabIndex = 4;
+            btnDelete.Text = "&Delete (Del)";
+            btnDelete.UseVisualStyleBackColor = true;
+            btnDelete.Click += new EventHandler(btnDelete_Click);
+            btnDelete.Enabled = false;
+
+            // 
+            // btnPost
+            // 
+            btnPost.Location = new Point(530, 275);
+            btnPost.Name = "btnPost";
+            btnPost.Size = new Size(100, 30);
+            btnPost.TabIndex = 5;
+            btnPost.Text = "&Post (F5)";
+            btnPost.UseVisualStyleBackColor = true;
+            btnPost.Click += new EventHandler(btnPost_Click);
+            btnPost.Enabled = false;
+
+            // 
+            // btnUnpost
+            // 
+            btnUnpost.Location = new Point(530, 315);
+            btnUnpost.Name = "btnUnpost";
+            btnUnpost.Size = new Size(100, 30);
+            btnUnpost.TabIndex = 6;
+            btnUnpost.Text = "&Unpost (F6)";
+            btnUnpost.UseVisualStyleBackColor = true;
+            btnUnpost.Click += new EventHandler(btnUnpost_Click);
+            btnUnpost.Enabled = false;
+
+            // 
+            // btnRefresh
+            // 
+            btnRefresh.Location = new Point(530, 355);
+            btnRefresh.Name = "btnRefresh";
+            btnRefresh.Size = new Size(100, 30);
+            btnRefresh.TabIndex = 7;
+            btnRefresh.Text = "&Refresh (F7)";
+            btnRefresh.UseVisualStyleBackColor = true;
+            btnRefresh.Click += new EventHandler(btnRefresh_Click);
+
+            // 
+            // lblStatus
+            // 
+            lblStatus.Location = new Point(12, 450);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(600, 20);
+            lblStatus.Text = "Ready";
+            lblStatus.ForeColor = Color.Green;
+
+            // 
+            // lblTotalEntries
+            // 
+            lblTotalEntries.Location = new Point(12, 475);
+            lblTotalEntries.Name = "lblTotalEntries";
+            lblTotalEntries.Size = new Size(600, 20);
+            lblTotalEntries.Text = "Total Entries: 0";
+            lblTotalEntries.ForeColor = Color.DarkGreen;
+
+            // 
+            // JournalEntryListForm
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(900, 600);
+            Controls.Add(lblTotalEntries);
+            Controls.Add(lblStatus);
+            Controls.Add(btnRefresh);
+            Controls.Add(btnUnpost);
+            Controls.Add(btnPost);
+            Controls.Add(btnDelete);
+            Controls.Add(btnView);
+            Controls.Add(btnEdit);
+            Controls.Add(btnNew);
+            Controls.Add(dgvJournalEntries);
+            Controls.Add(cmbStatusFilter);
+            Controls.Add(cmbTypeFilter);
+            Controls.Add(txtSearch);
+            Controls.Add(lblFilter);
+            Controls.Add(lblInstructions);
+            Controls.Add(lblCompanyInfo);
+            FormBorderStyle = FormBorderStyle.Sizable;
+            KeyPreview = true;
+            MaximizeBox = true;
+            MinimizeBox = true;
+            CancelButton = null;
+            Name = "JournalEntryListForm";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Journal Entries";
+            WindowState = FormWindowState.Maximized;
+            KeyDown += new KeyEventHandler(JournalEntryListForm_KeyDown);
+            Load += new EventHandler(JournalEntryListForm_Load);
+            Resize += new EventHandler(JournalEntryListForm_Resize);
+            Activated += new EventHandler(JournalEntryListForm_Activated);
+            FormClosing += new FormClosingEventHandler(JournalEntryListForm_FormClosing);
             ResumeLayout(false);
             PerformLayout();
         }
 
-        private void SetupLayout()
-        {
-            int yPos = 20;
-            int buttonWidth = 100;
-            int buttonHeight = 30;
-            int spacing = 10;
-
-            // Search and Filter Controls
-            var searchGroup = new GroupBox
-            {
-                Text = "Search & Filter",
-                Location = new Point(20, yPos),
-                Size = new Size(1350, 80),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-            };
-            Controls.Add(searchGroup);
-
-            // Search textbox
-            var lblSearch = new Label
-            {
-                Text = "Search:",
-                Location = new Point(10, 25),
-                Size = new Size(50, 20),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            searchGroup.Controls.Add(lblSearch);
-
-            txtSearch.Location = new Point(65, 22);
-            txtSearch.Size = new Size(200, 25);
-            txtSearch.PlaceholderText = "Search by entry number, reference...";
-            searchGroup.Controls.Add(txtSearch);
-
-            // Type filter
-            var lblType = new Label
-            {
-                Text = "Type:",
-                Location = new Point(280, 25),
-                Size = new Size(40, 20),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            searchGroup.Controls.Add(lblType);
-
-            cmbTypeFilter.Location = new Point(325, 22);
-            cmbTypeFilter.Size = new Size(150, 25);
-            cmbTypeFilter.DropDownStyle = ComboBoxStyle.DropDownList;
-            searchGroup.Controls.Add(cmbTypeFilter);
-
-            // Status filter
-            var lblStatus = new Label
-            {
-                Text = "Status:",
-                Location = new Point(490, 25),
-                Size = new Size(50, 20),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            searchGroup.Controls.Add(lblStatus);
-
-            cmbStatusFilter.Location = new Point(545, 22);
-            cmbStatusFilter.Size = new Size(100, 25);
-            cmbStatusFilter.DropDownStyle = ComboBoxStyle.DropDownList;
-            searchGroup.Controls.Add(cmbStatusFilter);
-
-            // Refresh button
-            btnRefresh.Location = new Point(660, 22);
-            btnRefresh.Size = new Size(80, 25);
-            btnRefresh.Text = "&Refresh (F7)";
-            btnRefresh.UseVisualStyleBackColor = true;
-            searchGroup.Controls.Add(btnRefresh);
-
-            yPos += 100;
-
-            // Action Buttons
-            var actionGroup = new GroupBox
-            {
-                Text = "Actions",
-                Location = new Point(20, yPos),
-                Size = new Size(1350, 60),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-            };
-            Controls.Add(actionGroup);
-
-            btnNew.Location = new Point(10, 25);
-            btnNew.Size = new Size(buttonWidth, buttonHeight);
-            btnNew.Text = "&New (F2)";
-            btnNew.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnNew);
-
-            btnEdit.Location = new Point(120, 25);
-            btnEdit.Size = new Size(buttonWidth, buttonHeight);
-            btnEdit.Text = "&Edit (F3)";
-            btnEdit.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnEdit);
-
-            btnView.Location = new Point(230, 25);
-            btnView.Size = new Size(buttonWidth, buttonHeight);
-            btnView.Text = "&View (F4)";
-            btnView.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnView);
-
-            btnDelete.Location = new Point(340, 25);
-            btnDelete.Size = new Size(buttonWidth, buttonHeight);
-            btnDelete.Text = "&Delete (Del)";
-            btnDelete.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnDelete);
-
-            btnPost.Location = new Point(450, 25);
-            btnPost.Size = new Size(buttonWidth, buttonHeight);
-            btnPost.Text = "&Post (F5)";
-            btnPost.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnPost);
-
-            btnUnpost.Location = new Point(560, 25);
-            btnUnpost.Size = new Size(buttonWidth, buttonHeight);
-            btnUnpost.Text = "&Unpost (F6)";
-            btnUnpost.UseVisualStyleBackColor = true;
-            actionGroup.Controls.Add(btnUnpost);
-
-            yPos += 80;
-
-            // Data Grid
-            dgvJournalEntries.Location = new Point(20, yPos);
-            dgvJournalEntries.Size = new Size(1350, 500);
-            dgvJournalEntries.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            dgvJournalEntries.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvJournalEntries.MultiSelect = false;
-            dgvJournalEntries.AllowUserToAddRows = false;
-            dgvJournalEntries.AllowUserToDeleteRows = false;
-            dgvJournalEntries.ReadOnly = true;
-            dgvJournalEntries.RowHeadersVisible = false;
-            dgvJournalEntries.AutoGenerateColumns = false;
-            Controls.Add(dgvJournalEntries);
-
-            // Status labels
-            lblStatus.Location = new Point(20, yPos + 520);
-            lblStatus.Size = new Size(600, 20);
-            lblStatus.ForeColor = Color.Blue;
-            Controls.Add(lblStatus);
-
-            lblTotalEntries.Location = new Point(20, yPos + 545);
-            lblTotalEntries.Size = new Size(600, 20);
-            lblTotalEntries.ForeColor = Color.DarkGreen;
-            Controls.Add(lblTotalEntries);
-        }
-
         private void SetupForm()
         {
-            SetupDataGridView();
+            // Set default button
+            AcceptButton = btnEdit;
+            CancelButton = null; // Remove default cancel button to prevent conflicts
+
+            // Setup DataGridView columns
+            SetupDataGridViewColumns();
+
+            // Setup combo boxes
             SetupComboBoxes();
+
+            // Setup event handlers
             SetupEventHandlers();
+
+            // Load data
             LoadData();
+
+            // Mark initialization as complete
+            _isInitializing = false;
+
+            // Focus on journal entry grid
+            dgvJournalEntries.Focus();
         }
 
-        private void SetupDataGridView()
+        private void SetupDataGridViewColumns()
         {
-            // Add columns
             dgvJournalEntries.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "EntryNumber",
+                Name = "TransactionNumber",
                 HeaderText = "Entry Number",
-                DataPropertyName = "EntryNumber",
+                DataPropertyName = "TransactionNumber",
                 Width = 150
             });
 
             dgvJournalEntries.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "Type",
+                Name = "JournalEntryType",
                 HeaderText = "Type",
-                DataPropertyName = "Type",
+                DataPropertyName = "JournalEntryType",
                 Width = 120
             });
 
             dgvJournalEntries.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "EntryDate",
+                Name = "TransactionDate",
                 HeaderText = "Entry Date",
-                DataPropertyName = "EntryDate",
+                DataPropertyName = "TransactionDate",
                 Width = 100,
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy" }
-            });
-
-            dgvJournalEntries.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "ReferenceNumber",
-                HeaderText = "Reference",
-                DataPropertyName = "ReferenceNumber",
-                Width = 120
             });
 
             dgvJournalEntries.Columns.Add(new DataGridViewTextBoxColumn
@@ -321,13 +406,13 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void SetupComboBoxes()
         {
-            // Type filter
+            // Type filter - using the actual values from the API response
             cmbTypeFilter.Items.Add("All Types");
-            cmbTypeFilter.Items.AddRange(Enum.GetValues<JournalEntryType>().Cast<object>().ToArray());
+            cmbTypeFilter.Items.AddRange(new string[] { "Journal", "OpeningBalance" });
             cmbTypeFilter.SelectedIndex = 0;
 
-            // Status filter
-            cmbStatusFilter.Items.AddRange(new string[] { "All Status", "Draft", "Posted", "Cancelled" });
+            // Status filter - using the actual values from the API response
+            cmbStatusFilter.Items.AddRange(new string[] { "All Status", "Draft", "Completed", "Posted", "Cancelled" });
             cmbStatusFilter.SelectedIndex = 0;
         }
 
@@ -338,44 +423,61 @@ namespace WinFormsApp1.Forms.Transaction
             Load += JournalEntryListForm_Load;
 
             // Grid events
-            dgvJournalEntries.KeyDown += DgvJournalEntries_KeyDown;
-            dgvJournalEntries.DoubleClick += DgvJournalEntries_DoubleClick;
-            dgvJournalEntries.SelectionChanged += DgvJournalEntries_SelectionChanged;
+            dgvJournalEntries.KeyDown += dgvJournalEntries_KeyDown;
+            dgvJournalEntries.DoubleClick += dgvJournalEntries_DoubleClick;
+            dgvJournalEntries.SelectionChanged += dgvJournalEntries_SelectionChanged;
 
             // Button events
-            btnNew.Click += BtnNew_Click;
-            btnEdit.Click += BtnEdit_Click;
-            btnView.Click += BtnView_Click;
-            btnDelete.Click += BtnDelete_Click;
-            btnPost.Click += BtnPost_Click;
-            btnUnpost.Click += BtnUnpost_Click;
-            btnRefresh.Click += BtnRefresh_Click;
+            btnNew.Click += btnNew_Click;
+            btnEdit.Click += btnEdit_Click;
+            btnView.Click += btnView_Click;
+            btnDelete.Click += btnDelete_Click;
+            btnPost.Click += btnPost_Click;
+            btnUnpost.Click += btnUnpost_Click;
+            btnRefresh.Click += btnRefresh_Click;
 
             // Filter events
-            txtSearch.TextChanged += (s, e) => LoadData();
-            cmbTypeFilter.SelectedIndexChanged += (s, e) => LoadData();
-            cmbStatusFilter.SelectedIndexChanged += (s, e) => LoadData();
+            txtSearch.TextChanged += txtSearch_TextChanged;
+            cmbTypeFilter.SelectedIndexChanged += cmbTypeFilter_SelectedIndexChanged;
+            cmbStatusFilter.SelectedIndexChanged += cmbStatusFilter_SelectedIndexChanged;
         }
 
         private async void LoadData()
         {
+            // Prevent multiple concurrent API calls
+            if (_isLoading)
+            {
+                return;
+            }
+
             try
             {
+                _isLoading = true;
                 UpdateStatus("Loading journal entries...");
-
-                var typeFilter = cmbTypeFilter.SelectedItem is JournalEntryType type ? type : (JournalEntryType?)null;
+                var companyId = Guid.Parse(_selectedCompany.Id);
+                
+                // Convert filter selections to match API expectations
+                JournalEntryType? typeFilter = null;
+                if (cmbTypeFilter.SelectedItem?.ToString() != "All Types")
+                {
+                    if (Enum.TryParse<JournalEntryType>(cmbTypeFilter.SelectedItem?.ToString(), true, out var type))
+                    {
+                        typeFilter = type;
+                    }
+                }
+                
                 var statusFilter = cmbStatusFilter.SelectedItem?.ToString() == "All Status" ? null : cmbStatusFilter.SelectedItem?.ToString();
                 var searchTerm = string.IsNullOrWhiteSpace(txtSearch.Text) ? null : txtSearch.Text;
 
-                var response = await _journalEntryService.GetJournalEntriesAsync(_currentPage, _pageSize, searchTerm, typeFilter, statusFilter);
+                var response = await _journalEntryService.GetJournalEntriesAsync(companyId, _currentPage, _pageSize, searchTerm, typeFilter, statusFilter);
 
                 if (response != null)
                 {
                     _journalEntries = response.Items;
                     _totalPages = response.TotalPages;
-                    
+
                     dgvJournalEntries.DataSource = _journalEntries;
-                    
+
                     UpdateStatus($"Loaded {_journalEntries.Count} of {response.TotalItems} journal entries");
                     lblTotalEntries.Text = $"Total Entries: {response.TotalItems} | Page {_currentPage} of {_totalPages}";
                 }
@@ -389,6 +491,10 @@ namespace WinFormsApp1.Forms.Transaction
                 MessageBox.Show($"Error loading journal entries: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus($"Error: {ex.Message}");
             }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
         private void UpdateStatus(string message = "")
@@ -399,84 +505,119 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        // Event Handlers
-        private void JournalEntryListForm_Load(object? sender, EventArgs e)
-        {
-            txtSearch.Focus();
-        }
 
         private void JournalEntryListForm_KeyDown(object? sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
             {
+                case Keys.Enter:
+                    var selectedEntry = dgvJournalEntries.SelectedRows[0].DataBoundItem as JournalEntryListDto;
+                    if (selectedEntry != null)
+                    {
+                        OpenJournalEntryEditForm(selectedEntry);
+                    }
+                    break;
+                case Keys.Escape:
+                    // When closing with Escape, ensure navigation panel is shown
+                    if (MdiParent is MainMDIForm mdiForm)
+                    {
+                        mdiForm.BeginInvoke(new Action(() =>
+                        {
+                            mdiForm.ShowNavigationPanel();
+                            mdiForm.SetFocusToNavigation();
+                        }));
+                    }
+                    Close();
+                    e.Handled = true;
+                    break;
+
                 case Keys.F2:
                     BtnNew_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
-                case Keys.F3:
-                    BtnEdit_Click(null, EventArgs.Empty);
-                    e.Handled = true;
-                    break;
-                case Keys.F4:
-                    BtnView_Click(null, EventArgs.Empty);
-                    e.Handled = true;
-                    break;
+
                 case Keys.F5:
                     BtnPost_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
+
                 case Keys.F6:
                     BtnUnpost_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
+
                 case Keys.F7:
                     BtnRefresh_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
-                case Keys.Delete:
-                    if (dgvJournalEntries.Focused)
+
+                case Keys.V:
+                    if (dgvJournalEntries.SelectedRows.Count > 0)
                     {
-                        BtnDelete_Click(null, EventArgs.Empty);
+                        BtnView_Click(null, EventArgs.Empty);
                         e.Handled = true;
                     }
                     break;
             }
         }
 
-        private void DgvJournalEntries_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnView_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Delete)
-            {
-                BtnDelete_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-        }
-
-        private void DgvJournalEntries_DoubleClick(object? sender, EventArgs e)
-        {
-            BtnView_Click(null, EventArgs.Empty);
-        }
-
-        private void DgvJournalEntries_SelectionChanged(object? sender, EventArgs e)
-        {
-            var hasSelection = dgvJournalEntries.SelectedRows.Count > 0;
-            btnEdit.Enabled = hasSelection;
-            btnView.Enabled = hasSelection;
-            btnDelete.Enabled = hasSelection;
-            btnPost.Enabled = hasSelection;
-            btnUnpost.Enabled = hasSelection;
-        }
 
         private void BtnNew_Click(object? sender, EventArgs e)
         {
-            // This would open the JournalEntryForm for creating a new entry
-            // For now, just show a message
-            MessageBox.Show("New Journal Entry functionality will be implemented.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                // Check if a new JournalEntryForm is already open
+                if (this.MdiParent != null)
+                {
+                    foreach (Form childForm in this.MdiParent.MdiChildren)
+                    {
+                        if (childForm is JournalEntryForm existingForm && 
+                            existingForm.Text.Contains("New Journal Entry"))
+                        {
+                            existingForm.BringToFront();
+                            existingForm.Activate();
+                            return;
+                        }
+                    }
+                }
+
+                // Create a new JournalEntryForm for creating a new entry
+                var journalEntryForm = new JournalEntryForm(_journalEntryService, _localStorageService,
+                    _ledgerService, _selectedCompany, _selectedFinancialYear)
+                {
+                    Text = "New Journal Entry",
+                    MdiParent = this.MdiParent,
+                    WindowState = FormWindowState.Maximized
+                };
+
+                // Show the form as an MDI child
+                journalEntryForm.Show();
+                
+                // Hide the navigation panel when the form is maximized
+                if (this.MdiParent is MainMDIForm mdiForm)
+                {
+                    mdiForm.HideNavigationPanel();
+                }
+
+                // Handle form closing to refresh the list
+                journalEntryForm.FormClosed += (s, e) =>
+                {
+                    // Refresh the list when the form is closed
+                    LoadData();
+                    UpdateStatus("Journal entry form closed - list refreshed");
+                    
+                    // Show navigation panel when no child forms are active
+                    if (this.MdiParent is MainMDIForm parentMdiForm)
+                    {
+                        parentMdiForm.ShowNavigationPanel();
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening new journal entry form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateStatus($"Error: {ex.Message}");
+            }
         }
 
         private void BtnEdit_Click(object? sender, EventArgs e)
@@ -486,7 +627,7 @@ namespace WinFormsApp1.Forms.Transaction
                 var selectedEntry = dgvJournalEntries.SelectedRows[0].DataBoundItem as JournalEntryListDto;
                 if (selectedEntry != null)
                 {
-                    MessageBox.Show($"Edit Journal Entry: {selectedEntry.EntryNumber}", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    OpenJournalEntryEditForm(selectedEntry);
                 }
             }
         }
@@ -498,7 +639,7 @@ namespace WinFormsApp1.Forms.Transaction
                 var selectedEntry = dgvJournalEntries.SelectedRows[0].DataBoundItem as JournalEntryListDto;
                 if (selectedEntry != null)
                 {
-                    MessageBox.Show($"View Journal Entry: {selectedEntry.EntryNumber}", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"View Journal Entry: {selectedEntry.TransactionNumber}", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
@@ -510,9 +651,9 @@ namespace WinFormsApp1.Forms.Transaction
                 var selectedEntry = dgvJournalEntries.SelectedRows[0].DataBoundItem as JournalEntryListDto;
                 if (selectedEntry != null)
                 {
-                    var result = MessageBox.Show($"Are you sure you want to delete journal entry '{selectedEntry.EntryNumber}'?", 
+                    var result = MessageBox.Show($"Are you sure you want to delete journal entry '{selectedEntry.TransactionNumber}'?",
                         "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    
+
                     if (result == DialogResult.Yes)
                     {
                         try
@@ -544,15 +685,15 @@ namespace WinFormsApp1.Forms.Transaction
                 var selectedEntry = dgvJournalEntries.SelectedRows[0].DataBoundItem as JournalEntryListDto;
                 if (selectedEntry != null)
                 {
-                    if (selectedEntry.Status == "Posted")
+                    if (selectedEntry.Status == "Posted" || selectedEntry.Status == "Completed")
                     {
                         MessageBox.Show("This journal entry is already posted.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         return;
                     }
 
-                    var result = MessageBox.Show($"Are you sure you want to post journal entry '{selectedEntry.EntryNumber}'?", 
+                    var result = MessageBox.Show($"Are you sure you want to post journal entry '{selectedEntry.TransactionNumber}'?",
                         "Confirm Post", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    
+
                     if (result == DialogResult.Yes)
                     {
                         try
@@ -590,9 +731,9 @@ namespace WinFormsApp1.Forms.Transaction
                         return;
                     }
 
-                    var result = MessageBox.Show($"Are you sure you want to unpost journal entry '{selectedEntry.EntryNumber}'?", 
+                    var result = MessageBox.Show($"Are you sure you want to unpost journal entry '{selectedEntry.TransactionNumber}'?",
                         "Confirm Unpost", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    
+
                     if (result == DialogResult.Yes)
                     {
                         try
@@ -621,5 +762,293 @@ namespace WinFormsApp1.Forms.Transaction
         {
             LoadData();
         }
+
+        // New event handlers for the updated form
+        private void txtSearch_TextChanged(object? sender, EventArgs e)
+        {
+            if (!_isInitializing)
+            {
+                // Debounce search to prevent multiple API calls while typing
+                _searchTimer?.Stop();
+                _searchTimer = new System.Windows.Forms.Timer();
+                _searchTimer.Interval = 500; // 500ms delay
+                _searchTimer.Tick += (s, args) =>
+                {
+                    _searchTimer?.Stop();
+                    LoadData();
+                };
+                _searchTimer.Start();
+            }
+        }
+
+        private void cmbTypeFilter_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (!_isInitializing)
+            {
+                LoadData();
+            }
+        }
+
+        private void cmbStatusFilter_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (!_isInitializing)
+            {
+                LoadData();
+            }
+        }
+
+        private void dgvJournalEntries_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                BtnEdit_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Delete)
+            {
+                BtnDelete_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+        private void dgvJournalEntries_DoubleClick(object? sender, EventArgs e)
+        {
+            BtnView_Click(null, EventArgs.Empty);
+        }
+
+        private void dgvJournalEntries_SelectionChanged(object? sender, EventArgs e)
+        {
+            var hasSelection = dgvJournalEntries.SelectedRows.Count > 0;
+            btnEdit.Enabled = hasSelection;
+            btnView.Enabled = hasSelection;
+            btnDelete.Enabled = hasSelection;
+            btnPost.Enabled = hasSelection;
+            btnUnpost.Enabled = hasSelection;
+        }
+
+        private void btnNew_Click(object? sender, EventArgs e)
+        {
+            BtnNew_Click(sender, e);
+        }
+
+        private void btnEdit_Click(object? sender, EventArgs e)
+        {
+            BtnEdit_Click(sender, e);
+        }
+
+        private void btnView_Click(object? sender, EventArgs e)
+        {
+            BtnView_Click(sender, e);
+        }
+
+        private void btnDelete_Click(object? sender, EventArgs e)
+        {
+            BtnDelete_Click(sender, e);
+        }
+
+        private void btnPost_Click(object? sender, EventArgs e)
+        {
+            BtnPost_Click(sender, e);
+        }
+
+        private void btnUnpost_Click(object? sender, EventArgs e)
+        {
+            BtnUnpost_Click(sender, e);
+        }
+
+        private void btnRefresh_Click(object? sender, EventArgs e)
+        {
+            BtnRefresh_Click(sender, e);
+        }
+
+        // Form event handlers
+        private void JournalEntryListForm_Load(object? sender, EventArgs e)
+        {
+            // Open as maximized child form within MDI parent
+            WindowState = FormWindowState.Maximized;
+
+            // Resize controls to fit the maximized form
+            ResizeControls();
+
+            // Focus on the data grid
+            dgvJournalEntries.Focus();
+
+            // Hide MDI navigation panel when this form is maximized
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.HideNavigationPanel();
+            }
+
+            // Ensure the form stays maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
+        }
+
+        private void JournalEntryListForm_Resize(object? sender, EventArgs e)
+        {
+            // Resize controls when form is resized
+            ResizeControls();
+        }
+
+        private void JournalEntryListForm_Activated(object? sender, EventArgs e)
+        {
+            // When JournalEntryListForm is activated, ensure it's maximized and navigation is hidden
+            if (WindowState != FormWindowState.Maximized)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+
+            // Hide navigation panel when this form is activated
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.HideNavigationPanel();
+            }
+
+            // Ensure the form takes focus and maintains its state
+            this.BringToFront();
+            this.Activate();
+
+            // Force the form to stay maximized
+            this.BeginInvoke(new Action(() =>
+            {
+                if (WindowState != FormWindowState.Maximized)
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }));
+        }
+
+        private void JournalEntryListForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // Clean up timer
+            _searchTimer?.Stop();
+            _searchTimer?.Dispose();
+            
+            // When JournalEntryListForm is closing, ensure navigation panel is shown again
+            if (MdiParent is MainMDIForm mdiForm)
+            {
+                mdiForm.BeginInvoke(new Action(() =>
+                {
+                    mdiForm.ShowNavigationPanel();
+                    mdiForm.SetFocusToNavigation();
+                }));
+            }
+        }
+
+        private void ResizeControls()
+        {
+            // Get the client area size
+            int clientWidth = ClientSize.Width;
+            int clientHeight = ClientSize.Height;
+
+            // Reserve space for buttons on the right side
+            int buttonAreaWidth = 150;
+            int availableWidth = clientWidth - buttonAreaWidth - 30; // 30px margin
+            int availableHeight = clientHeight - 200; // Increased to accommodate filter controls
+
+            // Ensure minimum grid width
+            if (availableWidth < 600)
+            {
+                availableWidth = 600;
+            }
+
+            // Resize the data grid to use most of the available space
+            dgvJournalEntries.Size = new Size(availableWidth, availableHeight);
+
+            // Reposition buttons on the right side with 30px margin
+            int buttonX = availableWidth + 30;
+            btnNew.Location = new Point(buttonX, 115);
+            btnEdit.Location = new Point(buttonX, 155);
+            btnView.Location = new Point(buttonX, 195);
+            btnDelete.Location = new Point(buttonX, 235);
+            btnPost.Location = new Point(buttonX, 275);
+            btnUnpost.Location = new Point(buttonX, 315);
+            btnRefresh.Location = new Point(buttonX, 355);
+
+            // Reposition status labels at the bottom
+            lblStatus.Location = new Point(12, clientHeight - 50);
+            lblStatus.Size = new Size(clientWidth - 24, 20);
+            lblTotalEntries.Location = new Point(12, clientHeight - 25);
+            lblTotalEntries.Size = new Size(clientWidth - 24, 20);
+
+            // Resize company info and instructions labels
+            lblCompanyInfo.Size = new Size(clientWidth - 24, 25);
+            lblInstructions.Size = new Size(clientWidth - 24, 40);
+
+            // Reposition filter controls
+            lblFilter.Location = new Point(12, 85);
+            txtSearch.Location = new Point(120, 82);
+            cmbTypeFilter.Location = new Point(330, 82);
+            cmbStatusFilter.Location = new Point(490, 82);
+        }
+
+        private string GetInstructionsText()
+        {
+            return "Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, F2 for new, Delete to remove, F7 to refresh, Esc to close | Journal Entries | Use filters to refine results | Uses selected company from local storage";
+        }
+
+        private void OpenJournalEntryEditForm(JournalEntryListDto selectedEntry)
+        {
+            try
+            {
+                // Check if a JournalEntryForm is already open for this entry
+                if (this.MdiParent != null)
+                {
+                    foreach (Form childForm in this.MdiParent.MdiChildren)
+                    {
+                        if (childForm is JournalEntryForm existingForm && 
+                            existingForm.Text.Contains(selectedEntry.TransactionNumber))
+                        {
+                            existingForm.BringToFront();
+                            existingForm.Activate();
+                            return;
+                        }
+                    }
+                }
+
+                // Create a new JournalEntryForm for editing
+                var journalEntryForm = new JournalEntryForm(_journalEntryService, _localStorageService,
+                    _ledgerService, _selectedCompany, _selectedFinancialYear)
+                {
+                    Text = $"Edit Journal Entry - {selectedEntry.TransactionNumber}",
+                    MdiParent = this.MdiParent,
+                    WindowState = FormWindowState.Maximized
+                };
+
+                // Show the form as an MDI child
+                journalEntryForm.Show();
+                
+                // Hide the navigation panel when the form is maximized
+                if (this.MdiParent is MainMDIForm mdiForm)
+                {
+                    mdiForm.HideNavigationPanel();
+                }
+
+                // Handle form closing to refresh the list
+                journalEntryForm.FormClosed += (s, e) =>
+                {
+                    // Refresh the list when the form is closed
+                    LoadData();
+                    UpdateStatus("Journal entry form closed - list refreshed");
+                    
+                    // Show navigation panel when no child forms are active
+                    if (this.MdiParent is MainMDIForm parentMdiForm)
+                    {
+                        parentMdiForm.ShowNavigationPanel();
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening journal entry edit form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateStatus($"Error: {ex.Message}");
+            }
+        }
     }
 }
+

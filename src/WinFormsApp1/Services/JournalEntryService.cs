@@ -1,3 +1,4 @@
+using System.ComponentModel.Design;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -10,7 +11,7 @@ namespace WinFormsApp1.Services
     {
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
-        private readonly string _baseUrl = "api/v1/journal-entry";
+        private readonly string _baseUrl = "api/v1/journalentry";
 
         public JournalEntryService(AuthService authService)
         {
@@ -35,7 +36,7 @@ namespace WinFormsApp1.Services
         /// <summary>
         /// Get all journal entries with pagination
         /// </summary>
-        public async Task<PaginatedJournalEntryListResponse?> GetJournalEntriesAsync(int page = 1, int pageSize = 50, string? searchTerm = null, JournalEntryType? type = null, string? status = null)
+        public async Task<PaginatedJournalEntryListResponse?> GetJournalEntriesAsync(Guid companyId, int page = 1, int pageSize = 50, string? searchTerm = null, JournalEntryType? type = null, string? status = null)
         {
             try
             {
@@ -57,7 +58,7 @@ namespace WinFormsApp1.Services
                     queryParams.Add($"status={Uri.EscapeDataString(status)}");
 
                 var queryString = string.Join("&", queryParams);
-                var url = $"{_baseUrl}?{queryString}";
+                var url = $"{_baseUrl}/company/{companyId}?{queryString}";
 
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();

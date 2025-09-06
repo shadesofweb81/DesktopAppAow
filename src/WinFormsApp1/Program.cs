@@ -2,6 +2,7 @@ using WinFormsApp1.Forms;
 using WinFormsApp1.Forms.Auth;
 using WinFormsApp1.Services;
 using QuestPDF.Infrastructure;
+using Syncfusion.Licensing;
 
 namespace WinFormsApp1
 {
@@ -13,8 +14,11 @@ namespace WinFormsApp1
         [STAThread]
         static void Main()
         {
+            // Register Syncfusion license
+            SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1NCaF1cXGdCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXZedXVdRmJdVUx3XUBWYU8=");
+
             // Configure QuestPDF license for Community (MIT) usage
-            QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
