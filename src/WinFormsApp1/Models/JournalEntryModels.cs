@@ -46,6 +46,24 @@ namespace WinFormsApp1.Models
         Credit
     }
 
+    public enum NatureOfTransaction
+    {
+        NotApplicable,
+        RegisteredExpense,
+        UnregisteredExpense,
+        RCMExpense,
+        ExemptExpense,
+        NonGSTExpense,
+        TaxAdjustment,
+        AdvancePayment,
+        TDSPayment,
+        TCSPayment,
+        RCMPayment,
+        PaymentToGovernment
+    }
+
+
+
     public class JournalEntryLedger
     {
         public Guid Id { get; set; }
@@ -73,8 +91,7 @@ namespace WinFormsApp1.Models
         public string EntryNumber { get; set; } = string.Empty;
         
         [Required]
-        public TransactionType Type { get; set; }
-
+        public JournalEntryType Type { get; set; }
         
         [Required]
         public DateTime TransactionDate { get; set; }
@@ -88,6 +105,8 @@ namespace WinFormsApp1.Models
         
         [Required]
         public string FinancialYearId { get; set; } = string.Empty;
+        
+        public NatureOfTransaction NatureOfTransaction { get; set; } = NatureOfTransaction.NotApplicable;
         
         public List<CreateJournalEntryLedgerRequest> LedgerEntries { get; set; } = new List<CreateJournalEntryLedgerRequest>();
     }
@@ -123,6 +142,8 @@ namespace WinFormsApp1.Models
         public string? Notes { get; set; }
         public string Status { get; set; } = "Draft";
         
+        public NatureOfTransaction NatureOfTransaction { get; set; } = NatureOfTransaction.NotApplicable;
+        
         public List<UpdateJournalEntryLedgerRequest> LedgerEntries { get; set; } = new List<UpdateJournalEntryLedgerRequest>();
     }
 
@@ -151,7 +172,7 @@ namespace WinFormsApp1.Models
         
         // Computed properties for display
         public string EntryNumber => TransactionNumber;
-        public JournalEntryType Type => Enum.TryParse<JournalEntryType>(JournalEntryType, true, out var type) ? type : WinFormsApp1.Models.JournalEntryType.Journal;
+        public JournalEntryType Type => Enum.TryParse<JournalEntryType>(JournalEntryType, true, out var type) ? type : WinFormsApp1.Models.JournalEntryType.JournalEntry;
         public DateTime EntryDate => TransactionDate;
         public decimal TotalDebit => LedgerEntries.Where(le => le.EntryType == "Debit").Sum(le => le.Amount);
         public decimal TotalCredit => LedgerEntries.Where(le => le.EntryType == "Credit").Sum(le => le.Amount);
@@ -175,10 +196,10 @@ namespace WinFormsApp1.Models
         public string? InvoiceNumber { get; set; }
         public DateTime TransactionDate { get; set; }
         public DateTime DueDate { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public string TransactionType { get; set; } = string.Empty;
+        public JournalEntryType? JournalEntryType { get; set; }
+        public NatureOfTransaction? NatureOfTransaction { get; set; } // Changed from enum to string to match API response
         public string Status { get; set; } = string.Empty;
-        public string JournalEntryType { get; set; } = string.Empty;
+
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal Total { get; set; }
@@ -198,22 +219,7 @@ namespace WinFormsApp1.Models
         // Computed properties for backward compatibility
         public string EntryNumber => TransactionNumber;
         public DateTime EntryDate => TransactionDate;
-        public TransactionType TypeEnum 
-        { 
-            get 
-            {
-                // Map API values to enum values
-                return JournalEntryType switch
-                {
-                    "JournalEntry" => WinFormsApp1.Models.TransactionType.JournalEntry,
-                    "Sale" => WinFormsApp1.Models.TransactionType.SaleInvoice,
-                    "Purchase" => WinFormsApp1.Models.TransactionType.PurchaseBill,
-                    "Receipt" => WinFormsApp1.Models.TransactionType.CashReceipt,
-                    "Payment" => WinFormsApp1.Models.TransactionType.CashPayment,
-                    _ => WinFormsApp1.Models.TransactionType.JournalEntry
-                };
-            }
-        }
+      
         public decimal TotalDebit => LedgerEntries.Where(le => le.EntryType == "Debit").Sum(le => le.Amount);
         public decimal TotalCredit => LedgerEntries.Where(le => le.EntryType == "Credit").Sum(le => le.Amount);
         public decimal Difference => TotalDebit - TotalCredit;

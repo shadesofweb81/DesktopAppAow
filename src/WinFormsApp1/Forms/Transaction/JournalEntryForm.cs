@@ -55,6 +55,7 @@ namespace WinFormsApp1.Forms.Transaction
 
         // Form controls
         private ComboBox cmbJournalType = null!;
+        private ComboBox cmbNatureOfTransaction = null!;
         private TextBox txtTransactionNumber = null!;
         private DateTimePicker dtpTransactionDate = null!;
         private TextBox txtReferenceNumber = null!;
@@ -105,6 +106,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Initialize controls
             cmbJournalType = new ComboBox();
+            cmbNatureOfTransaction = new ComboBox();
             txtTransactionNumber = new TextBox();
             dtpTransactionDate = new DateTimePicker();
             txtReferenceNumber = new TextBox();
@@ -137,6 +139,10 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Journal Type
             AddLabelAndControl("Journal Type:", cmbJournalType, 20, yPos, labelWidth, controlWidth);
+            yPos += spacing;
+
+            // Nature of Transaction
+            AddLabelAndControl("Nature of Transaction:", cmbNatureOfTransaction, 20, yPos, labelWidth, controlWidth);
             yPos += spacing;
 
             // Transaction Number
@@ -298,8 +304,13 @@ namespace WinFormsApp1.Forms.Transaction
         {
             // Journal Type ComboBox
             cmbJournalType.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbJournalType.DataSource = Enum.GetValues<TransactionType>();
+            cmbJournalType.DataSource = Enum.GetValues<JournalEntryType>();
             cmbJournalType.SelectedIndex = 0;
+
+            // Nature of Transaction ComboBox
+            cmbNatureOfTransaction.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbNatureOfTransaction.DataSource = Enum.GetValues<NatureOfTransaction>();
+            cmbNatureOfTransaction.SelectedIndex = 0;
 
             // Set default values
             txtTransactionNumber.Text = GenerateTransactionNumber();
@@ -504,7 +515,27 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     // Populate form fields with existing data
                     txtTransactionNumber.Text = journalEntry.EntryNumber;
-                    cmbJournalType.SelectedItem = journalEntry.TypeEnum;
+                    
+                    // Set Journal Entry Type
+                    if (journalEntry.JournalEntryType.HasValue)
+                    {
+                        cmbJournalType.SelectedItem = journalEntry.JournalEntryType.Value;
+                    }
+                    else
+                    {
+                        cmbJournalType.SelectedIndex = 0; // Default to first item
+                    }
+                    
+                    // Set Nature of Transaction
+                    if (journalEntry.NatureOfTransaction.HasValue)
+                    {
+                        cmbNatureOfTransaction.SelectedItem = journalEntry.NatureOfTransaction.Value;
+                    }
+                    else
+                    {
+                        cmbNatureOfTransaction.SelectedIndex = 0; // Default to first item
+                    }
+                    
                     dtpTransactionDate.Value = journalEntry.EntryDate;
                     txtReferenceNumber.Text = ""; // API doesn't provide reference number
                     txtNotes.Text = journalEntry.Notes ?? "";
@@ -918,13 +949,14 @@ namespace WinFormsApp1.Forms.Transaction
             var request = new CreateJournalEntryRequest
             {
                 EntryNumber = txtTransactionNumber.Text,
-                Type = cmbJournalType.SelectedItem is TransactionType type ? type : TransactionType.JournalEntry,
+                Type = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.JournalEntry,
                 TransactionDate = dtpTransactionDate.Value,
                 ReferenceNumber = txtReferenceNumber.Text,
                 Notes = txtNotes.Text,
                 Status = "Draft",
                 CompanyId = _selectedCompany.Id,
                 FinancialYearId = _selectedFinancialYear.Id.ToString(),
+                NatureOfTransaction = cmbNatureOfTransaction.SelectedItem is NatureOfTransaction nature ? nature : NatureOfTransaction.NotApplicable,
                 LedgerEntries = new List<CreateJournalEntryLedgerRequest>()
             };
 
@@ -949,11 +981,12 @@ namespace WinFormsApp1.Forms.Transaction
             var request = new UpdateJournalEntryRequest
             {
                 TransactionNumber = txtTransactionNumber.Text,
-                JournalEntryType = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.Journal,
+                JournalEntryType = cmbJournalType.SelectedItem is JournalEntryType type ? type : JournalEntryType.JournalEntry,
                 TransactionDate = dtpTransactionDate.Value,
                 ReferenceNumber = txtReferenceNumber.Text,
                 Notes = txtNotes.Text,
                 Status = "Draft",
+                NatureOfTransaction = cmbNatureOfTransaction.SelectedItem is NatureOfTransaction nature ? nature : NatureOfTransaction.NotApplicable,
                 LedgerEntries = new List<UpdateJournalEntryLedgerRequest>()
             };
 

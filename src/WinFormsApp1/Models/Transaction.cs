@@ -69,13 +69,20 @@ namespace WinFormsApp1.Models
 
     public enum JournalEntryType
     {
-        Journal,
-        Sale,
-        Purchase,
-        Receipt,
-        Payment,
-        Expense,
-        OpeningBalance
+        JournalEntry,
+        OpeningBalance,
+        SaleQuotation,
+        SaleOrder,
+        SaleInvoice,
+        SaleReturn,
+        PurchaseQuotation,
+        PurchaseOrder,
+        PurchaseBill,
+        PurchaseReturn,
+        BankPayment,
+        BankReceipt,
+        CashPayment,
+        CashReceipt
     }
 
 
