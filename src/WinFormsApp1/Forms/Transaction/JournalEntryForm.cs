@@ -80,8 +80,8 @@ namespace WinFormsApp1.Forms.Transaction
         private Guid? _journalEntryId = null; // For editing existing entries
         private bool _isEditMode = false;
 
-        public JournalEntryForm(JournalEntryService journalEntryService, LocalStorageService localStorageService, 
-            LedgerService ledgerService, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear, 
+        public JournalEntryForm(JournalEntryService journalEntryService, LocalStorageService localStorageService,
+            LedgerService ledgerService, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear,
             Guid? journalEntryId = null)
         {
             _journalEntryService = journalEntryService;
@@ -91,7 +91,7 @@ namespace WinFormsApp1.Forms.Transaction
             _selectedFinancialYear = selectedFinancialYear;
             _journalEntryId = journalEntryId;
             _isEditMode = journalEntryId.HasValue;
-            
+
             InitializeComponent();
             SetupForm();
         }
@@ -136,29 +136,36 @@ namespace WinFormsApp1.Forms.Transaction
             int labelWidth = 120;
             int controlWidth = 200;
             int spacing = 30;
+            int tabIndex = 0;
 
             // Journal Type
             AddLabelAndControl("Journal Type:", cmbJournalType, 20, yPos, labelWidth, controlWidth);
+            cmbJournalType.TabIndex = tabIndex++;
             yPos += spacing;
 
             // Nature of Transaction
             AddLabelAndControl("Nature of Transaction:", cmbNatureOfTransaction, 20, yPos, labelWidth, controlWidth);
+            cmbNatureOfTransaction.TabIndex = tabIndex++;
             yPos += spacing;
 
             // Transaction Number
             AddLabelAndControl("Entry Number:", txtTransactionNumber, 20, yPos, labelWidth, controlWidth);
+            txtTransactionNumber.TabIndex = tabIndex++;
             yPos += spacing;
 
             // Transaction Date
             AddLabelAndControl("Entry Date:", dtpTransactionDate, 20, yPos, labelWidth, controlWidth);
+            dtpTransactionDate.TabIndex = tabIndex++;
             yPos += spacing;
 
             // Reference Number
             AddLabelAndControl("Reference:", txtReferenceNumber, 20, yPos, labelWidth, controlWidth);
+            txtReferenceNumber.TabIndex = tabIndex++;
             yPos += spacing;
 
             // Notes
             AddLabelAndControl("Notes:", txtNotes, 20, yPos, labelWidth, controlWidth + 100);
+            txtNotes.TabIndex = tabIndex++;
             yPos += spacing + 20;
 
             // Ledger Entries Group
@@ -175,6 +182,7 @@ namespace WinFormsApp1.Forms.Transaction
             sfDataGrid.Location = new Point(10, 25);
             sfDataGrid.Size = new Size(1120, 300);
             sfDataGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            sfDataGrid.TabIndex = tabIndex++;
             entriesGroup.Controls.Add(sfDataGrid);
 
             // Buttons for ledger entries
@@ -182,6 +190,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnAddEntry.Size = new Size(100, 30);
             btnAddEntry.Text = "&Add Entry (F2)";
             btnAddEntry.UseVisualStyleBackColor = true;
+            btnAddEntry.TabIndex = tabIndex++;
             btnAddEntry.Click += BtnAddEntry_Click;
             entriesGroup.Controls.Add(btnAddEntry);
 
@@ -189,6 +198,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnEditEntry.Size = new Size(100, 30);
             btnEditEntry.Text = "&Edit Entry (F3)";
             btnEditEntry.UseVisualStyleBackColor = true;
+            btnEditEntry.TabIndex = tabIndex++;
             btnEditEntry.Click += BtnEditEntry_Click;
             entriesGroup.Controls.Add(btnEditEntry);
 
@@ -196,6 +206,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnDeleteEntry.Size = new Size(100, 30);
             btnDeleteEntry.Text = "&Delete Entry (Del)";
             btnDeleteEntry.UseVisualStyleBackColor = true;
+            btnDeleteEntry.TabIndex = tabIndex++;
             btnDeleteEntry.Click += BtnDeleteEntry_Click;
             entriesGroup.Controls.Add(btnDeleteEntry);
 
@@ -203,6 +214,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnSelectLedger.Size = new Size(120, 30);
             btnSelectLedger.Text = "&Select Ledger (F4)";
             btnSelectLedger.UseVisualStyleBackColor = true;
+            btnSelectLedger.TabIndex = tabIndex++;
             btnSelectLedger.Click += BtnSelectLedger_Click;
             entriesGroup.Controls.Add(btnSelectLedger);
 
@@ -220,7 +232,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Total Debit
             AddLabelAndControlToParent("Total Debit:", txtTotalDebit, totalsGroup, 10, 25, 80, 100, true);
-            
+
             // Total Credit
             AddLabelAndControlToParent("Total Credit:", txtTotalCredit, totalsGroup, 10, 55, 80, 100, true);
 
@@ -239,6 +251,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnSave.Size = new Size(75, 30);
             btnSave.Text = "&Save (Ctrl+S)";
             btnSave.UseVisualStyleBackColor = true;
+            btnSave.TabIndex = tabIndex++;
             btnSave.Click += BtnSave_Click;
             Controls.Add(btnSave);
 
@@ -246,6 +259,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnCancel.Size = new Size(75, 30);
             btnCancel.Text = "&Cancel (Esc)";
             btnCancel.UseVisualStyleBackColor = true;
+            btnCancel.TabIndex = tabIndex++;
             btnCancel.Click += BtnCancel_Click;
             Controls.Add(btnCancel);
         }
@@ -344,7 +358,7 @@ namespace WinFormsApp1.Forms.Transaction
 
                 // Enable/disable menu items based on selection
                 contextMenuStrip.Opening += ContextMenuStrip_Opening;
-                
+
                 // Set context menu properties
                 contextMenuStrip.ShowCheckMargin = false;
                 contextMenuStrip.ShowImageMargin = false;
@@ -368,10 +382,10 @@ namespace WinFormsApp1.Forms.Transaction
                 sfDataGrid.AllowSorting = false;
                 sfDataGrid.AllowFiltering = false;
                 sfDataGrid.ShowRowHeader = false;
-                
+
                 // Disable adding new rows directly in the grid
                 sfDataGrid.AddNewRowPosition = RowPosition.None;
-                
+
                 // Configure editing behavior
                 sfDataGrid.EditMode = EditMode.SingleClick;
 
@@ -479,6 +493,13 @@ namespace WinFormsApp1.Forms.Transaction
                 // Let the grid handle the Enter key
                 return false;
             }
+
+            // Let Tab key work normally for navigation
+            if (keyData == Keys.Tab)
+            {
+                return false; // Let the default tab behavior work
+            }
+
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
@@ -508,14 +529,14 @@ namespace WinFormsApp1.Forms.Transaction
             try
             {
                 UpdateStatus("Loading journal entry data...");
-                
+
                 var journalEntry = await _journalEntryService.GetJournalEntryByIdAsync(_journalEntryId!.Value);
-                
+
                 if (journalEntry != null)
                 {
                     // Populate form fields with existing data
                     txtTransactionNumber.Text = journalEntry.EntryNumber;
-                    
+
                     // Set Journal Entry Type
                     if (journalEntry.JournalEntryType.HasValue)
                     {
@@ -525,7 +546,7 @@ namespace WinFormsApp1.Forms.Transaction
                     {
                         cmbJournalType.SelectedIndex = 0; // Default to first item
                     }
-                    
+
                     // Set Nature of Transaction
                     if (journalEntry.NatureOfTransaction.HasValue)
                     {
@@ -535,7 +556,7 @@ namespace WinFormsApp1.Forms.Transaction
                     {
                         cmbNatureOfTransaction.SelectedIndex = 0; // Default to first item
                     }
-                    
+
                     dtpTransactionDate.Value = journalEntry.EntryDate;
                     txtReferenceNumber.Text = ""; // API doesn't provide reference number
                     txtNotes.Text = journalEntry.Notes ?? "";
@@ -543,7 +564,7 @@ namespace WinFormsApp1.Forms.Transaction
                     // Convert ledger entries to editable format
                     _ledgerEntries.Clear();
                     _nextSerialNumber = 1;
-                    
+
                     foreach (var entry in journalEntry.LedgerEntries)
                     {
                         var editableEntry = new EditableJournalEntryDisplay
@@ -563,7 +584,10 @@ namespace WinFormsApp1.Forms.Transaction
                     // Refresh the grid and update totals
                     RefreshGrid();
                     UpdateTotals();
-                    
+
+                    // Set focus to Journal Entry Type field after loading
+                    SetFocusToJournalType();
+
                     UpdateStatus("Journal entry loaded successfully");
                 }
                 else
@@ -621,6 +645,31 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
+        private void SetFocusToJournalType()
+        {
+            try
+            {
+                // Use BeginInvoke to ensure focus is set after the form is fully loaded
+                this.BeginInvoke(new Action(() =>
+                {
+                    cmbJournalType.Focus();
+                    cmbJournalType.Select();
+
+                    // If it's a ComboBox, also open the dropdown to show available options
+                    if (cmbJournalType.DropDownStyle == ComboBoxStyle.DropDownList)
+                    {
+                        // Don't auto-open dropdown, just ensure it's focused and ready
+                        UpdateStatus("Journal Entry Type field is ready for selection");
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error setting focus: {ex.Message}");
+                Console.WriteLine($"Error in SetFocusToJournalType: {ex}");
+            }
+        }
+
         // Event Handlers
         private void JournalEntryForm_Load(object? sender, EventArgs e)
         {
@@ -632,7 +681,8 @@ namespace WinFormsApp1.Forms.Transaction
                     RefreshGrid();
                 }
 
-                cmbJournalType.Focus();
+                // Set focus to the Journal Entry Type field
+                SetFocusToJournalType();
             }
             catch (Exception ex)
             {
@@ -647,7 +697,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 case Keys.Enter:
                     e.Handled = true;
-                    break;                  
+                    break;
                 case Keys.F2:
                     BtnAddEntry_Click(null, EventArgs.Empty);
                     e.Handled = true;
@@ -675,6 +725,11 @@ namespace WinFormsApp1.Forms.Transaction
                     BtnCancel_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
+                case Keys.Tab:
+                    // Let Tab key work normally for navigation between controls
+                    e.Handled = true;
+                    break;
+
             }
         }
 
@@ -701,7 +756,7 @@ namespace WinFormsApp1.Forms.Transaction
             var newEntry = CreateNewEntry();
             _ledgerEntries.Add(newEntry);
             RefreshGrid();
-            
+
             // Select the new row and focus on the first editable cell
             sfDataGrid.SelectedIndex = _ledgerEntries.Count - 1;
             UpdateStatus("New entry added - double-click on Ledger Name to select a ledger, then enter amounts");
@@ -726,9 +781,9 @@ namespace WinFormsApp1.Forms.Transaction
                 var selectedEntry = sfDataGrid.SelectedItem as EditableJournalEntryDisplay;
                 if (selectedEntry != null)
                 {
-                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}", 
+                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}",
                         "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    
+
                     if (result == DialogResult.Yes)
                     {
                         _ledgerEntries.Remove(selectedEntry);
@@ -751,7 +806,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 var dialog = new JournalEntryDialog(_availableLedgers, existingEntry);
                 dialog.StartPosition = FormStartPosition.CenterParent;
-                
+
                 if (dialog.ShowDialog(this) == DialogResult.OK && dialog.JournalEntry != null)
                 {
                     // Convert JournalEntryDisplay to EditableJournalEntryDisplay
@@ -791,7 +846,7 @@ namespace WinFormsApp1.Forms.Transaction
                         _ledgerEntries.Add(editableEntry);
                         UpdateStatus("Entry added successfully");
                     }
-                    
+
                     RefreshGrid();
                     UpdateTotals();
                 }
@@ -807,7 +862,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             var dialog = new LedgerSelectionDialog(_availableLedgers, "Select Ledger for Journal Entry");
             dialog.StartPosition = FormStartPosition.CenterParent;
-            
+
             if (dialog.ShowDialog(this) == DialogResult.OK && dialog.SelectedLedger != null)
             {
                 // Create a new entry with the selected ledger
@@ -820,7 +875,7 @@ namespace WinFormsApp1.Forms.Transaction
                     Amount = 0,
                     Description = ""
                 };
-                
+
                 ShowLedgerEntryDialog(newEntry);
             }
         }
@@ -904,12 +959,12 @@ namespace WinFormsApp1.Forms.Transaction
         {
             if (_ledgerEntries.Any())
             {
-                var result = MessageBox.Show("Are you sure you want to cancel? All unsaved changes will be lost.", 
+                var result = MessageBox.Show("Are you sure you want to cancel? All unsaved changes will be lost.",
                     "Confirm Cancel", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.No)
                     return;
             }
-            
+
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -936,7 +991,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             if (difference >= 0.01m)
             {
-                MessageBox.Show($"Journal entries are not balanced. Difference: {difference:N2}\n\nTotal Debit: {totalDebit:N2}\nTotal Credit: {totalCredit:N2}", 
+                MessageBox.Show($"Journal entries are not balanced. Difference: {difference:N2}\n\nTotal Debit: {totalDebit:N2}\nTotal Credit: {totalCredit:N2}",
                     "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
@@ -1087,7 +1142,7 @@ namespace WinFormsApp1.Forms.Transaction
                     // Always prevent default Enter behavior when grid has focus
                     e.Handled = true;
                     e.SuppressKeyPress = true;
-                    
+
                     // Check if we have a selected item and the current column is editable
                     if (sfDataGrid.SelectedItem != null)
                     {
@@ -1096,12 +1151,12 @@ namespace WinFormsApp1.Forms.Transaction
                         {
                             // Start editing by simulating a mouse double-click on the current cell
                             StartCellEditingDirect();
-                            
+
                             UpdateStatus("Cell ready for editing - start typing to edit");
                             return;
                         }
                     }
-                    
+
                     // If we reach here, just prevent the default behavior without starting edit
                     UpdateStatus("Enter key pressed - focus stays in grid");
                     return;
@@ -1116,9 +1171,9 @@ namespace WinFormsApp1.Forms.Transaction
                         {
                             e.Handled = true;
                             e.SuppressKeyPress = true;
-                            
+
                             StartCellEditingDirect();
-                            
+
                             UpdateStatus("Cell ready for editing - start typing to edit");
                             return;
                         }
@@ -1141,17 +1196,17 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     // Get the column mapping name to identify the column type
                     var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
-                    
+
                     // Check if the column allows editing
                     if (!currentCell.Column.AllowEditing)
                     {
                         UpdateStatus($"Column '{columnName}' does not allow editing");
                         return;
                     }
-                    
+
                     // Ensure the grid has focus
                     sfDataGrid.Focus();
-                    
+
                     // Use a timer to delay the SendKeys to ensure focus is properly set
                     var timer = new System.Windows.Forms.Timer();
                     timer.Interval = 50; // 50ms delay
@@ -1159,7 +1214,7 @@ namespace WinFormsApp1.Forms.Transaction
                     {
                         timer.Stop();
                         timer.Dispose();
-                        
+
                         try
                         {
                             // Check if cell is now in editing mode
@@ -1168,7 +1223,7 @@ namespace WinFormsApp1.Forms.Transaction
                                 UpdateStatus($"Cell is now in editing mode - {columnName} (AllowEditing: {currentCell.Column.AllowEditing})");
                                 return;
                             }
-                            
+
                             // For numeric columns (DebitAmount, CreditAmount), trigger edit mode differently
                             if (columnName == "DebitAmount" || columnName == "CreditAmount")
                             {
@@ -1218,11 +1273,11 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     // Get the column mapping name to identify the column type
                     var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
-                    
+
                     // Check if the column allows editing
                     bool allowEditing = currentCell.Column.AllowEditing;
                     bool isEditing = currentCell.IsEditing;
-                    
+
                     // Only proceed if editing is allowed
                     if (allowEditing)
                     {
@@ -1242,7 +1297,7 @@ namespace WinFormsApp1.Forms.Transaction
                                 UpdateStatus($"Editing cell... (AllowEditing: {allowEditing}, IsEditing: {isEditing})");
                                 break;
                         }
-                        
+
                         // Ensure the cell is properly focused for editing
                         sfDataGrid.Focus();
                     }
@@ -1269,10 +1324,10 @@ namespace WinFormsApp1.Forms.Transaction
                 {
                     // Get the column mapping name to identify the column type
                     var columnName = currentCell.Column.GetType().GetProperty("MappingName")?.GetValue(currentCell.Column)?.ToString();
-                    
+
                     // Update totals when editing ends
-                UpdateTotals();
-                    
+                    UpdateTotals();
+
                     // Provide specific feedback for different column types
                     switch (columnName)
                     {
@@ -1315,7 +1370,7 @@ namespace WinFormsApp1.Forms.Transaction
                 Description = "",
                 SerialNumber = _nextSerialNumber++
             };
-            
+
             return newEntry;
         }
 
@@ -1326,7 +1381,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 // Enable/disable menu items based on whether a row is selected
                 bool hasSelection = sfDataGrid.SelectedItem != null && _ledgerEntries.Count > 0;
-                
+
                 foreach (ToolStripItem item in contextMenuStrip.Items)
                 {
                     if (item is ToolStripMenuItem menuItem && menuItem != null)
@@ -1334,7 +1389,7 @@ namespace WinFormsApp1.Forms.Transaction
                         menuItem.Enabled = hasSelection;
                     }
                 }
-                
+
                 // If no selection, cancel the menu opening
                 if (!hasSelection)
                 {
@@ -1373,9 +1428,9 @@ namespace WinFormsApp1.Forms.Transaction
                 // Get the selected item and delete it
                 if (sfDataGrid.SelectedItem is EditableJournalEntryDisplay selectedEntry)
                 {
-                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}", 
+                    var result = MessageBox.Show($"Are you sure you want to delete this entry?\n\nLedger: {selectedEntry.LedgerName}\nDebit: {selectedEntry.DebitAmount:N2}\nCredit: {selectedEntry.CreditAmount:N2}",
                         "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    
+
                     if (result == DialogResult.Yes)
                     {
                         _ledgerEntries.Remove(selectedEntry);

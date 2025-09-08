@@ -1,4 +1,3 @@
-using System.ComponentModel.Design;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -7,13 +6,13 @@ using WinFormsApp1.Models;
 
 namespace WinFormsApp1.Services
 {
-    public class JournalEntryService : IDisposable
+    public class PaymentService : IDisposable
     {
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
-        private readonly string _baseUrl = "api/v1/journalentry";
+        private readonly string _baseUrl = "api/v1/transaction";
 
-        public JournalEntryService(AuthService authService)
+        public PaymentService(AuthService authService)
         {
             _authService = authService;
             _httpClient = new HttpClient();
@@ -34,9 +33,9 @@ namespace WinFormsApp1.Services
         }
 
         /// <summary>
-        /// Get all journal entries with pagination
+        /// Get all payments with pagination
         /// </summary>
-        public async Task<PaginatedJournalEntryListResponse?> GetJournalEntriesAsync(Guid companyId, int page = 1, int pageSize = 50, string? searchTerm = null, JournalEntryType? type = null, string? status = null)
+        public async Task<List<PaymentListDto>> GetPaymentsListAsync(Guid companyId, Guid financialYearId, int pageNumber = 1, int pageSize = 50, string? type = null)
         {
             try
             {
@@ -44,18 +43,14 @@ namespace WinFormsApp1.Services
 
                 var queryParams = new List<string>
                 {
-                    $"page={page}",
+                    $"financialYearId={financialYearId}",
+                    $"pageNumber={pageNumber}",
                     $"pageSize={pageSize}"
                 };
 
-                if (!string.IsNullOrEmpty(searchTerm))
-                    queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
 
-                if (type.HasValue)
-                    queryParams.Add($"type={type.Value}");
-
-                if (!string.IsNullOrEmpty(status))
-                    queryParams.Add($"status={Uri.EscapeDataString(status)}");
+                if (!string.IsNullOrEmpty(type))
+                    queryParams.Add($"type={Uri.EscapeDataString(type)}");
 
                 var queryString = string.Join("&", queryParams);
                 var url = $"{_baseUrl}/company/{companyId}?{queryString}";
@@ -63,20 +58,29 @@ namespace WinFormsApp1.Services
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Get journal entries - Status: {response.StatusCode}");
+                Console.WriteLine($"Get payments - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        var result = JsonSerializer.Deserialize<PaginatedJournalEntryListResponse>(responseContent, new JsonSerializerOptions
+                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedPaymentListResponse>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             Converters = { new JsonStringEnumConverter() }
                         });
 
-                        return result;
+                        if (paginatedResponse != null)
+                        {
+                            Console.WriteLine($"Deserialized successfully. Items count: {paginatedResponse.Items?.Count ?? 0}");
+                            return paginatedResponse.Items ?? new List<PaymentListDto>();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Deserialization returned null");
+                            return new List<PaymentListDto>();
+                        }
                     }
                     catch (JsonException ex)
                     {
@@ -98,15 +102,15 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Get journal entries exception: {ex.Message}");
+                Console.WriteLine($"Get payments exception: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Get journal entry by ID
+        /// Get payment by ID
         /// </summary>
-        public async Task<JournalEntryByIdDto?> GetJournalEntryByIdAsync(Guid id)
+        public async Task<PaymentByIdDto?> GetPaymentByIdAsync(Guid id)
         {
             try
             {
@@ -114,20 +118,20 @@ namespace WinFormsApp1.Services
                 var response = await _httpClient.GetAsync($"{_baseUrl}/{id}");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Get journal entry {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Get payment {id} - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        var journalEntry = JsonSerializer.Deserialize<JournalEntryByIdDto>(responseContent, new JsonSerializerOptions
+                        var payment = JsonSerializer.Deserialize<PaymentByIdDto>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             Converters = { new JsonStringEnumConverter() }
                         });
 
-                        return journalEntry;
+                        return payment;
                     }
                     catch (JsonException ex)
                     {
@@ -149,15 +153,15 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Get journal entry exception: {ex.Message}");
+                Console.WriteLine($"Get payment exception: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Create a new journal entry
+        /// Create a new payment
         /// </summary>
-        public async Task<JournalEntryByIdDto?> CreateJournalEntryAsync(CreateJournalEntryRequest request)
+        public async Task<PaymentByIdDto?> CreatePaymentAsync(CreatePaymentRequest request)
         {
             try
             {
@@ -172,25 +176,25 @@ namespace WinFormsApp1.Services
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                Console.WriteLine($"Creating journal entry via: {_baseUrl} with data: {json}");
+                Console.WriteLine($"Creating payment via: {_baseUrl} with data: {json}");
 
                 var response = await _httpClient.PostAsync(_baseUrl, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Create journal entry - Status: {response.StatusCode}");
+                Console.WriteLine($"Create payment - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        var createdEntry = JsonSerializer.Deserialize<JournalEntryByIdDto>(responseContent, new JsonSerializerOptions
+                        var createdPayment = JsonSerializer.Deserialize<PaymentByIdDto>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             Converters = { new JsonStringEnumConverter() }
                         });
 
-                        return createdEntry;
+                        return createdPayment;
                     }
                     catch (JsonException ex)
                     {
@@ -212,15 +216,15 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Create journal entry exception: {ex.Message}");
+                Console.WriteLine($"Create payment exception: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Update an existing journal entry
+        /// Update an existing payment
         /// </summary>
-        public async Task<JournalEntryByIdDto?> UpdateJournalEntryAsync(Guid id, UpdateJournalEntryRequest request)
+        public async Task<PaymentByIdDto?> UpdatePaymentAsync(Guid id, UpdatePaymentRequest request)
         {
             try
             {
@@ -235,25 +239,25 @@ namespace WinFormsApp1.Services
                
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                Console.WriteLine($"Updating journal entry {id} via: {_baseUrl}/{id} with data: {json}");
+                Console.WriteLine($"Updating payment {id} via: {_baseUrl}/{id} with data: {json}");
 
                 var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Update journal entry {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Update payment {id} - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        var updatedEntry = JsonSerializer.Deserialize<JournalEntryByIdDto>(responseContent, new JsonSerializerOptions
+                        var updatedPayment = JsonSerializer.Deserialize<PaymentByIdDto>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             Converters = { new JsonStringEnumConverter() }
                         });
 
-                        return updatedEntry;
+                        return updatedPayment;
                     }
                     catch (JsonException ex)
                     {
@@ -275,25 +279,25 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Update journal entry exception: {ex.Message}");
+                Console.WriteLine($"Update payment exception: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Delete a journal entry
+        /// Delete a payment
         /// </summary>
-        public async Task<bool> DeleteJournalEntryAsync(Guid id)
+        public async Task<bool> DeletePaymentAsync(Guid id)
         {
             try
             {
                 SetAuthHeader();
 
-                Console.WriteLine($"Deleting journal entry {id} via: {_baseUrl}/{id}");
+                Console.WriteLine($"Deleting payment {id} via: {_baseUrl}/{id}");
 
                 var response = await _httpClient.DeleteAsync($"{_baseUrl}/{id}");
 
-                Console.WriteLine($"Delete journal entry {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Delete payment {id} - Status: {response.StatusCode}");
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -306,25 +310,25 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Delete journal entry exception: {ex.Message}");
+                Console.WriteLine($"Delete payment exception: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Post a journal entry (change status from Draft to Posted)
+        /// Post a payment (change status from Draft to Posted)
         /// </summary>
-        public async Task<bool> PostJournalEntryAsync(Guid id)
+        public async Task<bool> PostPaymentAsync(Guid id)
         {
             try
             {
                 SetAuthHeader();
 
-                Console.WriteLine($"Posting journal entry {id} via: {_baseUrl}/{id}/post");
+                Console.WriteLine($"Posting payment {id} via: {_baseUrl}/{id}/post");
 
                 var response = await _httpClient.PostAsync($"{_baseUrl}/{id}/post", null);
 
-                Console.WriteLine($"Post journal entry {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Post payment {id} - Status: {response.StatusCode}");
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -337,25 +341,25 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Post journal entry exception: {ex.Message}");
+                Console.WriteLine($"Post payment exception: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Unpost a journal entry (change status from Posted to Draft)
+        /// Unpost a payment (change status from Posted to Draft)
         /// </summary>
-        public async Task<bool> UnpostJournalEntryAsync(Guid id)
+        public async Task<bool> UnpostPaymentAsync(Guid id)
         {
             try
             {
                 SetAuthHeader();
 
-                Console.WriteLine($"Unposting journal entry {id} via: {_baseUrl}/{id}/unpost");
+                Console.WriteLine($"Unposting payment {id} via: {_baseUrl}/{id}/unpost");
 
                 var response = await _httpClient.PostAsync($"{_baseUrl}/{id}/unpost", null);
 
-                Console.WriteLine($"Unpost journal entry {id} - Status: {response.StatusCode}");
+                Console.WriteLine($"Unpost payment {id} - Status: {response.StatusCode}");
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -368,15 +372,15 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unpost journal entry exception: {ex.Message}");
+                Console.WriteLine($"Unpost payment exception: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Get journal entry statistics
+        /// Get payment statistics
         /// </summary>
-        public async Task<JournalEntryStatistics?> GetJournalEntryStatisticsAsync(string companyId, string financialYearId)
+        public async Task<PaymentStatistics?> GetPaymentStatisticsAsync(string companyId, string financialYearId)
         {
             try
             {
@@ -386,14 +390,14 @@ namespace WinFormsApp1.Services
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Get journal entry statistics - Status: {response.StatusCode}");
+                Console.WriteLine($"Get payment statistics - Status: {response.StatusCode}");
                 Console.WriteLine($"Response Content: {responseContent}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     try
                     {
-                        var statistics = JsonSerializer.Deserialize<JournalEntryStatistics>(responseContent, new JsonSerializerOptions
+                        var statistics = JsonSerializer.Deserialize<PaymentStatistics>(responseContent, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true
                         });
@@ -420,7 +424,7 @@ namespace WinFormsApp1.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Get journal entry statistics exception: {ex.Message}");
+                Console.WriteLine($"Get payment statistics exception: {ex.Message}");
                 return null;
             }
         }
@@ -431,17 +435,17 @@ namespace WinFormsApp1.Services
         }
     }
 
-    // Statistics model for journal entries
-    public class JournalEntryStatistics
+    // Statistics model for payments
+    public class PaymentStatistics
     {
-        public int TotalEntries { get; set; }
-        public int DraftEntries { get; set; }
-        public int PostedEntries { get; set; }
-        public int CancelledEntries { get; set; }
-        public decimal TotalDebitAmount { get; set; }
-        public decimal TotalCreditAmount { get; set; }
-        public decimal UnbalancedAmount { get; set; }
-        public int UnbalancedEntries { get; set; }
-        public Dictionary<JournalEntryType, int> EntriesByType { get; set; } = new Dictionary<JournalEntryType, int>();
+        public int TotalPayments { get; set; }
+        public int DraftPayments { get; set; }
+        public int PostedPayments { get; set; }
+        public int CancelledPayments { get; set; }
+        public decimal TotalPaymentReceived { get; set; }
+        public decimal TotalPaymentMade { get; set; }
+        public decimal NetPaymentAmount { get; set; }
+        public Dictionary<PaymentType, int> PaymentsByType { get; set; } = new Dictionary<PaymentType, int>();
+        public Dictionary<string, int> PaymentsByStatus { get; set; } = new Dictionary<string, int>();
     }
 }

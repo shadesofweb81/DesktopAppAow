@@ -10,7 +10,7 @@ namespace WinFormsApp1.Services
         private readonly HttpClient _httpClient;
         private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
         private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
-        // private readonly string _erpBaseUrl = "https://localhost:7046";
+        //private readonly string _erpBaseUrl = "https://localhost:7046";
         private readonly string _tokenFilePath;
         private string? _jwtToken;
 
@@ -36,6 +36,12 @@ namespace WinFormsApp1.Services
         public string? JwtToken => _jwtToken;
         public string AuthBaseUrl => _authBaseUrl;
         public string ErpBaseUrl => _erpBaseUrl;
+
+        /// <summary>
+        /// Event triggered when an unauthorized response is received from the API.
+        /// Subscribers can use this to handle logout, redirect to login, etc.
+        /// </summary>
+        public event Action? OnUnauthorized;
 
         public async Task<LoginResponse> LoginAsync(string username, string password)
         {
@@ -274,6 +280,20 @@ namespace WinFormsApp1.Services
         {
             _jwtToken = null;
             ClearSavedToken();
+        }
+
+        /// <summary>
+        /// Triggered when an unauthorized response is received from the API.
+        /// This method clears the current token and performs cleanup.
+        /// </summary>
+        public void TriggerUnauthorized()
+        {
+            Console.WriteLine("Unauthorized response received - clearing authentication token");
+            _jwtToken = null;
+            ClearSavedToken();
+
+            // Trigger the Unauthorized event if any subscribers exist
+            OnUnauthorized?.Invoke();
         }
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(_jwtToken) && IsTokenValid();

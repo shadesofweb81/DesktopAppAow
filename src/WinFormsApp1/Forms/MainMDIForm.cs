@@ -4,6 +4,7 @@ using WinFormsApp1.Forms.FinancialYear;
 using WinFormsApp1.Forms.Ledger;
 using WinFormsApp1.Forms.Tax;
 using WinFormsApp1.Forms.Transaction;
+using WinFormsApp1.Forms.Payment;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -20,6 +21,7 @@ namespace WinFormsApp1.Forms
         private readonly TaxService _taxService;
         private readonly TransactionService _transactionService;
         private readonly JournalEntryService _journalEntryService;
+        private readonly PaymentService _paymentService;
         private MenuStrip menuStrip = null!;
         private ToolStripMenuItem fileMenu = null!;
         private ToolStripMenuItem companyMenuItem = null!;
@@ -85,6 +87,11 @@ namespace WinFormsApp1.Forms
             _taxService = new TaxService(authService);
             _transactionService = new TransactionService(authService);
             _journalEntryService = new JournalEntryService(authService);
+            _paymentService = new PaymentService(authService);
+
+            // Subscribe to unauthorized event
+            _authService.OnUnauthorized += AuthService_Unauthorized;
+
             InitializeComponent();
             SetupForm();
         }
@@ -734,6 +741,33 @@ namespace WinFormsApp1.Forms
             }
         }
 
+        private async void AuthService_Unauthorized()
+        {
+            // Handle unauthorized response by performing logout
+            try
+            {
+                // Show message to user
+                MessageBox.Show("Your session has expired. You will be logged out and redirected to the login screen.", 
+                    "Session Expired", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                // Perform logout on UI thread
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(async () => await PerformLogout()));
+                }
+                else
+                {
+                    await PerformLogout();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling unauthorized event: {ex.Message}");
+                // Force application exit if there's an error
+                Application.Exit();
+            }
+        }
+
         private void exitMenuItem_Click(object? sender, EventArgs e)
         {
             var result = MessageBox.Show("Are you sure you want to exit?", "Exit",
@@ -1224,6 +1258,47 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private void OpenPaymentListForm(string? paymentType = null)
+        {
+            // Check if PaymentListForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is PaymentListForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new payment list form
+            var paymentListForm = new PaymentListForm(_paymentService, _localStorageService, paymentType)
+            {
+                MdiParent = this,
+                Text = paymentType != null ? $"{paymentType} Payments" : "Payment Management",
+                WindowState = FormWindowState.Maximized
+            };
+
+            paymentListForm.Show();
+            
+            // Hide navigation panel when PaymentListForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            paymentListForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenJournalEntryListForm()
         {
             try
@@ -1654,6 +1729,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             // If user is closing the main form, clear all data and logout
             try
             {
+                // Unsubscribe from unauthorized event
+                _authService.OnUnauthorized -= AuthService_Unauthorized;
+                
                 await _localStorageService.ClearAllDataAsync();
                 _authService.Logout();
             }
@@ -2135,7 +2213,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            OpenTransactionListForm("Payment");
+            OpenPaymentListForm("Payment");
         }
 
         private void journalButton_Click(object? sender, EventArgs e)
@@ -2147,6 +2225,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             }
             OpenJournalEntryListForm();
         }
+
 
         // Reports Section Button Handlers
         private void stockReportButton_Click(object? sender, EventArgs e)
