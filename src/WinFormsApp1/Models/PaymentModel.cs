@@ -5,6 +5,8 @@ namespace WinFormsApp1.Models
     public class PaymentModel
     {
         public string Id { get; set; } = string.Empty;
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
         public string PaymentNumber { get; set; } = string.Empty;
         public DateTime PaymentDate { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;
@@ -27,6 +29,8 @@ namespace WinFormsApp1.Models
     public class PaymentDetailModel
     {
         public string Id { get; set; } = string.Empty;
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
         public string PaymentId { get; set; } = string.Empty;
         public string LedgerId { get; set; } = string.Empty;
         public string LedgerName { get; set; } = string.Empty;

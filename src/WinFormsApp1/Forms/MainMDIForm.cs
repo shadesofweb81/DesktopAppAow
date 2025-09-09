@@ -1258,7 +1258,7 @@ namespace WinFormsApp1.Forms
             };
         }
 
-        private void OpenPaymentListForm(string? paymentType = null)
+        private void OpenPaymentListForm(string? paymentType = null, string? viewMode = "Payment")
         {
             // Check if PaymentListForm is already open
             foreach (Form childForm in this.MdiChildren)
@@ -1272,10 +1272,10 @@ namespace WinFormsApp1.Forms
             }
 
             // Create new payment list form
-            var paymentListForm = new PaymentListForm(_paymentService, _localStorageService, paymentType)
+            var paymentListForm = new PaymentListForm(_paymentService, _transactionService, _ledgerService, _localStorageService, paymentType, viewMode)
             {
                 MdiParent = this,
-                Text = paymentType != null ? $"{paymentType} Payments" : "Payment Management",
+                Text = paymentType != null ? $"{paymentType} {viewMode}s" : $"{viewMode} Management",
                 WindowState = FormWindowState.Maximized
             };
 
@@ -2203,7 +2203,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            OpenTransactionListForm("Receipt");
+            OpenPaymentListForm("Receipt", "Receipt");
         }
 
         private void paymentButton_Click(object? sender, EventArgs e)
@@ -2213,7 +2213,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            OpenPaymentListForm("Payment");
+            OpenPaymentListForm("Payment", "Payment");
         }
 
         private void journalButton_Click(object? sender, EventArgs e)

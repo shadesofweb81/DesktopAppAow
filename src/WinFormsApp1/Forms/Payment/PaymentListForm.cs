@@ -1,12 +1,15 @@
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms;
+using WinFormsApp1.Forms.Payment;
 
 namespace WinFormsApp1.Forms.Payment
 {
     public partial class PaymentListForm : Form
     {
         private readonly PaymentService _paymentService;
+        private readonly TransactionService _transactionService;
+        private readonly LedgerService _ledgerService;
         private readonly LocalStorageService _localStorageService;
         private List<PaymentListDto> _payments = new List<PaymentListDto>();
         private List<PaymentListDto> _allPayments = new List<PaymentListDto>(); // Store all payments
@@ -42,12 +45,19 @@ namespace WinFormsApp1.Forms.Payment
             set => _filterPaymentType = value; 
         }
 
-        public PaymentListForm(PaymentService paymentService, LocalStorageService localStorageService,
-            string? paymentType = null)
+        // View mode to determine which columns to show
+        private string _viewMode = "Payment"; // "Payment" or "Receipt"
+
+        public PaymentListForm(PaymentService paymentService, TransactionService transactionService, 
+            LedgerService ledgerService, LocalStorageService localStorageService,
+            string? paymentType = null, string? viewMode = "Payment")
         {
             _paymentService = paymentService;
+            _transactionService = transactionService;
+            _ledgerService = ledgerService;
             _localStorageService = localStorageService;
             FilterPaymentType = paymentType;
+            _viewMode = viewMode ?? "Payment";
             
             InitializeComponent();
             SetupForm();
@@ -270,6 +280,10 @@ namespace WinFormsApp1.Forms.Payment
 
         private void SetupDataGridViewColumns()
         {
+            // Clear existing columns
+            dgvPayments.Columns.Clear();
+
+            // Common columns for both Payment and Receipt views
             dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "TransactionNumber",
@@ -338,40 +352,33 @@ namespace WinFormsApp1.Forms.Payment
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+            // View-specific columns
+            if (_viewMode.Equals("Payment", StringComparison.OrdinalIgnoreCase))
             {
-                Name = "PaidAmount",
-                HeaderText = "Paid",
-                DataPropertyName = "PaidAmount",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
+                // Payment view: Show "Paid" column
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "PaidAmount",
+                    HeaderText = "Paid",
+                    DataPropertyName = "PaidAmount",
+                    Width = 100,
+                    DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                });
+            }
+            else if (_viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
+            {
+                // Receipt view: Show "Received" column
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "PaidAmount",
+                    HeaderText = "Received",
+                    DataPropertyName = "PaidAmount",
+                    Width = 100,
+                    DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+                });
+            }
 
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "BalanceDue",
-                HeaderText = "Balance",
-                DataPropertyName = "BalanceDue",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Status",
-                HeaderText = "Status",
-                DataPropertyName = "Status",
-                Width = 80
-            });
-
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "DueDate",
-                HeaderText = "Due Date",
-                DataPropertyName = "DueDate",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy" }
-            });
+            // Note: Removed DueDate, Status, and BalanceDue columns as requested
         }
 
         private async void LoadCompanyAndPayments()
@@ -497,8 +504,21 @@ namespace WinFormsApp1.Forms.Payment
 
             try
             {
-                // TODO: Create PaymentEditForm when available
-                MessageBox.Show("Payment edit form not yet implemented.", "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var paymentEditForm = new PaymentEditForm(
+                    _paymentService, 
+                    _transactionService,
+                    _ledgerService,
+                    _localStorageService,
+                    _selectedCompany,
+                    _selectedFinancialYear,
+                    null,
+                    _viewMode
+                );
+                
+                if (paymentEditForm.ShowDialog() == DialogResult.OK)
+                {
+                    _ = LoadPayments(); // Refresh the list
+                }
             }
             catch (Exception ex)
             {
@@ -516,8 +536,21 @@ namespace WinFormsApp1.Forms.Payment
 
             try
             {
-                // TODO: Create PaymentEditForm when available
-                MessageBox.Show("Payment edit form not yet implemented.", "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var paymentEditForm = new PaymentEditForm(
+                    _paymentService, 
+                    _transactionService,
+                    _ledgerService,
+                    _localStorageService,
+                    _selectedCompany,
+                    _selectedFinancialYear,
+                    _selectedPayment,
+                    _viewMode
+                );
+                
+                if (paymentEditForm.ShowDialog() == DialogResult.OK)
+                {
+                    _ = LoadPayments(); // Refresh the list
+                }
             }
             catch (Exception ex)
             {
@@ -850,8 +883,21 @@ namespace WinFormsApp1.Forms.Payment
             
             try
             {
-                // TODO: Create PaymentEditForm when available
-                MessageBox.Show("Payment edit form not yet implemented.", "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var paymentEditForm = new PaymentEditForm(
+                    _paymentService, 
+                    _transactionService,
+                    _ledgerService,
+                    _localStorageService,
+                    _selectedCompany,
+                    _selectedFinancialYear,
+                    null,
+                    _viewMode
+                );
+                
+                if (paymentEditForm.ShowDialog() == DialogResult.OK)
+                {
+                    _ = LoadPayments(); // Refresh the list
+                }
             }
             catch (Exception ex)
             {
@@ -875,8 +921,21 @@ namespace WinFormsApp1.Forms.Payment
 
             try
             {
-                // TODO: Create PaymentEditForm when available
-                MessageBox.Show("Payment edit form not yet implemented.", "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var paymentEditForm = new PaymentEditForm(
+                    _paymentService, 
+                    _transactionService,
+                    _ledgerService,
+                    _localStorageService,
+                    _selectedCompany,
+                    _selectedFinancialYear,
+                    _selectedPayment,
+                    _viewMode
+                );
+                
+                if (paymentEditForm.ShowDialog() == DialogResult.OK)
+                {
+                    _ = LoadPayments(); // Refresh the list
+                }
             }
             catch (Exception ex)
             {
@@ -948,23 +1007,26 @@ namespace WinFormsApp1.Forms.Payment
         private string GetFormTitle()
         {
             var typeText = !string.IsNullOrEmpty(FilterPaymentType) ? $"{FilterPaymentType} " : "";
+            var viewModeText = _viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase) ? "Receipts" : "Payments";
             if (_selectedCompany != null)
             {
-                return $"{typeText}Payments - {_selectedCompany.DisplayName}";
+                return $"{typeText}{viewModeText} - {_selectedCompany.DisplayName}";
             }
-            return $"{typeText}Payments - No Company Selected";
+            return $"{typeText}{viewModeText} - No Company Selected";
         }
 
         private string GetCompanyInfoText()
         {
             var typeText = !string.IsNullOrEmpty(FilterPaymentType) ? $"{FilterPaymentType} " : "";
-            return $"{typeText}Payments for: {_selectedCompany?.DisplayName ?? "No company selected"}";
+            var viewModeText = _viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase) ? "Receipts" : "Payments";
+            return $"{typeText}{viewModeText} for: {_selectedCompany?.DisplayName ?? "No company selected"}";
         }
 
         private string GetInstructionsText()
         {
             var typeText = !string.IsNullOrEmpty(FilterPaymentType) ? $"{FilterPaymentType} " : "";
-            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}Payments | Use filter dropdown to refine results | Export PDF button to save as PDF | Uses selected company from local storage";
+            var viewModeText = _viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase) ? "Receipts" : "Payments";
+            return $"Keyboard Navigation: ↑↓ to navigate rows, Enter to edit, V to view details, Insert for new, Delete to remove, F5 to refresh, Esc to close | {typeText}{viewModeText} | Use filter dropdown to refine results | Export PDF button to save as PDF | Uses selected company from local storage";
         }
 
         private void SetupFilterDropdown()
