@@ -40,6 +40,7 @@ namespace WinFormsApp1.Forms.Payment
         private TextBox txtTransactionNumber = null!;
         private Label lblInvoiceNumber = null!;
         private TextBox txtInvoiceNumber = null!;
+        private Button btnAutoClear = null!;
         
         private GroupBox grpPaymentMethod = null!;
         private RadioButton rdoBank = null!;
@@ -62,6 +63,7 @@ namespace WinFormsApp1.Forms.Payment
         private List<TransactionListDto> _unpaidTransactions = new List<TransactionListDto>();
         private List<TransactionListDto> _selectedTransactions = new List<TransactionListDto>();
         private decimal _totalSelectedAmount = 0;
+        private bool _isUpdatingAmount = false;
 
         public PaymentEditForm(PaymentService paymentService, TransactionService transactionService, 
             LedgerService ledgerService, LocalStorageService localStorageService,
@@ -105,6 +107,7 @@ namespace WinFormsApp1.Forms.Payment
             txtTransactionNumber = new TextBox();
             lblInvoiceNumber = new Label();
             txtInvoiceNumber = new TextBox();
+            btnAutoClear = new Button();
             
             grpPaymentMethod = new GroupBox();
             rdoBank = new RadioButton();
@@ -207,10 +210,18 @@ namespace WinFormsApp1.Forms.Payment
             
             txtAmount.Location = new Point(130, 97);
             txtAmount.Name = "txtAmount";
-            txtAmount.Size = new Size(150, 25);
+            txtAmount.Size = new Size(120, 25);
             txtAmount.TabIndex = 4;
             txtAmount.TextChanged += txtAmount_TextChanged;
             txtAmount.Text = "0.00";
+            
+            btnAutoClear.Location = new Point(260, 97);
+            btnAutoClear.Name = "btnAutoClear";
+            btnAutoClear.Size = new Size(80, 25);
+            btnAutoClear.TabIndex = 5;
+            btnAutoClear.Text = "Auto Clear";
+            btnAutoClear.UseVisualStyleBackColor = true;
+            btnAutoClear.Click += btnAutoClear_Click;
             
             lblTransactionDate.Location = new Point(20, 135);
             lblTransactionDate.Name = "lblTransactionDate";
@@ -220,7 +231,7 @@ namespace WinFormsApp1.Forms.Payment
             dtpTransactionDate.Location = new Point(130, 132);
             dtpTransactionDate.Name = "dtpTransactionDate";
             dtpTransactionDate.Size = new Size(150, 25);
-            dtpTransactionDate.TabIndex = 5;
+            dtpTransactionDate.TabIndex = 6;
             dtpTransactionDate.Value = DateTime.Today;
             
             lblDescription.Location = new Point(20, 170);
@@ -231,7 +242,7 @@ namespace WinFormsApp1.Forms.Payment
             txtDescription.Location = new Point(130, 167);
             txtDescription.Name = "txtDescription";
             txtDescription.Size = new Size(250, 25);
-            txtDescription.TabIndex = 6;
+            txtDescription.TabIndex = 7;
             
             lblTransactionNumber.Location = new Point(20, 202);
             lblTransactionNumber.Name = "lblTransactionNumber";
@@ -241,7 +252,7 @@ namespace WinFormsApp1.Forms.Payment
             txtTransactionNumber.Location = new Point(130, 199);
             txtTransactionNumber.Name = "txtTransactionNumber";
             txtTransactionNumber.Size = new Size(150, 25);
-            txtTransactionNumber.TabIndex = 7;
+            txtTransactionNumber.TabIndex = 8;
             txtTransactionNumber.ReadOnly = true;
             txtTransactionNumber.BackColor = Color.LightGray;
             
@@ -253,7 +264,7 @@ namespace WinFormsApp1.Forms.Payment
             txtInvoiceNumber.Location = new Point(130, 234);
             txtInvoiceNumber.Name = "txtInvoiceNumber";
             txtInvoiceNumber.Size = new Size(150, 25);
-            txtInvoiceNumber.TabIndex = 8;
+            txtInvoiceNumber.TabIndex = 9;
             
             // Add tooltip for invoice number field
             var toolTip = new ToolTip();
@@ -385,6 +396,7 @@ namespace WinFormsApp1.Forms.Payment
             grpPaymentDetails.Controls.Add(btnSelectPayToLedger);
             grpPaymentDetails.Controls.Add(lblAmount);
             grpPaymentDetails.Controls.Add(txtAmount);
+            grpPaymentDetails.Controls.Add(btnAutoClear);
             grpPaymentDetails.Controls.Add(lblTransactionDate);
             grpPaymentDetails.Controls.Add(dtpTransactionDate);
             grpPaymentDetails.Controls.Add(lblDescription);
@@ -659,8 +671,13 @@ namespace WinFormsApp1.Forms.Payment
             
             lblTotalSelected.Text = $"Total Selected: ${_totalSelectedAmount:N2}";
             
-            // Update main amount field
-            txtAmount.Text = _totalSelectedAmount.ToString("N2");
+            // Update main amount field only if we're not already updating it
+            if (!_isUpdatingAmount)
+            {
+                _isUpdatingAmount = true;
+                txtAmount.Text = _totalSelectedAmount.ToString("N2");
+                _isUpdatingAmount = false;
+            }
         }
 
         private string GetFormTitle()
@@ -712,6 +729,9 @@ namespace WinFormsApp1.Forms.Payment
 
         private void txtAmount_TextChanged(object? sender, EventArgs e)
         {
+            // Skip if we're programmatically updating the amount
+            if (_isUpdatingAmount) return;
+            
             // Validate numeric input
             if (!string.IsNullOrEmpty(txtAmount.Text) && !decimal.TryParse(txtAmount.Text, out _))
             {
@@ -723,6 +743,73 @@ namespace WinFormsApp1.Forms.Payment
                     txtAmount.Text = cleanText;
                     txtAmount.SelectionStart = Math.Min(selectionStart, cleanText.Length);
                 }
+            }
+        }
+
+        private void btnAutoClear_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (!decimal.TryParse(txtAmount.Text, out decimal amount) || amount <= 0)
+                {
+                    MessageBox.Show("Please enter a valid amount to auto-clear.", "Invalid Amount", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (_unpaidTransactions.Count == 0)
+                {
+                    MessageBox.Show("No outstanding bills available to clear.", "No Bills", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // Sort transactions by date (oldest first)
+                var sortedTransactions = _unpaidTransactions.OrderBy(t => t.TransactionDate).ToList();
+                
+                decimal remainingAmount = amount;
+                
+                // Clear all checkboxes first
+                foreach (DataGridViewRow row in dgvInvoices.Rows)
+                {
+                    row.Cells["Selected"].Value = false;
+                    row.Cells["PaymentAmount"].Value = 0;
+                }
+                
+                // Distribute amount across oldest bills first
+                foreach (var transaction in sortedTransactions)
+                {
+                    if (remainingAmount <= 0) break;
+                    
+                    var row = dgvInvoices.Rows.Cast<DataGridViewRow>()
+                        .FirstOrDefault(r => r.DataBoundItem == transaction);
+                    
+                    if (row != null)
+                    {
+                        decimal billBalance = transaction.BalanceDue ?? 0;
+                        decimal paymentAmount = Math.Min(remainingAmount, billBalance);
+                        
+                        row.Cells["Selected"].Value = true;
+                        row.Cells["PaymentAmount"].Value = paymentAmount;
+                        
+                        remainingAmount -= paymentAmount;
+                    }
+                }
+                
+                UpdateTotalSelected();
+                
+                if (remainingAmount > 0)
+                {
+                    MessageBox.Show($"Auto-cleared {amount - remainingAmount:C2} from outstanding bills. Remaining amount: {remainingAmount:C2}", 
+                        "Auto-Clear Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Successfully auto-cleared {amount:C2} from outstanding bills.", 
+                        "Auto-Clear Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during auto-clear: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
