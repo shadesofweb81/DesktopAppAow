@@ -1090,15 +1090,8 @@ namespace WinFormsApp1.Forms.Payment
                 // Determine transaction type based on current selection
                 var transactionType = rdoPayment.Checked ? "Purchase" : "Sale";
                 
-                // Load transactions with outstanding balances for the selected ledger
-                var transactions = await _transactionService.GetTransactionListAsync(companyId, financialYearId, 1, 1000, transactionType);
-                
-                // Filter for transactions with outstanding balances for the selected ledger
-                _unpaidTransactions = transactions.Where(t => 
-                    t.BalanceDue > 0 && 
-                    !string.IsNullOrEmpty(t.PartyName) &&
-                    t.PartyName.Equals(selectedLedger.Name, StringComparison.OrdinalIgnoreCase)
-                ).ToList();
+                // Load unpaid invoices/bills for the selected ledger directly
+                _unpaidTransactions = await _transactionService.GetUnpaidInvoicesAsync(selectedLedger.Id);
                 
                 // Bind to DataGridView
                 dgvInvoices.DataSource = _unpaidTransactions;

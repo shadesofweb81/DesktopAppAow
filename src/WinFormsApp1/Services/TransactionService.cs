@@ -278,6 +278,64 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<List<TransactionListDto>> GetUnpaidInvoicesAsync(Guid ledgerId)
+        {
+            try
+            {
+                SetAuthHeader();
+                var url = $"{_baseUrl}/unpaid/{ledgerId}?pageSize=100";
+                
+                Console.WriteLine($"Fetching unpaid invoices for ledger {ledgerId} from: {url}");
+
+                var response = await _httpClient.GetAsync(url);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Response Content: {responseContent}");
+                        
+                        var paginatedResponse = JsonSerializer.Deserialize<PaginatedTransactionListDtoResponse>(responseContent, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            Converters = { new JsonStringEnumConverter() }
+                        });
+
+                        if (paginatedResponse != null && paginatedResponse.Items.Any())
+                        {
+                            Console.WriteLine($"Deserialized successfully. Items count: {paginatedResponse.Items?.Count ?? 0}");
+                            return paginatedResponse.Items ?? new List<TransactionListDto>();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Deserialization returned null or empty items");
+                            return new List<TransactionListDto>();
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Response content: {responseContent}");
+                        return new List<TransactionListDto>();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
+                    return new List<TransactionListDto>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Get unpaid invoices exception: {ex.Message}");
+                return new List<TransactionListDto>();
+            }
+        }
+
         public void Dispose()
         {
             _httpClient?.Dispose();
