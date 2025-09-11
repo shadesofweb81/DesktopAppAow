@@ -622,8 +622,8 @@ namespace WinFormsApp1.Forms.Payment
         {
             if (rdoPayment.Checked)
             {
-                lblPayFrom.Text = "Pay From:";
-                lblPayTo.Text = "Pay To:";
+                lblPayFrom.Text = "Pay To:";
+                lblPayTo.Text = "Pay From:";
                 grpInvoices.Text = "Select Bills to Pay";
             }
             else
@@ -1023,9 +1023,9 @@ namespace WinFormsApp1.Forms.Payment
             {
                 var dialog = new LedgerSelectionDialog(
                     _ledgers, 
-                    "Select Ledger to Pay From",
-                    "Select the ledger account to pay from (e.g., Bank, Cash)",
-                    rdoPayment.Checked ? "Bank Accounts" : "Cash Accounts"
+                    rdoPayment.Checked ? "Select Supplier to Pay To" : "Select Customer to Receive From",
+                    rdoPayment.Checked ? "Select the supplier to pay to" : "Select the customer to receive from",
+                    "Party Ledgers"
                 );
                 
                 if (dialog.ShowDialog() == DialogResult.OK && dialog.SelectedLedger != null)
@@ -1052,9 +1052,9 @@ namespace WinFormsApp1.Forms.Payment
             {
                 var dialog = new LedgerSelectionDialog(
                     _ledgers, 
-                    "Select Ledger to Pay To",
-                    "Select the party ledger to pay to (e.g., Customer, Supplier)",
-                    rdoPayment.Checked ? "Sundry Creditors" : "Sundry Debtors"
+                    rdoPayment.Checked ? "Select Account to Pay From" : "Select Account to Receive To",
+                    rdoPayment.Checked ? "Select the account to pay from (e.g., Bank, Cash)" : "Select the account to receive to (e.g., Bank, Cash)",
+                    rdoPayment.Checked ? "Bank Accounts" : "Cash Accounts"
                 );
                 
                 if (dialog.ShowDialog() == DialogResult.OK && dialog.SelectedLedger != null)
@@ -1065,8 +1065,7 @@ namespace WinFormsApp1.Forms.Payment
                     cmbPayToLedger.SelectedItem = dialog.SelectedLedger;
                     cmbPayToLedger.Tag = dialog.SelectedLedger;
                     
-                    // Load outstanding bills for the selected ledger
-                    _ = LoadOutstandingBillsForLedger(dialog.SelectedLedger);
+                    // Second ledger is just the account - don't load bills, preserve existing bills from first ledger
                 }
             }
             catch (Exception ex)

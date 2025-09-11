@@ -1,3 +1,4 @@
+using System.ComponentModel.Design;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -177,7 +178,7 @@ namespace WinFormsApp1.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 Console.WriteLine($"Creating payment via: {_baseUrl} with data: {json}");
-
+                var url = $"{_baseUrl}/payment/{Guid.Empty}?invoice-payment";                
                 var response = await _httpClient.PostAsync(_baseUrl, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -236,7 +237,7 @@ namespace WinFormsApp1.Services
                     WriteIndented = true,
                     Converters = { new JsonStringEnumConverter() }
                 });
-               
+
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 Console.WriteLine($"Updating payment {id} via: {_baseUrl}/{id} with data: {json}");
