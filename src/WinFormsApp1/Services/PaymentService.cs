@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WinFormsApp1.Models;
+using WinFormsApp1.Models.request;
 
 namespace WinFormsApp1.Services
 {
@@ -116,7 +117,8 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var response = await _httpClient.GetAsync($"{_baseUrl}/{id}");
+                var url = $"{_baseUrl}/{id}";
+                var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Get payment {id} - Status: {response.StatusCode}");

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace WinFormsApp1.Models.request
 {
-    public class PaymentRequest
+    public class CreatePaymentRequest
     {
         [JsonPropertyName("companyId")]
         [Required]
@@ -17,7 +17,7 @@ namespace WinFormsApp1.Models.request
 
         [JsonPropertyName("transactionType")]
         [Required]
-        public string TransactionType { get; set; } = "Payment";
+        public string TransactionType { get; set; } = "CashPayment";
 
         [JsonPropertyName("transactionNumber")]
         public string TransactionNumber { get; set; } = string.Empty;

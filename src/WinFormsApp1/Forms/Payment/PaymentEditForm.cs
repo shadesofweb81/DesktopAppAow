@@ -464,6 +464,7 @@ namespace WinFormsApp1.Forms.Payment
             // Update UI based on initial settings
             UpdateTransactionTypeUI();
             UpdatePaymentMethodUI();
+            UpdateTransactionNumber();
         }
 
         private void SetupInvoiceDataGridView()
@@ -575,16 +576,36 @@ namespace WinFormsApp1.Forms.Payment
                 cmbPayToLedger.Items.Clear();
                 cmbPayToLedger.Text = "Click ... to select ledger";
                 
-                // Generate transaction number for new payments
-                if (_existingPayment == null)
+                // Load existing payment details if editing
+                if (_existingPayment != null)
                 {
-                    var transactionType = _viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase) ? "RCP" : "PAY";
-                    txtTransactionNumber.Text = $"{transactionType}-{DateTime.Now:yyyyMMdd-HHmmss}";
+                    lblStatus.Text = "Loading payment details...";
+                    Application.DoEvents();
+                    
+                    var paymentDetails = await _paymentService.GetPaymentByIdAsync(Guid.Parse(_existingPayment.Id));
+                    if (paymentDetails != null)
+                    {
+                        await LoadExistingPaymentData(paymentDetails);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Failed to load payment details.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
                 }
                 else
                 {
-                    txtTransactionNumber.Text = _existingPayment.TransactionNumber;
-                    txtInvoiceNumber.Text = _existingPayment.InvoiceNumber ?? "";
+                    // Generate transaction number for new payments
+                    string prefix;
+                    if (rdoPayment.Checked)
+                    {
+                        prefix = rdoCash.Checked ? "CP" : "BP"; // Cash Payment or Bank Payment
+                    }
+                    else
+                    {
+                        prefix = rdoCash.Checked ? "CR" : "BR"; // Cash Receipt or Bank Receipt
+                    }
+                    txtTransactionNumber.Text = $"{prefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
                 }
                 
                 // Load unpaid transactions (will be filtered by selected ledger later)
@@ -598,6 +619,113 @@ namespace WinFormsApp1.Forms.Payment
                 lblStatus.Text = $"Error loading data: {ex.Message}";
                 lblStatus.ForeColor = Color.Red;
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task LoadExistingPaymentData(PaymentByIdDto paymentDetails)
+        {
+            try
+            {
+                // Populate form fields with existing payment data
+                txtTransactionNumber.Text = paymentDetails.TransactionNumber;
+                dtpTransactionDate.Value = paymentDetails.TransactionDate;
+                txtReferenceNumber.Text = paymentDetails.ReferenceNumber;
+                txtDescription.Text = paymentDetails.Notes;
+                txtAmount.Text = paymentDetails.Total.ToString("N2");
+                txtInvoiceNumber.Text = paymentDetails.InvoiceNumber ?? "";
+                
+                // Set payment type based on transaction type
+                if (paymentDetails.PaymentType == PaymentType.PaymentReceived)
+                {
+                    rdoReceipt.Checked = true;
+                }
+                else
+                {
+                    rdoPayment.Checked = true;
+                }
+                
+                // Set payment method based on transaction type
+                if (paymentDetails.TransactionType.Contains("Cash"))
+                {
+                    rdoCash.Checked = true;
+                }
+                else if (paymentDetails.TransactionType.Contains("Bank"))
+                {
+                    rdoBank.Checked = true;
+                }
+                else
+                {
+                    rdoBank.Checked = true; // Default to bank
+                }
+                
+                // Load ledgers from ledger entries
+                if (paymentDetails.LedgerEntries.Count > 0)
+                {
+                    // Find the main entry (party ledger) and account ledger
+                    var mainEntry = paymentDetails.LedgerEntries.FirstOrDefault(e => e.IsMainEntry);
+                    var systemEntry = paymentDetails.LedgerEntries.FirstOrDefault(e => e.IsSystemEntry);
+                    
+                    // Set pay from/to ledgers based on entry types and transaction type
+                    LedgerModel? payFromLedger = null;
+                    LedgerModel? payToLedger = null;
+                    
+                    if (rdoPayment.Checked)
+                    {
+                        // For payments: pay from account ledger, pay to party ledger
+                        if (systemEntry != null)
+                        {
+                            payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == systemEntry.LedgerId);
+                        }
+                        if (mainEntry != null)
+                        {
+                            payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == mainEntry.LedgerId);
+                        }
+                    }
+                    else
+                    {
+                        // For receipts: receive from party ledger, receive to account ledger
+                        if (mainEntry != null)
+                        {
+                            payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == mainEntry.LedgerId);
+                        }
+                        if (systemEntry != null)
+                        {
+                            payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == systemEntry.LedgerId);
+                        }
+                    }
+                    
+                    // Set the combo boxes
+                    if (payFromLedger != null)
+                    {
+                        cmbPayFromLedger.Items.Clear();
+                        cmbPayFromLedger.Items.Add(payFromLedger);
+                        cmbPayFromLedger.SelectedItem = payFromLedger;
+                        cmbPayFromLedger.Tag = payFromLedger;
+                    }
+                    
+                    if (payToLedger != null)
+                    {
+                        cmbPayToLedger.Items.Clear();
+                        cmbPayToLedger.Items.Add(payToLedger);
+                        cmbPayToLedger.SelectedItem = payToLedger;
+                        cmbPayToLedger.Tag = payToLedger;
+                    }
+                }
+                
+                // Update UI based on loaded data
+                UpdateTransactionTypeUI();
+                UpdatePaymentMethodUI();
+                
+                // Load associated transactions if any
+                // Note: You might need to implement a method to get transactions associated with this payment
+                _unpaidTransactions = new List<TransactionListDto>();
+                dgvInvoices.DataSource = _unpaidTransactions;
+                UpdateTotalSelected();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading existing payment data: {ex.Message}");
+                MessageBox.Show($"Error loading payment data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -687,6 +815,34 @@ namespace WinFormsApp1.Forms.Payment
             return $"{action} {type}";
         }
 
+        private PaymentType GetPaymentTypeFromTransactionType(string transactionType)
+        {
+            return transactionType switch
+            {
+                "CashPayment" or "BankPayment" => PaymentType.PaymentMade,
+                "CashReceipt" or "BankReceipt" => PaymentType.PaymentReceived,
+                _ => PaymentType.PaymentMade
+            };
+        }
+
+        private void UpdateTransactionNumber()
+        {
+            // Only update transaction number for new payments
+            if (_existingPayment == null)
+            {
+                string prefix;
+                if (rdoPayment.Checked)
+                {
+                    prefix = rdoCash.Checked ? "CP" : "BP"; // Cash Payment or Bank Payment
+                }
+                else
+                {
+                    prefix = rdoCash.Checked ? "CR" : "BR"; // Cash Receipt or Bank Receipt
+                }
+                txtTransactionNumber.Text = $"{prefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
+            }
+        }
+
         // Event Handlers
         private void rdoPayment_CheckedChanged(object? sender, EventArgs e)
         {
@@ -695,6 +851,7 @@ namespace WinFormsApp1.Forms.Payment
                 UpdateTransactionTypeUI();
                 ClearLedgerSelections();
                 LoadUnpaidTransactions();
+                UpdateTransactionNumber();
             }
         }
 
@@ -705,6 +862,7 @@ namespace WinFormsApp1.Forms.Payment
                 UpdateTransactionTypeUI();
                 ClearLedgerSelections();
                 LoadUnpaidTransactions();
+                UpdateTransactionNumber();
             }
         }
 
@@ -725,6 +883,7 @@ namespace WinFormsApp1.Forms.Payment
         private void PaymentMethod_CheckedChanged(object? sender, EventArgs e)
         {
             UpdatePaymentMethodUI();
+            UpdateTransactionNumber();
         }
 
         private void txtAmount_TextChanged(object? sender, EventArgs e)
@@ -855,7 +1014,7 @@ namespace WinFormsApp1.Forms.Payment
                         PaymentNumber = $"PAY-{DateTime.Now:yyyyMMdd-HHmmss}",
                         PaymentDate = paymentRequest.TransactionDate,
                         ReferenceNumber = paymentRequest.ReferenceNumber,
-                        PaymentType = paymentRequest.TransactionType == "Payment" ? PaymentType.PaymentMade : PaymentType.PaymentReceived,
+                        PaymentType = GetPaymentTypeFromTransactionType(paymentRequest.TransactionType),
                         Notes = paymentRequest.Description,
                         PaymentDetails = paymentRequest.Invoices.Select(i => new UpdatePaymentDetailRequest
                         {
@@ -884,22 +1043,18 @@ namespace WinFormsApp1.Forms.Payment
                 {
                     // Create new payment
                     var createRequest = new CreatePaymentRequest
-                    {
-                        PaymentNumber = $"PAY-{DateTime.Now:yyyyMMdd-HHmmss}",
-                        PaymentDate = paymentRequest.TransactionDate,
+                    {                      
+                        TransactionDate = paymentRequest.TransactionDate,
                         ReferenceNumber = paymentRequest.ReferenceNumber,
-                        PaymentType = paymentRequest.TransactionType == "Payment" ? PaymentType.PaymentMade : PaymentType.PaymentReceived,
-                        Notes = paymentRequest.Description,
-                        CompanyId = paymentRequest.CompanyId.ToString(),
-                        FinancialYearId = paymentRequest.FinancialYearId.ToString(),
-                        PaymentDetails = paymentRequest.Invoices.Select(i => new CreatePaymentDetailRequest
-                        {
-                            LedgerId = paymentRequest.PayToLedgerId.ToString(),
-                            DetailType = PaymentDetailType.Credit,
-                            Amount = i.Amount,
-                            Description = i.Notes,
-                            SerialNumber = 1
-                        }).ToList()
+                        TransactionType = paymentRequest.TransactionType, // Use the correct transaction type (CashPayment, CashReceipt, BankPayment, BankReceipt)
+                        Description = paymentRequest.Description,
+                        CompanyId = paymentRequest.CompanyId,
+                        FinancialYearId = paymentRequest.FinancialYearId,
+                        PayFromLedgerId = paymentRequest.PayFromLedgerId,
+                        PayToLedgerId = paymentRequest.PayToLedgerId,
+                        Amount = paymentRequest.Amount,
+                        PaymentMethod = paymentRequest.PaymentMethod,
+                        Invoices = paymentRequest.Invoices
                     };
                     
                     var result = await _paymentService.CreatePaymentAsync(createRequest);
@@ -983,15 +1138,32 @@ namespace WinFormsApp1.Forms.Payment
             return true;
         }
 
-        private PaymentRequest CreatePaymentRequest()
+        private CreatePaymentRequest CreatePaymentRequest()
         {
             var paymentMethod = rdoBank.Checked ? "Bank" : rdoCash.Checked ? "Cash" : "Cheque";
-            var transactionType = rdoPayment.Checked ? "Payment" : "Receipt";
+            
+            // Determine transaction type based on payment method and receipt/payment selection
+            // Four possible combinations:
+            // 1. Payment + Cash = CashPayment (money going out via cash)
+            // 2. Payment + Bank = BankPayment (money going out via bank)
+            // 3. Receipt + Cash = CashReceipt (money coming in via cash)
+            // 4. Receipt + Bank = BankReceipt (money coming in via bank)
+            string transactionType;
+            if (rdoPayment.Checked)
+            {
+                // Payment (money going out)
+                transactionType = paymentMethod == "Cash" ? "CashPayment" : "BankPayment";
+            }
+            else
+            {
+                // Receipt (money coming in)
+                transactionType = paymentMethod == "Cash" ? "CashReceipt" : "BankReceipt";
+            }
             
             var payFromLedger = cmbPayFromLedger.Tag as LedgerModel;
             var payToLedger = cmbPayToLedger.Tag as LedgerModel;
             
-            var request = new PaymentRequest
+            var request = new CreatePaymentRequest
             {
                 CompanyId = Guid.Parse(_selectedCompany!.Id),
                 FinancialYearId = _selectedFinancialYear!.Id,
