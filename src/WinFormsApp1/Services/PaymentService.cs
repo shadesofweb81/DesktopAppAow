@@ -178,8 +178,10 @@ namespace WinFormsApp1.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 Console.WriteLine($"Creating payment via: {_baseUrl} with data: {json}");
-                var url = $"{_baseUrl}/payment/{Guid.Empty}?invoice-payment";                
-                var response = await _httpClient.PostAsync(_baseUrl, content);
+
+
+                var url = $"{_baseUrl}/invoice-payment";                
+                var response = await _httpClient.PostAsync(url, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Create payment - Status: {response.StatusCode}");
