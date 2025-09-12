@@ -168,6 +168,9 @@ namespace WinFormsApp1.Models
         public string? ReferenceNumber { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PartyName { get; set; }
+        
+        // Additional property for payment forms
+        public decimal PaymentAmount { get; set; }
     }
 
     // Paginated response model for transaction list DTOs

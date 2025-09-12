@@ -64,6 +64,7 @@ namespace WinFormsApp1.Forms.Payment
         private List<TransactionListDto> _selectedTransactions = new List<TransactionListDto>();
         private decimal _totalSelectedAmount = 0;
         private bool _isUpdatingAmount = false;
+        private bool _isLoadingExistingPayment = false;
 
         public PaymentEditForm(PaymentService paymentService, TransactionService transactionService, 
             LedgerService ledgerService, LocalStorageService localStorageService,
@@ -606,10 +607,10 @@ namespace WinFormsApp1.Forms.Payment
                         prefix = rdoCash.Checked ? "CR" : "BR"; // Cash Receipt or Bank Receipt
                     }
                     txtTransactionNumber.Text = $"{prefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
+                    
+                    // Load unpaid transactions (will be filtered by selected ledger later)
+                  
                 }
-                
-                // Load unpaid transactions (will be filtered by selected ledger later)
-                LoadUnpaidTransactions();
                 
                 lblStatus.Text = "Ready - Please select ledgers to view outstanding bills";
                 lblStatus.ForeColor = Color.Green;
@@ -626,6 +627,8 @@ namespace WinFormsApp1.Forms.Payment
         {
             try
             {
+                _isLoadingExistingPayment = true; // Prevent event handlers from clearing the list
+                
                 // Populate form fields with existing payment data
                 txtTransactionNumber.Text = paymentDetails.TransactionNumber;
                 dtpTransactionDate.Value = paymentDetails.TransactionDate;
@@ -644,12 +647,12 @@ namespace WinFormsApp1.Forms.Payment
                     rdoPayment.Checked = true;
                 }
                 
-                // Set payment method based on transaction type
-                if (paymentDetails.TransactionType.Contains("Cash"))
+                // Set payment method based on PaymentMethod field
+                if (paymentDetails.PaymentMethod.Equals("Cash", StringComparison.OrdinalIgnoreCase))
                 {
                     rdoCash.Checked = true;
                 }
-                else if (paymentDetails.TransactionType.Contains("Bank"))
+                else if (paymentDetails.PaymentMethod.Equals("Bank", StringComparison.OrdinalIgnoreCase))
                 {
                     rdoBank.Checked = true;
                 }
@@ -658,40 +661,32 @@ namespace WinFormsApp1.Forms.Payment
                     rdoBank.Checked = true; // Default to bank
                 }
                 
-                // Load ledgers from ledger entries
-                if (paymentDetails.LedgerEntries.Count > 0)
+                // Load ledgers from the API response
+                if (!string.IsNullOrEmpty(paymentDetails.PayFromLedgerId) && !string.IsNullOrEmpty(paymentDetails.PayToLedgerId))
                 {
-                    // Find the main entry (party ledger) and account ledger
-                    var mainEntry = paymentDetails.LedgerEntries.FirstOrDefault(e => e.IsMainEntry);
-                    var systemEntry = paymentDetails.LedgerEntries.FirstOrDefault(e => e.IsSystemEntry);
+                    // Find the ledgers by ID
+                    var payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == paymentDetails.PayFromLedgerId);
+                    var payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == paymentDetails.PayToLedgerId);
                     
-                    // Set pay from/to ledgers based on entry types and transaction type
-                    LedgerModel? payFromLedger = null;
-                    LedgerModel? payToLedger = null;
-                    
-                    if (rdoPayment.Checked)
+                    // If not found in loaded ledgers, create a temporary ledger object
+                    if (payFromLedger == null && !string.IsNullOrEmpty(paymentDetails.PayFromLedgerName))
                     {
-                        // For payments: pay from account ledger, pay to party ledger
-                        if (systemEntry != null)
+                        payFromLedger = new LedgerModel
                         {
-                            payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == systemEntry.LedgerId);
-                        }
-                        if (mainEntry != null)
-                        {
-                            payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == mainEntry.LedgerId);
-                        }
+                            Id = Guid.Parse(paymentDetails.PayFromLedgerId),
+                            Name = paymentDetails.PayFromLedgerName,
+                            Code = paymentDetails.PayFromLedgerId.Substring(0, 8) // Use first 8 chars of ID as code
+                        };
                     }
-                    else
+                    
+                    if (payToLedger == null && !string.IsNullOrEmpty(paymentDetails.PayToLedgerName))
                     {
-                        // For receipts: receive from party ledger, receive to account ledger
-                        if (mainEntry != null)
+                        payToLedger = new LedgerModel
                         {
-                            payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == mainEntry.LedgerId);
-                        }
-                        if (systemEntry != null)
-                        {
-                            payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == systemEntry.LedgerId);
-                        }
+                            Id = Guid.Parse(paymentDetails.PayToLedgerId),
+                            Name = paymentDetails.PayToLedgerName,
+                            Code = paymentDetails.PayToLedgerId.Substring(0, 8) // Use first 8 chars of ID as code
+                        };
                     }
                     
                     // Set the combo boxes
@@ -716,36 +711,145 @@ namespace WinFormsApp1.Forms.Payment
                 UpdateTransactionTypeUI();
                 UpdatePaymentMethodUI();
                 
-                // Load associated transactions if any
-                // Note: You might need to implement a method to get transactions associated with this payment
-                _unpaidTransactions = new List<TransactionListDto>();
-                dgvInvoices.DataSource = _unpaidTransactions;
-                UpdateTotalSelected();
+                // Load associated transactions that were paid by this payment
+                await LoadAssociatedTransactions(paymentDetails);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error loading existing payment data: {ex.Message}");
                 MessageBox.Show($"Error loading payment data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                _isLoadingExistingPayment = false; // Reset flag
+            }
         }
 
-        private void LoadUnpaidTransactions()
+        private async Task LoadAssociatedTransactions(PaymentByIdDto paymentDetails)
         {
             try
             {
-                // Initialize with empty list - transactions will be loaded when user selects a ledger
-                _unpaidTransactions = new List<TransactionListDto>();
+                // First, load unpaid invoices for the selected party ledger
+                var partyLedgerId = Guid.Parse(paymentDetails.PayToLedgerId);
+                var unpaidInvoices = await _transactionService.GetUnpaidInvoicesAsync(partyLedgerId);
+
+                // Convert unpaid invoices to TransactionListDto for display
+                var allTransactions = new List<TransactionListDto>();
+
+                foreach (var invoice in unpaidInvoices)
+                {
+                    var transaction = new TransactionListDto
+                    {
+                        Id = invoice.Id,
+                        TransactionNumber = invoice.TransactionNumber,
+                        InvoiceNumber = invoice.InvoiceNumber,
+                        TransactionDate = invoice.TransactionDate,
+                        DueDate = invoice.DueDate,
+                        Type = invoice.Type,
+                        Status = invoice.Status,
+                        SubTotal = invoice.SubTotal,
+                        TaxAmount = invoice.TaxAmount,
+                        Total = invoice.Total,
+                        PaidAmount = invoice.PaidAmount,
+                        BalanceDue = invoice.BalanceDue,
+                        PartyName = invoice.PartyName,
+                        Notes = invoice.Notes,
+                        PaymentAmount = 0m // Initialize to 0, will be set for paid invoices
+                    };
+
+                    allTransactions.Add(transaction);
+                }
+
+                // Add any paid invoices that are not already in the list
+                var existingInvoiceIds = allTransactions.Select(t => t.Id).ToHashSet();
+                foreach (var paidInvoice in paymentDetails.PaidInvoices)
+                {
+                    var invoiceId = Guid.Parse(paidInvoice.InvoiceId);
+                    if (!existingInvoiceIds.Contains(invoiceId))
+                    {
+                        // This paid invoice is not in the unpaid list, so we need to add it
+                        var transaction = new TransactionListDto
+                        {
+                            Id = invoiceId,
+                            TransactionNumber = paidInvoice.InvoiceNumber,
+                            InvoiceNumber = paidInvoice.InvoiceNumber,
+                            TransactionDate = paidInvoice.InvoiceDate,
+                            DueDate = paidInvoice.InvoiceDate, // Use invoice date as due date
+                            Type = GetTransactionTypeFromString(paidInvoice.InvoiceType),
+                            Status = "Paid",
+                            SubTotal = paidInvoice.InvoiceTotal,
+                            TaxAmount = 0m, // We don't have this info from paidInvoice
+                            Total = paidInvoice.InvoiceTotal,
+                            PaidAmount = paidInvoice.PaidAmount,
+                            BalanceDue = paidInvoice.InvoiceTotal - paidInvoice.PaidAmount,
+                            PartyName = paymentDetails.PayToLedgerName,
+                            Notes = paidInvoice.Notes,
+                            PaymentAmount = paidInvoice.PaidAmount // Set the payment amount
+                        };
+
+                        allTransactions.Add(transaction);
+                    }
+                }
+                
+                // Now mark the invoices that were actually paid by this payment
+                var paidInvoiceIds = paymentDetails.PaidInvoices.Select(pi => Guid.Parse(pi.InvoiceId)).ToList();
+                
+                foreach (var transaction in allTransactions)
+                {
+                    if (paidInvoiceIds.Contains(transaction.Id))
+                    {
+                        // Find the corresponding paid invoice details
+                        var paidInvoice = paymentDetails.PaidInvoices.FirstOrDefault(pi => Guid.Parse(pi.InvoiceId) == transaction.Id);
+                        if (paidInvoice != null)
+                        {
+                            // Update the transaction with paid amount and mark as selected
+                            transaction.PaymentAmount = paidInvoice.PaidAmount;
+                            transaction.PaidAmount = paidInvoice.PaidAmount;
+                            transaction.BalanceDue = paidInvoice.InvoiceTotal - paidInvoice.PaidAmount;
+                        }
+                    }
+                }
+
+                _unpaidTransactions = allTransactions;
                 dgvInvoices.DataSource = _unpaidTransactions;
+                
+                // Mark only the paid invoices as selected and set their payment amounts
+                foreach (DataGridViewRow row in dgvInvoices.Rows)
+                {
+                    if (row.DataBoundItem is TransactionListDto transaction)
+                    {
+                        if (paidInvoiceIds.Contains(transaction.Id))
+                        {
+                            row.Cells["Selected"].Value = true;
+                            row.Cells["PaymentAmount"].Value = transaction.PaymentAmount;
+                        }
+                        else
+                        {
+                            row.Cells["Selected"].Value = false;
+                            row.Cells["PaymentAmount"].Value = 0m; // Use decimal literal
+                        }
+                    }
+                }
+                
                 UpdateTotalSelected();
+                
+                var totalInvoices = allTransactions.Count;
+                var paidCount = paidInvoiceIds.Count;
+                lblStatus.Text = $"Loaded {totalInvoices} invoices for {paymentDetails.PayToLedgerName}. {paidCount} invoice{(paidCount == 1 ? "" : "s")} selected as paid by this transaction.";
+                lblStatus.ForeColor = Color.Green;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error initializing transactions: {ex.Message}");
+                Console.WriteLine($"Error loading associated transactions: {ex.Message}");
                 _unpaidTransactions = new List<TransactionListDto>();
                 dgvInvoices.DataSource = _unpaidTransactions;
+                UpdateTotalSelected();
+                lblStatus.Text = $"Error loading associated transactions: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
             }
         }
 
+  
         private void UpdateTransactionTypeUI()
         {
             if (rdoPayment.Checked)
@@ -825,6 +929,21 @@ namespace WinFormsApp1.Forms.Payment
             };
         }
 
+        private TransactionType GetTransactionTypeFromString(string transactionType)
+        {
+            return transactionType switch
+            {
+                "CashPayment" => TransactionType.CashPayment,
+                "CashReceipt" => TransactionType.CashReceipt,
+                "BankPayment" => TransactionType.BankPayment,
+                "BankReceipt" => TransactionType.BankReceipt,
+                "SaleInvoice" => TransactionType.SaleInvoice,
+                "PurchaseBill" => TransactionType.PurchaseBill,
+                "JournalEntry" => TransactionType.JournalEntry,
+                _ => TransactionType.CashPayment
+            };
+        }
+
         private void UpdateTransactionNumber()
         {
             // Only update transaction number for new payments
@@ -846,22 +965,20 @@ namespace WinFormsApp1.Forms.Payment
         // Event Handlers
         private void rdoPayment_CheckedChanged(object? sender, EventArgs e)
         {
-            if (rdoPayment.Checked)
+            if (rdoPayment.Checked && !_isLoadingExistingPayment)
             {
                 UpdateTransactionTypeUI();
-                ClearLedgerSelections();
-                LoadUnpaidTransactions();
+                ClearLedgerSelections();               
                 UpdateTransactionNumber();
             }
         }
 
         private void rdoReceipt_CheckedChanged(object? sender, EventArgs e)
         {
-            if (rdoReceipt.Checked)
+            if (rdoReceipt.Checked && !_isLoadingExistingPayment)
             {
                 UpdateTransactionTypeUI();
-                ClearLedgerSelections();
-                LoadUnpaidTransactions();
+                ClearLedgerSelections();               
                 UpdateTransactionNumber();
             }
         }
@@ -930,7 +1047,7 @@ namespace WinFormsApp1.Forms.Payment
                 foreach (DataGridViewRow row in dgvInvoices.Rows)
                 {
                     row.Cells["Selected"].Value = false;
-                    row.Cells["PaymentAmount"].Value = 0;
+                    row.Cells["PaymentAmount"].Value = 0m; // Use decimal literal
                 }
                 
                 // Distribute amount across oldest bills first

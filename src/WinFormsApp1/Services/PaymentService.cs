@@ -117,7 +117,7 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var url = $"{_baseUrl}/{id}";
+                var url = $"{_baseUrl}/payment/{id}";
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
 

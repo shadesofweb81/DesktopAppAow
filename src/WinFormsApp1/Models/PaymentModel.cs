@@ -65,38 +65,31 @@ namespace WinFormsApp1.Models
     {
         public string Id { get; set; } = string.Empty;
         public string TransactionNumber { get; set; } = string.Empty;
-        public string? InvoiceNumber { get; set; }
         public DateTime TransactionDate { get; set; }
-        public DateTime DueDate { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public string TransactionType { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // This is the TransactionType string from API
         public string Status { get; set; } = "Draft";
-        public string? JournalEntryType { get; set; }
-        public string? NatureOfTransaction { get; set; }
-        public decimal SubTotal { get; set; }
-        public decimal TaxAmount { get; set; }
         public decimal Total { get; set; }
         public string Notes { get; set; } = string.Empty;
-        public string PartyLedgerId { get; set; } = string.Empty;
-        public string PartyName { get; set; } = string.Empty;
-        public string AccountLedgerId { get; set; } = string.Empty;
-        public string AccountName { get; set; } = string.Empty;
-        public decimal Discount { get; set; }
-        public decimal Freight { get; set; }
-        public bool IsFreightIncluded { get; set; }
-        public decimal RoundOff { get; set; }
-        public List<object> Items { get; set; } = new List<object>();
-        public List<object> Taxes { get; set; } = new List<object>();
+        public string ReferenceNumber { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string PayFromLedgerId { get; set; } = string.Empty;
+        public string PayFromLedgerName { get; set; } = string.Empty;
+        public string PayToLedgerId { get; set; } = string.Empty;
+        public string PayToLedgerName { get; set; } = string.Empty;
         
-        // Ledger Entries (replaces PaymentDetails)
         public List<LedgerEntryDto> LedgerEntries { get; set; } = new List<LedgerEntryDto>();
+        public List<PaidInvoiceDto> PaidInvoices { get; set; } = new List<PaidInvoiceDto>();
         
         // Computed properties for backward compatibility
         public string PaymentNumber => TransactionNumber;
         public DateTime PaymentDate => TransactionDate;
-        public string ReferenceNumber => string.Empty; // Not in API response
-        public PaymentType PaymentType => GetPaymentTypeFromTransactionType(TransactionType);
+        public PaymentType PaymentType => GetPaymentTypeFromTransactionType(Type);
         public decimal Amount => Total;
+        public string TransactionType => Type; // Expose the raw API type
+        public string? InvoiceNumber => PaidInvoices.Count == 1 ? PaidInvoices[0].InvoiceNumber : 
+                                       PaidInvoices.Count > 1 ? "Multiple invoices" : null;
+        public string PartyName => PayToLedgerName; // Assuming PayToLedger is the party
+        public string AccountName => PayFromLedgerName; // Assuming PayFromLedger is the account
         
         private PaymentType GetPaymentTypeFromTransactionType(string transactionType)
         {
@@ -132,6 +125,19 @@ namespace WinFormsApp1.Models
         public string Description { get; set; } = string.Empty;
         public bool IsMainEntry { get; set; }
         public bool IsSystemEntry { get; set; }
+    }
+
+    public class PaidInvoiceDto
+    {
+        public string PaymentId { get; set; } = string.Empty;
+        public string InvoiceId { get; set; } = string.Empty;
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public DateTime InvoiceDate { get; set; }
+        public string InvoiceType { get; set; } = string.Empty;
+        public decimal InvoiceTotal { get; set; }
+        public decimal PaidAmount { get; set; }
+        public DateTime PaymentDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
     }
 
     public class PaginatedPaymentListResponse
