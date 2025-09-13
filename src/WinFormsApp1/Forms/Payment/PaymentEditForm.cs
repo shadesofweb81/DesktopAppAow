@@ -571,11 +571,11 @@ namespace WinFormsApp1.Forms.Payment
                 // Clear combo boxes - they will be populated when user selects ledgers
                 cmbPayFromLedger.DataSource = null;
                 cmbPayFromLedger.Items.Clear();
-                cmbPayFromLedger.Text = "Click ... to select ledger";
-                
+                cmbPayFromLedger.Text = rdoPayment.Checked ? "Click ... to select account to pay from" : "Click ... to select account to receive to";
+
                 cmbPayToLedger.DataSource = null;
                 cmbPayToLedger.Items.Clear();
-                cmbPayToLedger.Text = "Click ... to select ledger";
+                cmbPayToLedger.Text = rdoPayment.Checked ? "Click ... to select supplier to pay to" : "Click ... to select customer to receive from";
                 
                 // Load existing payment details if editing
                 if (_existingPayment != null)
@@ -665,9 +665,10 @@ namespace WinFormsApp1.Forms.Payment
                 if (!string.IsNullOrEmpty(paymentDetails.PayFromLedgerId) && !string.IsNullOrEmpty(paymentDetails.PayToLedgerId))
                 {
                     // Find the ledgers by ID
+                    // PayFromLedger is the account (bank/cash), PayToLedger is the party
                     var payFromLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == paymentDetails.PayFromLedgerId);
                     var payToLedger = _ledgers.FirstOrDefault(l => l.Id.ToString() == paymentDetails.PayToLedgerId);
-                    
+
                     // If not found in loaded ledgers, create a temporary ledger object
                     if (payFromLedger == null && !string.IsNullOrEmpty(paymentDetails.PayFromLedgerName))
                     {
@@ -678,7 +679,7 @@ namespace WinFormsApp1.Forms.Payment
                             Code = paymentDetails.PayFromLedgerId.Substring(0, 8) // Use first 8 chars of ID as code
                         };
                     }
-                    
+
                     if (payToLedger == null && !string.IsNullOrEmpty(paymentDetails.PayToLedgerName))
                     {
                         payToLedger = new LedgerModel
@@ -688,8 +689,8 @@ namespace WinFormsApp1.Forms.Payment
                             Code = paymentDetails.PayToLedgerId.Substring(0, 8) // Use first 8 chars of ID as code
                         };
                     }
-                    
-                    // Set the combo boxes
+
+                    // Set the combo boxes - PayFrom is account, PayTo is party
                     if (payFromLedger != null)
                     {
                         cmbPayFromLedger.Items.Clear();
@@ -697,13 +698,16 @@ namespace WinFormsApp1.Forms.Payment
                         cmbPayFromLedger.SelectedItem = payFromLedger;
                         cmbPayFromLedger.Tag = payFromLedger;
                     }
-                    
+
                     if (payToLedger != null)
                     {
                         cmbPayToLedger.Items.Clear();
                         cmbPayToLedger.Items.Add(payToLedger);
                         cmbPayToLedger.SelectedItem = payToLedger;
                         cmbPayToLedger.Tag = payToLedger;
+
+                        // Load outstanding bills for the party (PayToLedger)
+                        _ = LoadOutstandingBillsForLedger(payToLedger);
                     }
                 }
                 
@@ -854,14 +858,14 @@ namespace WinFormsApp1.Forms.Payment
         {
             if (rdoPayment.Checked)
             {
-                lblPayFrom.Text = "Pay To:";
-                lblPayTo.Text = "Pay From:";
+                lblPayFrom.Text = "Pay From:";  // Account/Bank/Cash
+                lblPayTo.Text = "Pay To:";      // Party/Supplier
                 grpInvoices.Text = "Select Bills to Pay";
             }
             else
             {
-                lblPayFrom.Text = "Receive From:";
-                lblPayTo.Text = "Receive To:";
+                lblPayFrom.Text = "Receive To:";   // Account/Bank/Cash
+                lblPayTo.Text = "Receive From:";  // Party/Customer
                 grpInvoices.Text = "Select Invoices to Receive Payment";
             }
         }
@@ -986,10 +990,10 @@ namespace WinFormsApp1.Forms.Payment
         private void ClearLedgerSelections()
         {
             cmbPayFromLedger.Items.Clear();
-            cmbPayFromLedger.Text = "Click ... to select ledger";
+            cmbPayFromLedger.Text = rdoPayment.Checked ? "Click ... to select account to pay from" : "Click ... to select account to receive to";
             cmbPayFromLedger.Tag = null;
             cmbPayToLedger.Items.Clear();
-            cmbPayToLedger.Text = "Click ... to select ledger";
+            cmbPayToLedger.Text = rdoPayment.Checked ? "Click ... to select supplier to pay to" : "Click ... to select customer to receive from";
             cmbPayToLedger.Tag = null;
             // Don't clear invoice number as it's now user-editable
             _unpaidTransactions.Clear();
@@ -1226,14 +1230,16 @@ namespace WinFormsApp1.Forms.Payment
         {
             if (cmbPayFromLedger.Tag == null)
             {
-                MessageBox.Show("Please select a ledger to pay from.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var message = rdoPayment.Checked ? "Please select an account to pay from." : "Please select an account to receive to.";
+                MessageBox.Show(message, "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 btnSelectPayFromLedger.Focus();
                 return false;
             }
 
             if (cmbPayToLedger.Tag == null)
             {
-                MessageBox.Show("Please select a ledger to pay to.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var message = rdoPayment.Checked ? "Please select a supplier to pay to." : "Please select a customer to receive from.";
+                MessageBox.Show(message, "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 btnSelectPayToLedger.Focus();
                 return false;
             }
@@ -1311,12 +1317,12 @@ namespace WinFormsApp1.Forms.Payment
             try
             {
                 var dialog = new LedgerSelectionDialog(
-                    _ledgers, 
-                    rdoPayment.Checked ? "Select Supplier to Pay To" : "Select Customer to Receive From",
-                    rdoPayment.Checked ? "Select the supplier to pay to" : "Select the customer to receive from",
-                    "Party Ledgers"
+                    _ledgers,
+                    rdoPayment.Checked ? "Select Account to Pay From" : "Select Account to Receive To",
+                    rdoPayment.Checked ? "Select the account to pay from (e.g., Bank, Cash)" : "Select the account to receive to (e.g., Bank, Cash)",
+                    rdoPayment.Checked ? "Bank Accounts" : "Cash Accounts"
                 );
-                
+
                 if (dialog.ShowDialog() == DialogResult.OK && dialog.SelectedLedger != null)
                 {
                     // Clear and repopulate the combo box to ensure proper display
@@ -1324,9 +1330,8 @@ namespace WinFormsApp1.Forms.Payment
                     cmbPayFromLedger.Items.Add(dialog.SelectedLedger);
                     cmbPayFromLedger.SelectedItem = dialog.SelectedLedger;
                     cmbPayFromLedger.Tag = dialog.SelectedLedger;
-                    
-                    // Load outstanding bills for the selected ledger
-                    _ = LoadOutstandingBillsForLedger(dialog.SelectedLedger);
+
+                    // PayFrom is account - don't load bills here
                 }
             }
             catch (Exception ex)
@@ -1340,12 +1345,12 @@ namespace WinFormsApp1.Forms.Payment
             try
             {
                 var dialog = new LedgerSelectionDialog(
-                    _ledgers, 
-                    rdoPayment.Checked ? "Select Account to Pay From" : "Select Account to Receive To",
-                    rdoPayment.Checked ? "Select the account to pay from (e.g., Bank, Cash)" : "Select the account to receive to (e.g., Bank, Cash)",
-                    rdoPayment.Checked ? "Bank Accounts" : "Cash Accounts"
+                    _ledgers,
+                    rdoPayment.Checked ? "Select Supplier to Pay To" : "Select Customer to Receive From",
+                    rdoPayment.Checked ? "Select the supplier to pay to" : "Select the customer to receive from",
+                    "Party Ledgers"
                 );
-                
+
                 if (dialog.ShowDialog() == DialogResult.OK && dialog.SelectedLedger != null)
                 {
                     // Clear and repopulate the combo box to ensure proper display
@@ -1353,8 +1358,9 @@ namespace WinFormsApp1.Forms.Payment
                     cmbPayToLedger.Items.Add(dialog.SelectedLedger);
                     cmbPayToLedger.SelectedItem = dialog.SelectedLedger;
                     cmbPayToLedger.Tag = dialog.SelectedLedger;
-                    
-                    // Second ledger is just the account - don't load bills, preserve existing bills from first ledger
+
+                    // PayTo is party - load outstanding bills for the selected party
+                    _ = LoadOutstandingBillsForLedger(dialog.SelectedLedger);
                 }
             }
             catch (Exception ex)

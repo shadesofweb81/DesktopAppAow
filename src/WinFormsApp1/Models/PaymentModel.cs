@@ -59,6 +59,8 @@ namespace WinFormsApp1.Models
         public decimal BalanceDue { get; set; }
         public string PartyName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string? PayFromLedgerName { get; set; }
+        public string? PayToLedgerName { get; set; }
     }
 
     public class PaymentByIdDto

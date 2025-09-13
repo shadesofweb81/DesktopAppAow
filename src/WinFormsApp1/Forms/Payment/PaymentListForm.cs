@@ -233,7 +233,7 @@ namespace WinFormsApp1.Forms.Payment
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(900, 600);
+            ClientSize = new Size(1000, 600);
             Controls.Add(lblStatus);
             Controls.Add(btnRefresh);
             Controls.Add(btnExportPdf);
@@ -317,45 +317,34 @@ namespace WinFormsApp1.Forms.Payment
                 Width = 120
             });
 
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "PartyName",
-                HeaderText = "Party",
-                DataPropertyName = "PartyName",
-                Width = 150
-            });
+            // Note: Party column is now created in view-specific sections below
+            // to show "Pay To" or "Receive From" based on the view mode
 
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "SubTotal",
-                HeaderText = "Subtotal",
-                DataPropertyName = "SubTotal",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TaxAmount",
-                HeaderText = "Tax",
-                DataPropertyName = "TaxAmount",
-                Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
-
-            dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Total",
-                HeaderText = "Total",
-                DataPropertyName = "Total",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
-            });
+            // Removed Tax, Subtotal, and Total columns as they don't make sense for payments/receipts
 
             // View-specific columns
             if (_viewMode.Equals("Payment", StringComparison.OrdinalIgnoreCase))
             {
-                // Payment view: Show "Paid" column
+                // Payment view: Show "Pay To" and "Pay From" columns
+                // Use PartyName for Pay To, and derive Pay From from transaction type
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "PayTo",
+                    HeaderText = "Pay To",
+                    DataPropertyName = "PartyName",
+                    Width = 150
+                });
+
+                // Add Pay From column - shows account type derived from transaction type
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "PayFrom",
+                    HeaderText = "Pay From",
+                    Width = 150,
+                    ReadOnly = true
+                });
+
+                // Add Paid amount column
                 dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "PaidAmount",
@@ -367,7 +356,26 @@ namespace WinFormsApp1.Forms.Payment
             }
             else if (_viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
             {
-                // Receipt view: Show "Received" column
+                // Receipt view: Show "Receive From" and "Receive To" columns
+                // Use PartyName for Receive From, and derive Receive To from transaction type
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "ReceiveFrom",
+                    HeaderText = "Receive From",
+                    DataPropertyName = "PartyName",
+                    Width = 150
+                });
+
+                // Add Receive To column - shows account type derived from transaction type
+                dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    Name = "ReceiveTo",
+                    HeaderText = "Receive To",
+                    Width = 150,
+                    ReadOnly = true
+                });
+
+                // Add Received amount column
                 dgvPayments.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "PaidAmount",
@@ -453,7 +461,7 @@ namespace WinFormsApp1.Forms.Payment
                 Application.DoEvents();
 
                 var companyId = Guid.Parse(_selectedCompany.Id);
-                var financialYearId = _selectedFinancialYear.Id;
+                var financialYearId = _selectedFinancialYear?.Id ?? Guid.Empty;
                 
                 Console.WriteLine($"Loading payments for company: {companyId}, financial year: {financialYearId}, type: {FilterPaymentType ?? "All"}");
                 
@@ -681,13 +689,16 @@ namespace WinFormsApp1.Forms.Payment
             
             // Reserve space for buttons on the right side
             int buttonAreaWidth = 150;
-            int availableWidth = clientWidth - buttonAreaWidth - 30; // 30px margin
+            // Account for additional columns (PayFrom/ReceiveTo) - need more width
+            int minGridWidth = _viewMode.Equals("Payment", StringComparison.OrdinalIgnoreCase) ||
+                              _viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase) ? 800 : 600;
+            int availableWidth = Math.Max(clientWidth - buttonAreaWidth - 30, minGridWidth); // 30px margin
             int availableHeight = clientHeight - 200; // Increased to accommodate filter controls
-            
+
             // Ensure minimum grid width
-            if (availableWidth < 600)
+            if (availableWidth < minGridWidth)
             {
-                availableWidth = 600;
+                availableWidth = minGridWidth;
             }
             
             // Resize the data grid to use most of the available space
@@ -1100,10 +1111,13 @@ namespace WinFormsApp1.Forms.Payment
                 // Update the DataGridView
                 dgvPayments.DataSource = null;
                 dgvPayments.DataSource = _payments;
-                
+
+                // Populate PayFrom/ReceiveTo columns with company name
+                PopulatePartyColumns();
+
                 // Update status
                 lblStatus.Text = $"Showing {_payments.Count} payments (filtered from {_allPayments.Count} total)";
-                
+
                 // Select first row if payments exist
                 if (_payments.Count > 0)
                 {
@@ -1124,6 +1138,59 @@ namespace WinFormsApp1.Forms.Payment
                 Console.WriteLine($"Error applying filter: {ex.Message}");
                 lblStatus.Text = $"Error applying filter: {ex.Message}";
             }
+        }
+
+        private void PopulatePartyColumns()
+        {
+            try
+            {
+                if (_payments.Count == 0)
+                    return;
+
+                // Populate PayFrom/ReceiveTo columns based on transaction type since API doesn't provide separate ledger names
+                foreach (DataGridViewRow row in dgvPayments.Rows)
+                {
+                    if (row.DataBoundItem is PaymentListDto payment)
+                    {
+                        if (_viewMode.Equals("Payment", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // For payments: PayFrom column shows account type derived from transaction type
+                            if (dgvPayments.Columns.Contains("PayFrom"))
+                            {
+                                string accountType = GetAccountTypeFromTransactionType(payment.Type);
+                                row.Cells["PayFrom"].Value = accountType;
+                            }
+                        }
+                        else if (_viewMode.Equals("Receipt", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // For receipts: ReceiveTo column shows account type derived from transaction type
+                            if (dgvPayments.Columns.Contains("ReceiveTo"))
+                            {
+                                string accountType = GetAccountTypeFromTransactionType(payment.Type);
+                                row.Cells["ReceiveTo"].Value = accountType;
+                            }
+                        }
+                    }
+                }
+
+                Console.WriteLine($"Populated party columns for {_payments.Count} payments");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error populating party columns: {ex.Message}");
+            }
+        }
+
+        private string GetAccountTypeFromTransactionType(string transactionType)
+        {
+            return transactionType switch
+            {
+                "CashPayment" => "Cash Account",
+                "BankPayment" => "Bank Account",
+                "CashReceipt" => "Cash Account",
+                "BankReceipt" => "Bank Account",
+                _ => "Account"
+            };
         }
 
         private void btnTestFilter_Click(object? sender, EventArgs e)
