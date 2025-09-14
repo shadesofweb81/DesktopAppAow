@@ -269,7 +269,7 @@ namespace WinFormsApp1.Forms.Payment
             
             // Add tooltip for invoice number field
             var toolTip = new ToolTip();
-            toolTip.SetToolTip(txtInvoiceNumber, "Enter invoice number manually or leave empty to auto-populate from selected transactions");
+            toolTip.SetToolTip(txtInvoiceNumber, "Enter invoice number manually (optional) or leave empty to auto-populate from selected transactions");
             
             // 
             // grpPaymentMethod
@@ -323,7 +323,7 @@ namespace WinFormsApp1.Forms.Payment
             grpInvoices.Size = new Size(750, 500);
             grpInvoices.TabIndex = 3;
             grpInvoices.TabStop = false;
-            grpInvoices.Text = "Select Invoices/Bills to Pay";
+            grpInvoices.Text = "Select Invoices/Bills to Pay (Optional)";
             
             dgvInvoices.Location = new Point(20, 50);
             dgvInvoices.Name = "dgvInvoices";
@@ -612,7 +612,7 @@ namespace WinFormsApp1.Forms.Payment
                   
                 }
                 
-                lblStatus.Text = "Ready - Please select ledgers to view outstanding bills";
+                lblStatus.Text = "Ready - Please select ledgers to view outstanding bills (optional)";
                 lblStatus.ForeColor = Color.Green;
             }
             catch (Exception ex)
@@ -839,7 +839,14 @@ namespace WinFormsApp1.Forms.Payment
                 
                 var totalInvoices = allTransactions.Count;
                 var paidCount = paidInvoiceIds.Count;
-                lblStatus.Text = $"Loaded {totalInvoices} invoices for {paymentDetails.PayToLedgerName}. {paidCount} invoice{(paidCount == 1 ? "" : "s")} selected as paid by this transaction.";
+                if (totalInvoices > 0)
+                {
+                    lblStatus.Text = $"Loaded {totalInvoices} invoices for {paymentDetails.PayToLedgerName}. {paidCount} invoice{(paidCount == 1 ? "" : "s")} selected as paid by this transaction.";
+                }
+                else
+                {
+                    lblStatus.Text = $"Loaded payment details for {paymentDetails.PayToLedgerName}. This is a cash expense payment.";
+                }
                 lblStatus.ForeColor = Color.Green;
             }
             catch (Exception ex)
@@ -860,13 +867,13 @@ namespace WinFormsApp1.Forms.Payment
             {
                 lblPayFrom.Text = "Pay From:";  // Account/Bank/Cash
                 lblPayTo.Text = "Pay To:";      // Party/Supplier
-                grpInvoices.Text = "Select Bills to Pay";
+                grpInvoices.Text = "Select Bills to Pay (Optional)";
             }
             else
             {
                 lblPayFrom.Text = "Receive To:";   // Account/Bank/Cash
                 lblPayTo.Text = "Receive From:";  // Party/Customer
-                grpInvoices.Text = "Select Invoices to Receive Payment";
+                grpInvoices.Text = "Select Invoices to Receive Payment (Optional)";
             }
         }
 
@@ -1038,7 +1045,7 @@ namespace WinFormsApp1.Forms.Payment
 
                 if (_unpaidTransactions.Count == 0)
                 {
-                    MessageBox.Show("No outstanding bills available to clear.", "No Bills", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("No outstanding bills available to clear. You can still enter a manual payment amount.", "No Bills", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
@@ -1251,12 +1258,7 @@ namespace WinFormsApp1.Forms.Payment
                 return false;
             }
 
-            if (_selectedTransactions.Count == 0)
-            {
-                MessageBox.Show("Please select at least one invoice/bill to pay.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                dgvInvoices.Focus();
-                return false;
-            }
+            // Invoices are now optional - allow payments without selected invoices (e.g., cash expenses)
 
             return true;
         }
@@ -1419,7 +1421,14 @@ namespace WinFormsApp1.Forms.Payment
                     }
                 }
                 
-                lblStatus.Text = $"Found {_unpaidTransactions.Count} outstanding bills for {selectedLedger.Name}";
+                if (_unpaidTransactions.Count > 0)
+                {
+                    lblStatus.Text = $"Found {_unpaidTransactions.Count} outstanding bills for {selectedLedger.Name}";
+                }
+                else
+                {
+                    lblStatus.Text = $"No outstanding bills found for {selectedLedger.Name}. You can still create a payment for cash expenses.";
+                }
                 lblStatus.ForeColor = Color.Green;
             }
             catch (Exception ex)
