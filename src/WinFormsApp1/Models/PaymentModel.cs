@@ -1,3 +1,5 @@
+
+
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using WinFormsApp1.Models.request;
@@ -164,26 +166,5 @@ namespace WinFormsApp1.Models
     {
         Debit = 1,
         Credit = 2
-    }
-
-
-    public class UpdatePaymentRequest
-    {
-        public string PaymentNumber { get; set; } = string.Empty;
-        public DateTime PaymentDate { get; set; }
-        public string ReferenceNumber { get; set; } = string.Empty;
-        public PaymentType PaymentType { get; set; }
-        public string Notes { get; set; } = string.Empty;
-        public List<UpdatePaymentDetailRequest> PaymentDetails { get; set; } = new List<UpdatePaymentDetailRequest>();
-    }
-
-    public class UpdatePaymentDetailRequest
-    {
-        public string Id { get; set; } = string.Empty;
-        public string LedgerId { get; set; } = string.Empty;
-        public PaymentDetailType DetailType { get; set; }
-        public decimal Amount { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public int SerialNumber { get; set; }
     }
 }

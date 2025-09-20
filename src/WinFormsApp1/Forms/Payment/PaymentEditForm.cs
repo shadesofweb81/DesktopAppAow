@@ -1139,22 +1139,21 @@ namespace WinFormsApp1.Forms.Payment
                     // Update existing payment
                     var updateRequest = new UpdatePaymentRequest
                     {
-                        PaymentNumber = $"PAY-{DateTime.Now:yyyyMMdd-HHmmss}",
-                        PaymentDate = paymentRequest.TransactionDate,
+                        CompanyId = paymentRequest.CompanyId,
+                        FinancialYearId = paymentRequest.FinancialYearId,
+                        TransactionType = paymentRequest.TransactionType,
+                        TransactionNumber = paymentRequest.TransactionNumber,
+                        InvoiceNumber = paymentRequest.InvoiceNumber,
+                        PayFromLedgerId = paymentRequest.PayFromLedgerId,
+                        PayToLedgerId = paymentRequest.PayToLedgerId,
+                        Amount = paymentRequest.Amount,
+                        TransactionDate = paymentRequest.TransactionDate,
+                        Description = paymentRequest.Description,
+                        PaymentMethod = paymentRequest.PaymentMethod,
                         ReferenceNumber = paymentRequest.ReferenceNumber,
-                        PaymentType = GetPaymentTypeFromTransactionType(paymentRequest.TransactionType),
-                        Notes = paymentRequest.Description,
-                        PaymentDetails = paymentRequest.Invoices.Select(i => new UpdatePaymentDetailRequest
-                        {
-                            Id = Guid.NewGuid().ToString(), // This should be the existing detail ID
-                            LedgerId = paymentRequest.PayToLedgerId.ToString(),
-                            DetailType = PaymentDetailType.Credit,
-                            Amount = i.Amount,
-                            Description = i.Notes,
-                            SerialNumber = 1
-                        }).ToList()
+                        Invoices = paymentRequest.Invoices
                     };
-                    
+
                     var result = await _paymentService.UpdatePaymentAsync(Guid.Parse(_existingPayment.Id), updateRequest);
                     if (result != null)
                     {

@@ -1,5 +1,7 @@
 using System.ComponentModel.Design;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -235,26 +237,20 @@ namespace WinFormsApp1.Services
             {
                 SetAuthHeader();
 
-                var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                //var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+                //{
+                //    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                //    WriteIndented = true,
+                //    Converters = { new JsonStringEnumConverter() }
+                //});
+
+                //var content = new StringContent(json, Encoding.UTF8, "application/json");             
+
+                using (var response = await _httpClient.PutAsJsonAsync($"api/v1/transaction/invoice-payment/{id}", request))
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true,
-                    Converters = { new JsonStringEnumConverter() }
-                });
+                    string responseContent = await response.Content.ReadAsStringAsync();                 
 
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                Console.WriteLine($"Updating payment {id} via: {_baseUrl}/{id} with data: {json}");
-
-                var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"Update payment {id} - Status: {response.StatusCode}");
-                Console.WriteLine($"Response Content: {responseContent}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    try
+                    if (response.IsSuccessStatusCode)
                     {
                         var updatedPayment = JsonSerializer.Deserialize<PaymentByIdDto>(responseContent, new JsonSerializerOptions
                         {
@@ -264,23 +260,19 @@ namespace WinFormsApp1.Services
 
                         return updatedPayment;
                     }
-                    catch (JsonException ex)
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        Console.WriteLine($"JSON parsing error: {ex.Message}");
+                        Console.WriteLine($"Unauthorized response received - triggering logout");
+                        _authService.TriggerUnauthorized();
+                        return null;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
                         return null;
                     }
                 }
-                else if (response.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    Console.WriteLine($"Unauthorized response received - triggering logout");
-                    _authService.TriggerUnauthorized();
-                    return null;
-                }
-                else
-                {
-                    Console.WriteLine($"API Error: HTTP {(int)response.StatusCode}: {responseContent}");
-                    return null;
-                }
+         
             }
             catch (Exception ex)
             {
