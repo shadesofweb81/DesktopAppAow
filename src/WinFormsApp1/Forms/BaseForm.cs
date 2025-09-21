@@ -49,13 +49,15 @@ namespace WinFormsApp1.Forms
 
         private void BaseForm_KeyDown(object? sender, KeyEventArgs e)
         {
-            // Allow arrow keys to work normally for DataGridView and other list controls
-            if (ActiveControl is DataGridView || ActiveControl is ListBox || ActiveControl is ListView)
+            // Allow keyboard navigation to work normally for grid controls and other list controls
+            if (ActiveControl is ListBox || ActiveControl is ListView)
             {
-                // Let arrow keys pass through for list controls
-                if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
+                // Let all navigation keys pass through for list controls
+                if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || 
+                    e.KeyCode == Keys.Left || e.KeyCode == Keys.Right ||
+                    e.KeyCode == Keys.Tab || e.KeyCode == Keys.Enter)
                 {
-                    return; // Don't handle arrow keys for list controls
+                    return; // Don't handle navigation keys for list controls
                 }
             }
 
@@ -181,8 +183,7 @@ namespace WinFormsApp1.Forms
                    control is NumericUpDown ||
                    control is RichTextBox ||
                    control is MaskedTextBox ||
-                   control is Button ||
-                   control is DataGridView;
+                   control is Button;
         }
 
         /// <summary>

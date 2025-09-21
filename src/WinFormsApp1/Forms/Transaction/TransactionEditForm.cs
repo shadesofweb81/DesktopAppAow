@@ -1,8 +1,10 @@
+using System.Data;
 using AccountingERP.WebApi.Models.Requests;
 using WinFormsApp1.Documents;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
-using System.Windows.Forms;
+using Syncfusion.WinForms.DataGrid;
+using Syncfusion.WinForms.DataGrid.Enums;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -127,7 +129,7 @@ namespace WinFormsApp1.Forms.Transaction
         }
     }
 
-    public partial class TransactionEditForm : BaseForm
+    public partial class TransactionEditForm : Form
     {
         private readonly TransactionService _transactionService;
         private readonly LocalStorageService _localStorageService;
@@ -155,7 +157,7 @@ namespace WinFormsApp1.Forms.Transaction
         private TextBox txtAccountLedger = null!;
 
         // Items Section
-        private DataGridView dgvItems = null!;
+        private SfDataGrid sfGridItems = null!;
         private Button btnAddItem = null!;
         private Button btnEditItem = null!;
         private Button btnDeleteItem = null!;
@@ -203,6 +205,8 @@ namespace WinFormsApp1.Forms.Transaction
         // Selected ledgers (since we're not using ComboBox anymore)
         private Models.LedgerModel? _selectedPartyLedger;
         private Models.LedgerModel? _selectedAccountLedger;
+        
+        // No navigation flags needed - SFGrid handles navigation
 
             private class TransactionTaxDisplay
     {
@@ -367,7 +371,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnSelectPartyLedger = new Button();
             btnSelectAccountLedger = new Button();
 
-            dgvItems = new DataGridView();
+            sfGridItems = new SfDataGrid();
             btnAddItem = new Button();
             btnEditItem = new Button();
             btnDeleteItem = new Button();
@@ -545,9 +549,9 @@ namespace WinFormsApp1.Forms.Transaction
             itemsGroupBox.Size = new Size(1140, 250);
             itemsGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-            dgvItems.Location = new Point(10, 25);
-            dgvItems.Size = new Size(1020, 150);
-            dgvItems.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            sfGridItems.Location = new Point(10, 25);
+            sfGridItems.Size = new Size(1020, 150);
+            sfGridItems.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             // Add Item button - positioned prominently at the bottom of the items group box
             var lblAddItemHint = new Label
@@ -587,7 +591,7 @@ namespace WinFormsApp1.Forms.Transaction
             btnDeleteItem.Text = "Delete Item";
             btnDeleteItem.Click += BtnDeleteItem_Click;
 
-            itemsGroupBox.Controls.AddRange(new Control[] { dgvItems, btnSelectProducts, btnEditItem, btnDeleteItem, lblAddItemHint, btnAddItem });
+            itemsGroupBox.Controls.AddRange(new Control[] { sfGridItems, btnSelectProducts, btnEditItem, btnDeleteItem, lblAddItemHint, btnAddItem });
             yPosition += 260;
 
             // Tax Section
@@ -790,7 +794,14 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void SetupForm()
         {
-            // KeyDown is handled by BaseForm
+            // Set default form properties
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
+            MinimizeBox = true;
+            ShowInTaskbar = true;
+            StartPosition = FormStartPosition.CenterParent;
+            KeyPreview = true; // Enable key preview for keyboard handling
+            
             SetupComboBoxes();
             SetupDataGridViews();
             SetupEventHandlers();
@@ -833,125 +844,135 @@ namespace WinFormsApp1.Forms.Transaction
 
         private void SetupDataGridViews()
         {
-            SetupItemsDataGridView();
+            SetupItemsSfDataGrid();
             SetupTaxesDataGridView();
             SetupContextMenus();
         }
 
-        private void SetupItemsDataGridView()
+        private void SetupItemsSfDataGrid()
         {
-            dgvItems.AutoGenerateColumns = false;
-            dgvItems.AllowUserToAddRows = false;
-            dgvItems.AllowUserToDeleteRows = false;
-            dgvItems.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvItems.MultiSelect = false;
-            dgvItems.RowHeadersVisible = false;
-            dgvItems.EditMode = DataGridViewEditMode.EditOnEnter;
+            // Configure SFGrid properties
+            sfGridItems.AutoGenerateColumns = false;
+            sfGridItems.AllowEditing = true;
+            sfGridItems.AllowResizingColumns = true;
+            sfGridItems.SelectionMode = GridSelectionMode.Single;
+            sfGridItems.ShowRowHeader = false;
+            sfGridItems.ShowGroupDropArea = false;
+            sfGridItems.AllowGrouping = false;
+            sfGridItems.AllowSorting = false;
+            sfGridItems.AllowFiltering = false;
+            
+            // Configure keyboard navigation
+            sfGridItems.AllowStandardTab = false; // Let SFGrid handle Tab navigation
+            sfGridItems.NavigationMode = NavigationMode.Cell; // Enable cell-by-cell navigation
+            sfGridItems.SelectionMode = GridSelectionMode.Single; // Enable single cell selection
+            
+            // SFGrid keyboard navigation is enabled by default
             
             // Add event handlers for keyboard navigation and editing
-            dgvItems.KeyDown += DgvItems_KeyDown;
-            dgvItems.CellDoubleClick += DgvItems_CellDoubleClick;
-            dgvItems.CellEndEdit += DgvItems_CellEndEdit;
-            dgvItems.MouseClick += DgvItems_MouseClick; // Add mouse click handler for context menu
+            sfGridItems.KeyDown += SfGridItems_KeyDown;
+            sfGridItems.CurrentCellBeginEdit += SfGridItems_CurrentCellBeginEdit;
+            sfGridItems.CurrentCellEndEdit += SfGridItems_CurrentCellEndEdit;
+            sfGridItems.MouseClick += SfGridItems_MouseClick;
 
-            // Serial Number Column (First Column)
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Create columns for SFGrid
+            var columns = new List<GridColumn>();
+
+            // Serial Number Column
+            columns.Add(new GridTextColumn
             {
-                Name = "SerialNumber",
+                MappingName = "SerialNumber",
                 HeaderText = "S.No",
-                DataPropertyName = "SerialNumber",
                 Width = 60,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
-                ReadOnly = true
+                AllowEditing = false
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Product Name Column
+            columns.Add(new GridTextColumn
             {
-                Name = "ProductName",
+                MappingName = "ProductName",
                 HeaderText = "Product",
-                DataPropertyName = "ProductName",
                 Width = 200,
-                ReadOnly = true // Product selection via dialog only
+                AllowEditing = false // Product selection via dialog only
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Description Column
+            columns.Add(new GridTextColumn
             {
-                Name = "Description",
+                MappingName = "Description",
                 HeaderText = "Description",
-                DataPropertyName = "Description",
                 Width = 200,
-                ReadOnly = false // Editable
+                AllowEditing = true
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Quantity Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "Quantity",
+                MappingName = "Quantity",
                 HeaderText = "Qty",
-                DataPropertyName = "Quantity",
                 Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = false // Editable
+                AllowEditing = true
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Unit Price Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "UnitPrice",
+                MappingName = "UnitPrice",
                 HeaderText = "Unit Price",
-                DataPropertyName = "UnitPrice",
                 Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = false // Editable
+                AllowEditing = true
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Discount Rate Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "DiscountRate",
+                MappingName = "DiscountRate",
                 HeaderText = "Disc %",
-                DataPropertyName = "DiscountRate",
                 Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = false // Editable
+                AllowEditing = true
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Discount Amount Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "DiscountAmount",
+                MappingName = "DiscountAmount",
                 HeaderText = "Disc Amt",
-                DataPropertyName = "DiscountAmount",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = true // Calculated field
+                AllowEditing = false // Calculated field
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Tax Rate Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "TaxRate",
+                MappingName = "TaxRate",
                 HeaderText = "Tax %",
-                DataPropertyName = "TaxRate",
                 Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = false // Editable
+                AllowEditing = true
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Tax Amount Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "TaxAmount",
+                MappingName = "TaxAmount",
                 HeaderText = "Tax Amt",
-                DataPropertyName = "TaxAmount",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = true // Calculated field
+                AllowEditing = false // Calculated field
             });
 
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn
+            // Line Total Column
+            columns.Add(new GridNumericColumn
             {
-                Name = "LineTotal",
+                MappingName = "LineTotal",
                 HeaderText = "Line Total",
-                DataPropertyName = "LineTotal",
                 Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight },
-                ReadOnly = true // Calculated field
+                AllowEditing = false // Calculated field
             });
+
+            // Add columns to SFGrid
+            foreach (var column in columns)
+            {
+                sfGridItems.Columns.Add(column);
+            }
         }
 
         private void SetupTaxesDataGridView()
@@ -1220,7 +1241,7 @@ namespace WinFormsApp1.Forms.Transaction
                         // The data binding should now reflect the updated values after ResumeBinding
 
                         // Also refresh the items grid in case tax changes affect item calculations
-                        dgvItems.Refresh();
+                        sfGridItems.Refresh();
 
                         Console.WriteLine($"Tax calculation method changed for row {e.RowIndex + 1}, totals recalculated");
                         Console.WriteLine($"New values - Taxable: {tax.TaxableAmount:N2}, Amount: {tax.TaxAmount:N2}");
@@ -1699,7 +1720,7 @@ namespace WinFormsApp1.Forms.Transaction
                 dtpDueDate.Value = DateTime.Now.AddDays(30);
                 txtTransactionNumber.Text = GenerateTransactionNumber();
 
-                dgvItems.DataSource = new List<TransactionItemDisplay>();
+                sfGridItems.DataSource = new List<TransactionItemDisplay>();
                 dgvTaxes.DataSource = new List<TransactionTaxDisplay>();
             }
 
@@ -1769,7 +1790,7 @@ namespace WinFormsApp1.Forms.Transaction
                     .ToList();
                 Console.WriteLine($"Created {taxDisplays.Count} tax displays");
 
-                dgvItems.DataSource = itemDisplays;
+                sfGridItems.DataSource = itemDisplays;
                 dgvTaxes.DataSource = taxDisplays;
 
                 txtDiscountPercent.Text = _transactionDto.Discount.ToString("N2");
@@ -1828,7 +1849,7 @@ namespace WinFormsApp1.Forms.Transaction
                  .OrderBy(tax => tax.SerialNumber)
                  .ToList();
 
-            dgvItems.DataSource = itemDisplays;
+            sfGridItems.DataSource = itemDisplays;
             dgvTaxes.DataSource = taxDisplays;
 
             txtDiscountPercent.Text = _transaction.Discount.ToString("N2");
@@ -2031,90 +2052,7 @@ namespace WinFormsApp1.Forms.Transaction
             return $"TXN{DateTime.Now:yyyyMMddHHmmss}";
         }
 
-        protected override bool HandleEnterKey()
-        {
-            // F10 or Ctrl+Enter to save
-            if (ModifierKeys.HasFlag(Keys.Control))
-            {
-                BtnSave_Click(null, EventArgs.Empty);
-                return true;
-            }
-
-            // Enter on save button
-            if (ActiveControl == btnSave)
-            {
-                BtnSave_Click(null, EventArgs.Empty);
-                return true;
-            }
-
-            // Enter on cancel button
-            if (ActiveControl == btnCancel)
-            {
-                BtnCancel_Click(null, EventArgs.Empty);
-                return true;
-            }
-
-            // Enter on party ledger textbox - open ledger selection
-            if (ActiveControl == txtPartyLedger)
-            {
-                Console.WriteLine("Enter pressed on Party Ledger TextBox - opening modal");
-                ShowPartyLedgerSelectionDialog();
-                return true;
-            }
-
-            // Enter on account ledger textbox - open ledger selection
-            if (ActiveControl == txtAccountLedger)
-            {
-                Console.WriteLine("Enter pressed on Account Ledger TextBox - opening modal");
-                ShowAccountLedgerSelectionDialog();
-                return true;
-            }
-
-            // Enter on Add Item button - open item selection dialog
-            if (ActiveControl == btnAddItem)
-            {
-                Console.WriteLine("Enter pressed on Add Item button - opening item selection dialog");
-                ShowItemSelectionDialog();
-                return true;
-            }
-
-            // Enter on items grid
-            if (ActiveControl == dgvItems)
-            {
-                if (dgvItems.CurrentCell != null && !dgvItems.IsCurrentCellInEditMode)
-                {
-                    // If not in edit mode, start editing current cell
-                    if (!dgvItems.Columns[dgvItems.CurrentCell.ColumnIndex].ReadOnly)
-                    {
-                        dgvItems.BeginEdit(true);
-                        return true;
-                    }
-                }
-                else if (dgvItems.IsCurrentCellInEditMode)
-                {
-                    // If in edit mode, end editing and move to next field
-                    dgvItems.EndEdit();
-                    return true;
-                }
-                else if (dgvItems.SelectedRows.Count > 0)
-                {
-                    // If no current cell but rows selected, start editing first editable cell
-                    var selectedRow = dgvItems.SelectedRows[0];
-                    for (int i = 0; i < dgvItems.Columns.Count; i++)
-                    {
-                        if (!dgvItems.Columns[i].ReadOnly)
-                        {
-                            dgvItems.CurrentCell = selectedRow.Cells[i];
-                            dgvItems.BeginEdit(true);
-                            return true;
-                        }
-                    }
-                }
-                return true; // Handle Enter key for grid
-            }
-
-            return false; // Let BaseForm handle navigation
-        }
+     
         
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
@@ -2143,7 +2081,7 @@ namespace WinFormsApp1.Forms.Transaction
                     BtnSave_Click(null, EventArgs.Empty);
                     return true;
                 case Keys.Delete:
-                    if (ActiveControl == dgvItems && dgvItems.SelectedRows.Count > 0)
+                    if (ActiveControl == sfGridItems && sfGridItems.SelectedIndex >= 0)
                     {
                         Console.WriteLine("Delete key pressed on items grid");
                         BtnDeleteItem_Click(null, EventArgs.Empty);
@@ -2176,108 +2114,6 @@ namespace WinFormsApp1.Forms.Transaction
             base.OnKeyDown(e);
         }
 
-        protected override void HandleEscapeKey()
-        {
-            BtnCancel_Click(null, EventArgs.Empty);
-        }
-
-        protected override void ShowHelp()
-        {
-            var helpMessage = @"Transaction Edit Form - Keyboard Navigation Help:
-
-Navigation:
-• Tab - Move to next field
-• Backspace - Move to previous field
-• Enter - Confirm action or move to next field
-• Ctrl+Enter - Save transaction
-• Escape - Close form or go back
-• F1 - Show this help
-
-Special Keys:
-• F2 - Add/Select Items
-• F3 - Add/Select Taxes with Components  
-• F4 - Select Party Ledger (Customer/Supplier)
-• F5 - Select Account Ledger (Income/Expense)
-• F10 - Save Transaction
-• Delete - Remove selected item/tax
-• Enter - Edit selected item/tax in grid
-
-Item Grid Navigation:
-• F2 - Add new item from product list
-• Enter - Edit selected item in grid
-• Delete - Remove selected item
-• Double-click - Edit item in grid
-• Tab/Arrow keys - Navigate between cells
-• Right-click - Context menu with options (Add, Edit, Delete, Copy)
-
-Tax Grid Navigation:
-• F3 - Add new tax with component selection
-• Enter - Edit tax components for selected tax
-• Delete - Remove selected tax
-• Double-click - Edit tax components
-• Right-click - Context menu with options (Add, Edit, Delete, Copy)
-
-Debug Info:
-• Button Visible: " + btnAddItem.Visible + @"
-• Button Enabled: " + btnAddItem.Enabled + @"
-• Available Products: " + _availableProducts.Count + @"
-
-Field Order:
-1. Transaction Type (dropdown)
-2. Transaction Number
-3. Invoice Number
-4. Transaction Date
-5. Due Date
-6. Status (dropdown)
-7. Reference Number
-8. Notes
-9. Party Ledger (TextBox - click or Enter to open selection modal)
-10. Account Ledger (TextBox - click or Enter to open selection modal)
-11. Transaction Items (DataGrid) - S.No, Product, Description, Qty, Unit Price, Disc %, Disc Amt, Tax %, Tax Amt, Line Total
-12. Transaction Taxes (DataGrid) - S.No, Tax Name, Tax Components, Component Rates, Total Rate %, Taxable Amount, Tax Amount, Calculation Method, Description
-    - Calculation Method options:
-      • ItemSubtotal: Tax calculated on items total only
-      • AboveRowAmount: Tax calculated on items total + all taxes above this row
-      • Total: Tax calculated on final total (including all other taxes)
-13. Subtotal (read-only)
-14. Discount Percent
-15. Discount Amount
-16. Freight
-17. Freight Included (checkbox)
-18. Tax Amount (read-only)
-19. Round Off
-20. Total (read-only)
-21. Save Button
-22. Cancel Button
-
-Tips:
-• Use Tab/Backspace for fast field navigation
-• Ctrl+Enter to save from any field
-• F2 for quick item selection and addition
-• F3 for quick tax selection
-• F4 for party ledger selection (customers/suppliers)
-• F5 for account ledger selection (income/expense)
-• Direct editing in item grid for fast data entry
-• Right-click on grid rows for context menu options
-• C key to copy selected item/tax details
-• Escape to cancel and close
-• All fields are highlighted when focused
-
-Ledger Selection:
-• Click on Party/Account Ledger TextBoxes to open selection modal
-• Press Enter/Space on ledger TextBoxes to open selection dialog
-• Use F4/F5 or click F4/F5 buttons for quick access
-• Ledger selection dialog supports:
-  - Search by name, code, or category
-  - Filter by ledger type (Party/Account/Assets/etc.)
-  - Show/hide group ledgers
-  - Keyboard navigation and selection
-• Selected ledger names are displayed in the TextBoxes
-• TextBoxes are read-only - selection only via modal";
-
-            MessageBox.Show(helpMessage, "Transaction Edit Form Help", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
 
         private void CalculationField_Changed(object? sender, EventArgs e)
         {
@@ -2289,7 +2125,7 @@ Ledger Selection:
             Console.WriteLine("CalculateTotals called");
             try
             {
-                var itemsSource = dgvItems.DataSource as List<TransactionItemDisplay>;
+                var itemsSource = sfGridItems.DataSource as List<TransactionItemDisplay>;
                 var taxesSource = dgvTaxes.DataSource as List<TransactionTaxDisplay>;
 
                 Console.WriteLine($"Items source: {itemsSource?.Count ?? 0} items, Taxes source: {taxesSource?.Count ?? 0} taxes");
@@ -2483,13 +2319,13 @@ Ledger Selection:
 
         private void BtnEditItem_Click(object? sender, EventArgs e)
         {
-            if (dgvItems.SelectedRows.Count == 0)
+            if (sfGridItems.SelectedIndex < 0)
             {
                 MessageBox.Show("Please select an item to edit.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var selectedItem = dgvItems.SelectedRows[0].DataBoundItem as TransactionItemDisplay;
+            var selectedItem = sfGridItems.SelectedItem as TransactionItemDisplay;
             if (selectedItem != null)
             {
                 var message = $"Edit Item:\n\nProduct: {selectedItem.ProductName}\nDescription: {selectedItem.Description}\nQuantity: {selectedItem.Quantity}\nUnit Price: {selectedItem.UnitPrice:C}";
@@ -2499,16 +2335,16 @@ Ledger Selection:
 
         private void BtnDeleteItem_Click(object? sender, EventArgs e)
         {
-            if (dgvItems.SelectedRows.Count > 0)
+            if (sfGridItems.SelectedIndex >= 0)
             {
-                var items = dgvItems.DataSource as List<TransactionItemDisplay>;
-                var selectedItem = dgvItems.SelectedRows[0].DataBoundItem as TransactionItemDisplay;
+                var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
+                var selectedItem = sfGridItems.SelectedItem as TransactionItemDisplay;
                 
                 if (items != null && selectedItem != null)
                 {
                     items.Remove(selectedItem);
-                    dgvItems.DataSource = null;
-                    dgvItems.DataSource = items;
+                    sfGridItems.DataSource = null;
+                    sfGridItems.DataSource = items;
                     CalculateTotals();
                 }
             }
@@ -2699,7 +2535,7 @@ Ledger Selection:
             decimal.TryParse(txtRoundOff.Text, out var roundOff);
             decimal.TryParse(txtTotal.Text, out var total);
 
-            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var itemDisplays = sfGridItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
             var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
 
             var transactionTypeString = cmbTransactionType.SelectedItem?.ToString()
@@ -2806,7 +2642,7 @@ Ledger Selection:
             decimal.TryParse(txtFreight.Text, out var freight);
             decimal.TryParse(txtRoundOff.Text, out var roundOff);
 
-            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var itemDisplays = sfGridItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
             var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
 
             var dtoItemsById = (_transactionDto?.Items ?? new List<TransactionItemDto>())
@@ -3016,7 +2852,7 @@ Ledger Selection:
             transaction.Total = total;
 
             // Set items and taxes from grids
-            var itemDisplays = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var itemDisplays = sfGridItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
             var taxDisplays = dgvTaxes.DataSource as List<TransactionTaxDisplay> ?? new List<TransactionTaxDisplay>();
 
             // Convert display classes back to original models
@@ -3226,7 +3062,7 @@ Ledger Selection:
                     throw new InvalidOperationException("Party ledger must be selected");
                 }
                 
-                var items = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+                var items = sfGridItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
                 if (!items.Any())
                 {
                     throw new InvalidOperationException("At least one item must be added to the transaction");
@@ -3517,7 +3353,7 @@ Ledger Selection:
 
         private void AddItemToGrid(ProductListDto product)
         {
-            var items = dgvItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
+            var items = sfGridItems.DataSource as List<TransactionItemDisplay> ?? new List<TransactionItemDisplay>();
             
             var newSerialNumber = items.Any() ? items.Max(i => i.SerialNumber) + 1 : 1;
             
@@ -3541,21 +3377,62 @@ Ledger Selection:
             items.Add(newItem);
             
             // Refresh the grid
-            dgvItems.DataSource = null;
-            dgvItems.DataSource = items.OrderBy(i => i.SerialNumber).ToList();
+            sfGridItems.DataSource = null;
+            sfGridItems.DataSource = items.OrderBy(i => i.SerialNumber).ToList();
             
             // Select the new item and start editing description
-            if (dgvItems.Rows.Count > 0)
+            if (sfGridItems.RowCount > 0)
             {
-                var newRowIndex = dgvItems.Rows.Count - 1;
-                dgvItems.Rows[newRowIndex].Selected = true;
-                // Focus on description column (index 2) and start editing immediately
-                dgvItems.CurrentCell = dgvItems.Rows[newRowIndex].Cells[2]; // Description column
-                // Begin edit mode for keyboard-only workflow
-                if (!dgvItems.IsCurrentCellInEditMode)
+                var newRowIndex = sfGridItems.RowCount - 1;
+                sfGridItems.SelectedIndex = newRowIndex;
+                
+                // Start editing the Description column automatically (like Excel)
+                this.BeginInvoke(new Action(() =>
                 {
-                    dgvItems.BeginEdit(true);
-                }
+                    try
+                    {
+                        sfGridItems.Focus();
+                        // Navigate to Description column and start editing
+                        var descColIndex = GetColumnIndex("Description");
+                        var currentColIndex = GetColumnIndex("SerialNumber"); // Start from first column
+                        
+                        // Navigate to Description column
+                        if (descColIndex > currentColIndex)
+                        {
+                            for (int i = 0; i < (descColIndex - currentColIndex); i++)
+                            {
+                                SendKeys.SendWait("{RIGHT}");
+                                System.Threading.Thread.Sleep(10); // Small delay for navigation
+                            }
+                        }
+                        
+                        // Use a timer to ensure the F2 is sent after navigation completes
+                        var timer = new System.Windows.Forms.Timer();
+                        timer.Interval = 150; // 150ms delay for new item
+                        timer.Tick += (s, args) =>
+                        {
+                            timer.Stop();
+                            timer.Dispose();
+                            try
+                            {
+                                // Ensure grid still has focus and start editing
+                                if (sfGridItems.Focused)
+                                {
+                                    SendKeys.SendWait("{F2}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error starting edit on new item with timer: {ex.Message}");
+                            }
+                        };
+                        timer.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error starting edit on new item: {ex.Message}");
+                    }
+                }));
             }
             
             CalculateTotals();
@@ -3623,114 +3500,6 @@ Ledger Selection:
             Console.WriteLine("AddTaxToGrid completed");
         }
 
-        private void DgvItems_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.F2)
-            {
-                ShowItemSelectionDialog();
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Delete && dgvItems.SelectedRows.Count > 0)
-            {
-                BtnDeleteItem_Click(null, EventArgs.Empty);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Enter)
-            {
-                if (dgvItems.CurrentCell != null && !dgvItems.IsCurrentCellInEditMode && !dgvItems.Columns[dgvItems.CurrentCell.ColumnIndex].ReadOnly)
-                {
-                    // Start editing current editable cell
-                    dgvItems.BeginEdit(true);
-                    e.Handled = true;
-                }
-                else if (dgvItems.IsCurrentCellInEditMode)
-                {
-                    // End editing current cell (will trigger CellEndEdit and auto-advance)
-                    dgvItems.EndEdit();
-                    e.Handled = true;
-                }
-                else if (dgvItems.SelectedRows.Count > 0)
-                {
-                    // Start editing the first editable cell in selected row
-                    var selectedRow = dgvItems.SelectedRows[0];
-                    for (int i = 0; i < dgvItems.Columns.Count; i++)
-                    {
-                        if (!dgvItems.Columns[i].ReadOnly)
-                        {
-                            dgvItems.CurrentCell = selectedRow.Cells[i];
-                            dgvItems.BeginEdit(true);
-                            e.Handled = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        private void DgvItems_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
-            {
-                var column = dgvItems.Columns[e.ColumnIndex];
-                if (!column.ReadOnly)
-                {
-                    dgvItems.BeginEdit(true);
-                }
-            }
-        }
-
-        private void DgvItems_CellEndEdit(object? sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
-            {
-                var item = dgvItems.Rows[e.RowIndex].DataBoundItem as TransactionItemDisplay;
-                if (item != null)
-                {
-                    // Recalculate line totals when quantity, unit price, or discount changes
-                    var columnName = dgvItems.Columns[e.ColumnIndex].Name;
-                    if (columnName == "Quantity" || columnName == "UnitPrice" || columnName == "DiscountRate" || columnName == "TaxRate")
-                    {
-                        RecalculateItemTotals(item);
-
-                        // Refresh the grid to show updated calculated fields
-                        dgvItems.RefreshEdit();
-                        dgvItems.Refresh();
-
-                        CalculateTotals();
-                    }
-                }
-
-                // Auto-advance to next editable field for keyboard-only workflow
-                MoveToNextEditableField(e.RowIndex, e.ColumnIndex);
-            }
-        }
-
-        private void MoveToNextEditableField(int rowIndex, int currentColumnIndex)
-        {
-            // Define the editable columns in order: Description(2), Quantity(3), UnitPrice(4), DiscountRate(5), TaxRate(7)
-            int[] editableColumnIndexes = { 2, 3, 4, 5, 7 };
-
-            // Find current position in editable columns
-            int currentEditableIndex = Array.IndexOf(editableColumnIndexes, currentColumnIndex);
-
-            if (currentEditableIndex >= 0 && currentEditableIndex < editableColumnIndexes.Length - 1)
-            {
-                // Move to next editable column
-                int nextColumnIndex = editableColumnIndexes[currentEditableIndex + 1];
-                dgvItems.CurrentCell = dgvItems.Rows[rowIndex].Cells[nextColumnIndex];
-                // Start editing the next field
-                if (!dgvItems.IsCurrentCellInEditMode)
-                {
-                    dgvItems.BeginEdit(true);
-                }
-            }
-            else if (currentEditableIndex == editableColumnIndexes.Length - 1)
-            {
-                // We've reached the last editable field, move focus to Add Item button
-                Console.WriteLine("Reached last editable field, moving focus to Add Item button");
-                btnAddItem.Focus();
-            }
-        }
 
         private void RecalculateItemTotals(TransactionItemDisplay item)
         {
@@ -3957,19 +3726,15 @@ Ledger Selection:
         {
             if (e.Button == MouseButtons.Right)
             {
-                // Get the row under the mouse cursor
-                var hitTest = dgvItems.HitTest(e.X, e.Y);
-                if (hitTest.Type == DataGridViewHitTestType.Cell)
+                // Handle right-click context menu
+                if (sfGridItems.SelectedIndex >= 0)
                 {
-                    // Select the row under the cursor
-                    dgvItems.ClearSelection();
-                    dgvItems.Rows[hitTest.RowIndex].Selected = true;
                     
                     // Update context menu items based on selection
                     UpdateItemsContextMenu();
                     
                     // Show context menu at cursor position
-                    _itemsContextMenu.Show(dgvItems, e.Location);
+                    _itemsContextMenu.Show(sfGridItems, e.Location);
                 }
             }
         }
@@ -3998,7 +3763,7 @@ Ledger Selection:
         private void UpdateItemsContextMenu()
         {
             // Enable/disable menu items based on current selection
-            var hasSelection = dgvItems.SelectedRows.Count > 0;
+            var hasSelection = sfGridItems.SelectedIndex >= 0;
             
             foreach (ToolStripItem item in _itemsContextMenu.Items)
             {
@@ -4025,9 +3790,9 @@ Ledger Selection:
 
         private void CopySelectedItemDetails()
         {
-            if (dgvItems.SelectedRows.Count == 0) return;
+            if (sfGridItems.SelectedIndex < 0) return;
 
-            var selectedItem = dgvItems.SelectedRows[0].DataBoundItem as TransactionItemDisplay;
+            var selectedItem = sfGridItems.SelectedItem as TransactionItemDisplay;
             if (selectedItem != null)
             {
                 var details = $"Product: {selectedItem.ProductName}\n" +
@@ -4043,7 +3808,7 @@ Ledger Selection:
                     Clipboard.SetText(details);
                     // Show a brief success message
                     var toolTip = new ToolTip();
-                    toolTip.Show("Item details copied to clipboard!", dgvItems, 1000);
+                    toolTip.Show("Item details copied to clipboard!", sfGridItems, 1000);
                 }
                 catch (Exception ex)
                 {
@@ -4078,6 +3843,269 @@ Ledger Selection:
                 {
                     Console.WriteLine($"Error copying to clipboard: {ex.Message}");
                 }
+            }
+        }
+
+        #endregion
+
+        #region SFGrid Event Handlers
+
+        private void SfGridItems_KeyDown(object? sender, KeyEventArgs e)
+        {
+            // Let SFGrid handle most navigation
+            if (e.KeyCode == Keys.Delete && sfGridItems.SelectedIndex >= 0)
+            {
+                BtnDeleteItem_Click(null, EventArgs.Empty);
+                e.Handled = true;
+            }
+        }
+
+
+        private void SfGridItems_CurrentCellEndEdit(object? sender, EventArgs e)
+        {
+            // Recalculate totals when editable fields change
+            if (sfGridItems.SelectedItem is TransactionItemDisplay item)
+            {
+                RecalculateItemTotals(item);
+                CalculateTotals();
+            }
+          
+        }
+
+
+        private void SfGridItems_CurrentCellBeginEdit(object? sender, EventArgs e)
+        {
+            // This event can be used to set up editing state if needed
+        }
+
+
+        private void MoveToNextEditableCell(string[] editableColumns, bool moveForward)
+        {
+            try
+            {
+                if (sfGridItems.SelectedIndex < 0) return;
+                
+                var currentRowIndex = sfGridItems.SelectedIndex;
+                var currentColumn = sfGridItems.CurrentCell?.Column?.MappingName;
+                var currentIndex = Array.IndexOf(editableColumns, currentColumn);
+                
+                int nextIndex;
+                int nextRowIndex = currentRowIndex;
+                
+                if (moveForward)
+                {
+                    if (currentIndex >= 0 && currentIndex < editableColumns.Length - 1)
+                    {
+                        // Move to next column in same row
+                        nextIndex = currentIndex + 1;
+                    }
+                    else
+                    {
+                        // Move to first column of next row
+                        nextIndex = 0;
+                        nextRowIndex = currentRowIndex + 1;
+                        
+                        // If we're at the last row, add a new item
+                        var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
+                        if (items != null && nextRowIndex >= items.Count)
+                        {
+                            // Focus on Add Item button to add new row
+                            this.BeginInvoke(new Action(() => btnAddItem.Focus()));
+                            return;
+                        }
+                    }
+                }
+                else // moveBackward
+                {
+                    if (currentIndex > 0)
+                    {
+                        // Move to previous column in same row
+                        nextIndex = currentIndex - 1;
+                    }
+                    else
+                    {
+                        // Move to last column of previous row
+                        nextIndex = editableColumns.Length - 1;
+                        nextRowIndex = currentRowIndex - 1;
+                        
+                        // If we're at the first row, stay at first column
+                        if (nextRowIndex < 0)
+                        {
+                            nextRowIndex = 0;
+                            nextIndex = 0;
+                        }
+                    }
+                }
+                
+                // Use BeginInvoke to ensure the current edit is committed first
+                this.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
+                        if (items != null && nextRowIndex < items.Count)
+                        {
+                            // Select the target row and column
+                            sfGridItems.SelectedIndex = nextRowIndex;
+                            
+                            // Find the target column
+                            var targetColumn = sfGridItems.Columns.FirstOrDefault(c => c.MappingName == editableColumns[nextIndex]);
+                            if (targetColumn != null)
+                            {
+                                // Navigate to the target cell using simulated keystrokes
+                                // This is a workaround for SFGrid's limited API
+                                sfGridItems.Focus();
+                                
+                                // Navigate to the correct column
+                                var currentColIndex = GetColumnIndex(currentColumn);
+                                var targetColIndex = GetColumnIndex(editableColumns[nextIndex]);
+                                
+                                if (targetColIndex > currentColIndex)
+                                {
+                                    for (int i = 0; i < (targetColIndex - currentColIndex); i++)
+                                    {
+                                        SendKeys.SendWait("{RIGHT}");
+                                        System.Threading.Thread.Sleep(10); // Small delay for navigation
+                                    }
+                                }
+                                else if (targetColIndex < currentColIndex)
+                                {
+                                    for (int i = 0; i < (currentColIndex - targetColIndex); i++)
+                                    {
+                                        SendKeys.SendWait("{LEFT}");
+                                        System.Threading.Thread.Sleep(10); // Small delay for navigation
+                                    }
+                                }
+                                
+                                // Use a timer to ensure the F2 is sent after navigation completes
+                                var timer = new System.Windows.Forms.Timer();
+                                timer.Interval = 100; // 100ms delay
+                                timer.Tick += (s, args) =>
+                                {
+                                    timer.Stop();
+                                    timer.Dispose();
+                                    try
+                                    {
+                                        // Ensure grid still has focus and start editing
+                                        if (sfGridItems.Focused)
+                                        {
+                                            SendKeys.SendWait("{F2}");
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"Error starting edit with timer: {ex.Message}");
+                                    }
+                                };
+                                timer.Start();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error navigating to next cell: {ex.Message}");
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in MoveToNextEditableCell: {ex.Message}");
+            }
+        }
+        
+        private int GetColumnIndex(string columnMappingName)
+        {
+            if (string.IsNullOrEmpty(columnMappingName)) return 0;
+            
+            for (int i = 0; i < sfGridItems.Columns.Count; i++)
+            {
+                if (sfGridItems.Columns[i].MappingName == columnMappingName)
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+        
+        private void StartEditingCurrentCell()
+        {
+            try
+            {
+                // Start editing the current cell (like F2 in Excel)
+                sfGridItems.Focus();
+                SendKeys.SendWait("{F2}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error starting cell edit: {ex.Message}");
+            }
+        }
+        
+        private void HandleArrowKeyNavigation(Keys keyCode)
+        {
+            try
+            {
+                var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
+                if (items == null || items.Count == 0) return;
+                
+                var currentRowIndex = sfGridItems.SelectedIndex;
+                int newRowIndex = currentRowIndex;
+                
+                if (keyCode == Keys.Up && currentRowIndex > 0)
+                {
+                    newRowIndex = currentRowIndex - 1;
+                }
+                else if (keyCode == Keys.Down && currentRowIndex < items.Count - 1)
+                {
+                    newRowIndex = currentRowIndex + 1;
+                }
+                
+                if (newRowIndex != currentRowIndex)
+                {
+                    sfGridItems.SelectedIndex = newRowIndex;
+                    sfGridItems.Focus();
+                    
+                    // Maintain the same column position if possible
+                    var currentColumn = sfGridItems.CurrentCell?.Column?.MappingName;
+                    if (!string.IsNullOrEmpty(currentColumn))
+                    {
+                        this.BeginInvoke(new Action(() =>
+                        {
+                            try
+                            {
+                                var targetColIndex = GetColumnIndex(currentColumn);
+                                var currentColIndex = 0; // Start from first column
+                                
+                                // Navigate to the same column
+                                if (targetColIndex > currentColIndex)
+                                {
+                                    for (int i = 0; i < (targetColIndex - currentColIndex); i++)
+                                    {
+                                        SendKeys.SendWait("{RIGHT}");
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error maintaining column position: {ex.Message}");
+                            }
+                        }));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling arrow key navigation: {ex.Message}");
+            }
+        }
+
+        private void SfGridItems_MouseClick(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                // Handle right-click context menu
+                UpdateItemsContextMenu();
+                _itemsContextMenu.Show(sfGridItems, e.Location);
             }
         }
 
