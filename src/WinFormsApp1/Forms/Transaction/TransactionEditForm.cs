@@ -198,6 +198,11 @@ namespace WinFormsApp1.Forms.Transaction
         private ContextMenuStrip _itemsContextMenu = null!;
         private ContextMenuStrip _taxesContextMenu = null!;
 
+        // Loading Controls
+        private Panel loadingPanel = null!;
+        private ProgressBar loadingProgressBar = null!;
+        private Label loadingLabel = null!;
+
         private List<Models.ProductListDto> _availableProducts = new List<Models.ProductListDto>();
         private List<Models.TaxListDto> _availableTaxes = new List<Models.TaxListDto>();
         private List<Models.LedgerModel> _availableLedgers = new List<Models.LedgerModel>();
@@ -399,6 +404,11 @@ namespace WinFormsApp1.Forms.Transaction
             itemsGroupBox = new GroupBox();
             taxGroupBox = new GroupBox();
             summaryGroupBox = new GroupBox();
+
+            // Loading Controls
+            loadingPanel = new Panel();
+            loadingProgressBar = new ProgressBar();
+            loadingLabel = new Label();
 
             SuspendLayout();
 
@@ -749,7 +759,10 @@ namespace WinFormsApp1.Forms.Transaction
                 }
             }
 
-            Controls.AddRange(new Control[] { lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnCancel });
+            // Setup loading panel
+            SetupLoadingPanel();
+
+            Controls.AddRange(new Control[] { loadingPanel, lblCompanyInfo, itemsGroupBox, taxGroupBox, summaryGroupBox, btnSave, btnCancel });
         }
 
         private void AddLabelAndControl(string labelText, Control control, int x, int y, int labelWidth, int controlWidth)
@@ -767,6 +780,51 @@ namespace WinFormsApp1.Forms.Transaction
 
             Controls.Add(label);
             Controls.Add(control);
+        }
+
+        private void SetupLoadingPanel()
+        {
+            // Create a small, centered loading panel
+            loadingPanel.Location = new Point(450, 350);
+            loadingPanel.Size = new Size(300, 100);
+            loadingPanel.BackColor = Color.White;
+            loadingPanel.BorderStyle = BorderStyle.FixedSingle;
+            loadingPanel.Visible = false; // Initially hidden
+            loadingPanel.BringToFront();
+
+            // Create slim progress bar
+            loadingProgressBar.Location = new Point(20, 50);
+            loadingProgressBar.Size = new Size(260, 20);
+            loadingProgressBar.Style = ProgressBarStyle.Marquee;
+            loadingProgressBar.MarqueeAnimationSpeed = 30;
+            loadingProgressBar.Visible = true;
+
+            // Create compact loading label
+            loadingLabel.Location = new Point(20, 15);
+            loadingLabel.Size = new Size(260, 25);
+            loadingLabel.Text = "Loading...";
+            loadingLabel.TextAlign = ContentAlignment.MiddleCenter;
+            loadingLabel.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+            loadingLabel.ForeColor = Color.DarkGray;
+            loadingLabel.BackColor = Color.Transparent;
+
+            // Add controls to loading panel
+            loadingPanel.Controls.Add(loadingLabel);
+            loadingPanel.Controls.Add(loadingProgressBar);
+        }
+
+        private void ShowLoadingPanel(string message = "Loading...")
+        {
+            loadingLabel.Text = message;
+            loadingPanel.Visible = true;
+            loadingPanel.BringToFront();
+            Application.DoEvents(); // Force UI update
+        }
+
+        private void HideLoadingPanel()
+        {
+            loadingPanel.Visible = false;
+            Application.DoEvents(); // Force UI update
         }
 
         private void AddLabelAndControlToParent(string labelText, Control control, Control parent, int x, int y, int labelWidth, int controlWidth, bool readOnly = false)
@@ -1158,6 +1216,10 @@ namespace WinFormsApp1.Forms.Transaction
             // Store context menus as class fields for access in mouse click handlers
             _itemsContextMenu = itemsContextMenu;
             _taxesContextMenu = taxesContextMenu;
+            
+            // Assign context menus to grids
+            sfGridItems.ContextMenuStrip = _itemsContextMenu;
+            dgvTaxes.ContextMenuStrip = _taxesContextMenu;
         }
 
         private void DtpTransactionDate_ValueChanged(object? sender, EventArgs e)
@@ -1703,12 +1765,18 @@ namespace WinFormsApp1.Forms.Transaction
         {
             Console.WriteLine("LoadData called - starting to load data...");
             
-            // Load product, tax, and ledger lists first
-            await LoadProductTaxAndLedgerLists();
+            try
+            {
+                // Show loading panel
+                ShowLoadingPanel("Loading...");
+                
+                // Load product, tax, and ledger lists first
+                await LoadProductTaxAndLedgerLists();
 
             if (_transaction != null)
             {
                 Console.WriteLine("Loading existing transaction data...");
+                ShowLoadingPanel("Loading data...");
                 await LoadExistingTransactionData();
             }
             else
@@ -1733,6 +1801,17 @@ namespace WinFormsApp1.Forms.Transaction
             
             // Final debug: Check if Add Item button is visible after everything is loaded
             Console.WriteLine($"Final check - btnAddItem: Visible={btnAddItem.Visible}, Enabled={btnAddItem.Enabled}, Parent={btnAddItem.Parent?.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in LoadData: {ex.Message}");
+                MessageBox.Show($"Error loading transaction data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Hide loading panel
+                HideLoadingPanel();
+            }
         }
 
         private async Task LoadExistingTransactionData()
@@ -1976,6 +2055,7 @@ namespace WinFormsApp1.Forms.Transaction
                 var companyId = Guid.Parse(_selectedCompany.Id);
                 
                 // Load products
+                ShowLoadingPanel("Products...");
                 var products = await _productService.GetProductsByCompanyAsync(companyId);
                 _availableProducts = products.Select(p => new ProductListDto
                 {
@@ -1991,6 +2071,7 @@ namespace WinFormsApp1.Forms.Transaction
                 Console.WriteLine($"Loaded {_availableProducts.Count} products for transaction");
 
                 // Load taxes
+                ShowLoadingPanel("Taxes...");
                 _availableTaxes = await _taxService.GetTaxListForTransactionAsync(companyId);
                 Console.WriteLine($"Loaded {_availableTaxes.Count} taxes for transaction");
                 
@@ -2017,6 +2098,7 @@ namespace WinFormsApp1.Forms.Transaction
                 }
 
                 // Load ledgers
+                ShowLoadingPanel("Ledgers...");
                 _availableLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
                 Console.WriteLine($"Loaded {_availableLedgers.Count} ledgers for transaction");
 
@@ -2076,6 +2158,10 @@ namespace WinFormsApp1.Forms.Transaction
                     Console.WriteLine("F5 key pressed - calling ShowAccountLedgerSelectionDialog");
                     ShowAccountLedgerSelectionDialog();
                     return true;
+                case Keys.Escape:
+                    Console.WriteLine("Escape key pressed - canceling and closing form");
+                    BtnCancel_Click(this, EventArgs.Empty);
+                    return true;
                 case Keys.F10:
                     Console.WriteLine("F10 key pressed - calling BtnSave_Click");
                     BtnSave_Click(null, EventArgs.Empty);
@@ -2107,6 +2193,14 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 Console.WriteLine("F2 detected in OnKeyDown - calling ShowItemSelectionDialog");
                 ShowItemSelectionDialog();
+                e.Handled = true;
+                return;
+            }
+            
+            if (e.KeyCode == Keys.Escape)
+            {
+                Console.WriteLine("Escape detected in OnKeyDown - canceling and closing form");
+                BtnCancel_Click(this, EventArgs.Empty);
                 e.Handled = true;
                 return;
             }
@@ -2343,6 +2437,13 @@ namespace WinFormsApp1.Forms.Transaction
                 if (items != null && selectedItem != null)
                 {
                     items.Remove(selectedItem);
+                    
+                    // Renumber serial numbers starting from 1
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        items[i].SerialNumber = i + 1;
+                    }
+                    
                     sfGridItems.DataSource = null;
                     sfGridItems.DataSource = items;
                     CalculateTotals();
@@ -2468,6 +2569,13 @@ namespace WinFormsApp1.Forms.Transaction
                 if (taxes != null && selectedTax != null)
                 {
                     taxes.Remove(selectedTax);
+                    
+                    // Renumber serial numbers starting from 1
+                    for (int i = 0; i < taxes.Count; i++)
+                    {
+                        taxes[i].SerialNumber = i + 1;
+                    }
+                    
                     // Use proper refresh methods instead of resetting DataSource
                     dgvTaxes.Refresh();
                     dgvTaxes.Invalidate();
@@ -3877,141 +3985,7 @@ namespace WinFormsApp1.Forms.Transaction
         {
             // This event can be used to set up editing state if needed
         }
-
-
-        private void MoveToNextEditableCell(string[] editableColumns, bool moveForward)
-        {
-            try
-            {
-                if (sfGridItems.SelectedIndex < 0) return;
-                
-                var currentRowIndex = sfGridItems.SelectedIndex;
-                var currentColumn = sfGridItems.CurrentCell?.Column?.MappingName;
-                var currentIndex = Array.IndexOf(editableColumns, currentColumn);
-                
-                int nextIndex;
-                int nextRowIndex = currentRowIndex;
-                
-                if (moveForward)
-                {
-                    if (currentIndex >= 0 && currentIndex < editableColumns.Length - 1)
-                    {
-                        // Move to next column in same row
-                        nextIndex = currentIndex + 1;
-                    }
-                    else
-                    {
-                        // Move to first column of next row
-                        nextIndex = 0;
-                        nextRowIndex = currentRowIndex + 1;
-                        
-                        // If we're at the last row, add a new item
-                        var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
-                        if (items != null && nextRowIndex >= items.Count)
-                        {
-                            // Focus on Add Item button to add new row
-                            this.BeginInvoke(new Action(() => btnAddItem.Focus()));
-                            return;
-                        }
-                    }
-                }
-                else // moveBackward
-                {
-                    if (currentIndex > 0)
-                    {
-                        // Move to previous column in same row
-                        nextIndex = currentIndex - 1;
-                    }
-                    else
-                    {
-                        // Move to last column of previous row
-                        nextIndex = editableColumns.Length - 1;
-                        nextRowIndex = currentRowIndex - 1;
-                        
-                        // If we're at the first row, stay at first column
-                        if (nextRowIndex < 0)
-                        {
-                            nextRowIndex = 0;
-                            nextIndex = 0;
-                        }
-                    }
-                }
-                
-                // Use BeginInvoke to ensure the current edit is committed first
-                this.BeginInvoke(new Action(() =>
-                {
-                    try
-                    {
-                        var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
-                        if (items != null && nextRowIndex < items.Count)
-                        {
-                            // Select the target row and column
-                            sfGridItems.SelectedIndex = nextRowIndex;
-                            
-                            // Find the target column
-                            var targetColumn = sfGridItems.Columns.FirstOrDefault(c => c.MappingName == editableColumns[nextIndex]);
-                            if (targetColumn != null)
-                            {
-                                // Navigate to the target cell using simulated keystrokes
-                                // This is a workaround for SFGrid's limited API
-                                sfGridItems.Focus();
-                                
-                                // Navigate to the correct column
-                                var currentColIndex = GetColumnIndex(currentColumn);
-                                var targetColIndex = GetColumnIndex(editableColumns[nextIndex]);
-                                
-                                if (targetColIndex > currentColIndex)
-                                {
-                                    for (int i = 0; i < (targetColIndex - currentColIndex); i++)
-                                    {
-                                        SendKeys.SendWait("{RIGHT}");
-                                        System.Threading.Thread.Sleep(10); // Small delay for navigation
-                                    }
-                                }
-                                else if (targetColIndex < currentColIndex)
-                                {
-                                    for (int i = 0; i < (currentColIndex - targetColIndex); i++)
-                                    {
-                                        SendKeys.SendWait("{LEFT}");
-                                        System.Threading.Thread.Sleep(10); // Small delay for navigation
-                                    }
-                                }
-                                
-                                // Use a timer to ensure the F2 is sent after navigation completes
-                                var timer = new System.Windows.Forms.Timer();
-                                timer.Interval = 100; // 100ms delay
-                                timer.Tick += (s, args) =>
-                                {
-                                    timer.Stop();
-                                    timer.Dispose();
-                                    try
-                                    {
-                                        // Ensure grid still has focus and start editing
-                                        if (sfGridItems.Focused)
-                                        {
-                                            SendKeys.SendWait("{F2}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Console.WriteLine($"Error starting edit with timer: {ex.Message}");
-                                    }
-                                };
-                                timer.Start();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error navigating to next cell: {ex.Message}");
-                    }
-                }));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in MoveToNextEditableCell: {ex.Message}");
-            }
-        }
+     
         
         private int GetColumnIndex(string columnMappingName)
         {
@@ -4027,84 +4001,19 @@ namespace WinFormsApp1.Forms.Transaction
             return 0;
         }
         
-        private void StartEditingCurrentCell()
-        {
-            try
-            {
-                // Start editing the current cell (like F2 in Excel)
-                sfGridItems.Focus();
-                SendKeys.SendWait("{F2}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error starting cell edit: {ex.Message}");
-            }
-        }
-        
-        private void HandleArrowKeyNavigation(Keys keyCode)
-        {
-            try
-            {
-                var items = sfGridItems.DataSource as List<TransactionItemDisplay>;
-                if (items == null || items.Count == 0) return;
-                
-                var currentRowIndex = sfGridItems.SelectedIndex;
-                int newRowIndex = currentRowIndex;
-                
-                if (keyCode == Keys.Up && currentRowIndex > 0)
-                {
-                    newRowIndex = currentRowIndex - 1;
-                }
-                else if (keyCode == Keys.Down && currentRowIndex < items.Count - 1)
-                {
-                    newRowIndex = currentRowIndex + 1;
-                }
-                
-                if (newRowIndex != currentRowIndex)
-                {
-                    sfGridItems.SelectedIndex = newRowIndex;
-                    sfGridItems.Focus();
-                    
-                    // Maintain the same column position if possible
-                    var currentColumn = sfGridItems.CurrentCell?.Column?.MappingName;
-                    if (!string.IsNullOrEmpty(currentColumn))
-                    {
-                        this.BeginInvoke(new Action(() =>
-                        {
-                            try
-                            {
-                                var targetColIndex = GetColumnIndex(currentColumn);
-                                var currentColIndex = 0; // Start from first column
-                                
-                                // Navigate to the same column
-                                if (targetColIndex > currentColIndex)
-                                {
-                                    for (int i = 0; i < (targetColIndex - currentColIndex); i++)
-                                    {
-                                        SendKeys.SendWait("{RIGHT}");
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error maintaining column position: {ex.Message}");
-                            }
-                        }));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error handling arrow key navigation: {ex.Message}");
-            }
-        }
+  
 
         private void SfGridItems_MouseClick(object? sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                // Handle right-click context menu
+                // For SFGrid, we'll use the current selection or try to select based on mouse position
+                // SFGrid handles row selection automatically on mouse click
+                
+                // Update context menu items based on selection
                 UpdateItemsContextMenu();
+                
+                // Show context menu at cursor position
                 _itemsContextMenu.Show(sfGridItems, e.Location);
             }
         }

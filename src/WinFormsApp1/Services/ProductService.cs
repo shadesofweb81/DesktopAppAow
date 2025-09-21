@@ -34,16 +34,12 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var url = $"api/v1/product/company/{companyId}";
-                
-                Console.WriteLine($"Fetching products for company {companyId} from: {url}");
+                var url = $"api/v1/product/company/{companyId}/transactions";            
 
                 var response = await _httpClient.GetAsync(url);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"Response Status: {response.StatusCode}");
-                Console.WriteLine($"Response Content Length: {responseContent?.Length ?? 0} characters");
-                Console.WriteLine($"Response Content Preview: {responseContent?.Substring(0, Math.Min(500, responseContent.Length)) ?? "null"}");
+
                 if (responseContent?.Length > 500)
                 {
                     Console.WriteLine($"... (truncated, full content available in logs)");

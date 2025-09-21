@@ -8,13 +8,14 @@ namespace WinFormsApp1.Services
     public class AuthService : IDisposable
     {
         private readonly HttpClient _httpClient;
-        //private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
-        //private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
+        private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
+
+        private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
         // private readonly string _erpBaseUrl = "https://localhost:7046";
 
-        private readonly string _authBaseUrl = "https://api.accountingonweb.com";
-        private readonly string _erpBaseUrl = "https://api.accountingonweb.com";
-       
+        //private readonly string _authBaseUrl = "https://api.accountingonweb.com";
+        //private readonly string _erpBaseUrl = "https://api.accountingonweb.com";
+
         private readonly string _tokenFilePath;
         private string? _jwtToken;
 
