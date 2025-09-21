@@ -152,7 +152,29 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var json = JsonSerializer.Serialize(ledger);
+                
+                // Create a copy of the ledger without Email and Website fields to avoid validation errors
+                var ledgerForRequest = new
+                {
+                    Id = ledger.Id,
+                    Name = ledger.Name,
+                    Category = ledger.Category,
+                    Code = ledger.Code,
+                    Address = ledger.Address,
+                    City = ledger.City,
+                    State = ledger.State,
+                    ZipCode = ledger.ZipCode,
+                    Country = ledger.Country,
+                    Phone = ledger.Phone,
+                    // Email and Website are excluded to avoid validation errors
+                    TaxId = ledger.TaxId,
+                    IsGroup = ledger.IsGroup,
+                    IsRegistered = ledger.IsRegistered,
+                    ParentId = ledger.ParentId,
+                    CompanyId = ledger.CompanyId
+                };
+                
+                var json = JsonSerializer.Serialize(ledgerForRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync(_baseUrl, content);
@@ -175,10 +197,31 @@ namespace WinFormsApp1.Services
             try
             {
                 SetAuthHeader();
-                var json = JsonSerializer.Serialize(ledger);
+                
+                // Create a copy of the ledger without Email and Website fields to avoid validation errors
+                var ledgerForRequest = new
+                {
+                    Name = ledger.Name,
+                    Category = ledger.Category,
+                    Code = ledger.Code,
+                    Address = ledger.Address,
+                    City = ledger.City,
+                    State = ledger.State,
+                    ZipCode = ledger.ZipCode,
+                    Country = ledger.Country,
+                    Phone = ledger.Phone,
+                    // Email and Website are excluded to avoid validation errors
+                    TaxId = ledger.TaxId,
+                    IsGroup = ledger.IsGroup,
+                    IsRegistered = ledger.IsRegistered,
+                    ParentId = ledger.ParentId,
+                    CompanyId = ledger.CompanyId
+                };
+                
+                var json = JsonSerializer.Serialize(ledgerForRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PutAsJsonAsync($"{_baseUrl}/{id}", ledger);
+                var response = await _httpClient.PutAsync($"{_baseUrl}/{id}", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Console.WriteLine($"Update Ledger Response Status: {response.StatusCode}");
