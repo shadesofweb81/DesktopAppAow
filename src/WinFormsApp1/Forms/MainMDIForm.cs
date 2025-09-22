@@ -5,6 +5,7 @@ using WinFormsApp1.Forms.Ledger;
 using WinFormsApp1.Forms.Tax;
 using WinFormsApp1.Forms.Transaction;
 using WinFormsApp1.Forms.Payment;
+using WinFormsApp1.Forms.Reports;
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Auth;
@@ -67,6 +68,7 @@ namespace WinFormsApp1.Forms
         private Button salesReportButton = null!;
         private Button purchaseReportButton = null!;
         private Button profitLossButton = null!;
+        private Button ledgerReportButton = null!;
 
         // Navigation state
         private bool isNavigationVisible = true;
@@ -135,6 +137,7 @@ namespace WinFormsApp1.Forms
             salesReportButton = new Button();
             purchaseReportButton = new Button();
             profitLossButton = new Button();
+            ledgerReportButton = new Button();
             menuStrip.SuspendLayout();
             navigationPanel.SuspendLayout();
             mainNavigationGroupBox.SuspendLayout();
@@ -281,7 +284,7 @@ namespace WinFormsApp1.Forms
             navigationPanel.Margin = new Padding(3, 4, 3, 4);
             navigationPanel.Name = "navigationPanel";
             navigationPanel.Padding = new Padding(6, 7, 6, 7);
-            navigationPanel.Size = new Size(343, 770);
+            navigationPanel.Size = new Size(343, 920);
             navigationPanel.TabIndex = 1;
             // 
             // mainNavigationGroupBox
@@ -305,12 +308,13 @@ namespace WinFormsApp1.Forms
             mainNavigationGroupBox.Controls.Add(salesReportButton);
             mainNavigationGroupBox.Controls.Add(purchaseReportButton);
             mainNavigationGroupBox.Controls.Add(profitLossButton);
+            mainNavigationGroupBox.Controls.Add(ledgerReportButton);
             mainNavigationGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             mainNavigationGroupBox.Location = new Point(11, 13);
             mainNavigationGroupBox.Margin = new Padding(3, 4, 3, 4);
             mainNavigationGroupBox.Name = "mainNavigationGroupBox";
             mainNavigationGroupBox.Padding = new Padding(3, 4, 3, 4);
-            mainNavigationGroupBox.Size = new Size(320, 833);
+            mainNavigationGroupBox.Size = new Size(320, 920);
             mainNavigationGroupBox.TabIndex = 0;
             mainNavigationGroupBox.TabStop = false;
             mainNavigationGroupBox.Text = "APPLICATION NAVIGATION";
@@ -478,14 +482,26 @@ namespace WinFormsApp1.Forms
             reportsLabel.TabIndex = 12;
             reportsLabel.Text = "REPORTS (Alt+R)";
             // 
+            // ledgerReportButton
+            // 
+            ledgerReportButton.Font = new Font("Segoe UI", 9F);
+            ledgerReportButton.Location = new Point(9, 644);
+            ledgerReportButton.Margin = new Padding(3, 4, 3, 4);
+            ledgerReportButton.Name = "ledgerReportButton";
+            ledgerReportButton.Size = new Size(302, 37);
+            ledgerReportButton.TabIndex = 13;
+            ledgerReportButton.Text = "&Ledger Report (Ctrl+F6)";
+            ledgerReportButton.UseVisualStyleBackColor = true;
+            ledgerReportButton.Click += ledgerReportButton_Click;
+            // 
             // stockReportButton
             // 
             stockReportButton.Font = new Font("Segoe UI", 9F);
-            stockReportButton.Location = new Point(9, 644);
+            stockReportButton.Location = new Point(9, 689);
             stockReportButton.Margin = new Padding(3, 4, 3, 4);
             stockReportButton.Name = "stockReportButton";
             stockReportButton.Size = new Size(302, 37);
-            stockReportButton.TabIndex = 13;
+            stockReportButton.TabIndex = 14;
             stockReportButton.Text = "St&ock Report (Ctrl+F1)";
             stockReportButton.UseVisualStyleBackColor = true;
             stockReportButton.Click += stockReportButton_Click;
@@ -493,11 +509,11 @@ namespace WinFormsApp1.Forms
             // taxReportButton
             // 
             taxReportButton.Font = new Font("Segoe UI", 9F);
-            taxReportButton.Location = new Point(9, 644);
+            taxReportButton.Location = new Point(9, 734);
             taxReportButton.Margin = new Padding(3, 4, 3, 4);
             taxReportButton.Name = "taxReportButton";
             taxReportButton.Size = new Size(302, 37);
-            taxReportButton.TabIndex = 13;
+            taxReportButton.TabIndex = 15;
             taxReportButton.Text = "Ta&x Report (Ctrl+F2)";
             taxReportButton.UseVisualStyleBackColor = true;
             taxReportButton.Click += taxReportButton_Click;
@@ -505,11 +521,11 @@ namespace WinFormsApp1.Forms
             // salesReportButton
             // 
             salesReportButton.Font = new Font("Segoe UI", 9F);
-            salesReportButton.Location = new Point(9, 689);
+            salesReportButton.Location = new Point(9, 779);
             salesReportButton.Margin = new Padding(3, 4, 3, 4);
             salesReportButton.Name = "salesReportButton";
             salesReportButton.Size = new Size(302, 37);
-            salesReportButton.TabIndex = 14;
+            salesReportButton.TabIndex = 16;
             salesReportButton.Text = "Sales &Report (Ctrl+F3)";
             salesReportButton.UseVisualStyleBackColor = true;
             salesReportButton.Click += salesReportButton_Click;
@@ -517,11 +533,11 @@ namespace WinFormsApp1.Forms
             // purchaseReportButton
             // 
             purchaseReportButton.Font = new Font("Segoe UI", 9F);
-            purchaseReportButton.Location = new Point(9, 734);
+            purchaseReportButton.Location = new Point(9, 824);
             purchaseReportButton.Margin = new Padding(3, 4, 3, 4);
             purchaseReportButton.Name = "purchaseReportButton";
             purchaseReportButton.Size = new Size(302, 37);
-            purchaseReportButton.TabIndex = 15;
+            purchaseReportButton.TabIndex = 17;
             purchaseReportButton.Text = "Purchase Re&port (Ctrl+F4)";
             purchaseReportButton.UseVisualStyleBackColor = true;
             purchaseReportButton.Click += purchaseReportButton_Click;
@@ -529,11 +545,11 @@ namespace WinFormsApp1.Forms
             // profitLossButton
             // 
             profitLossButton.Font = new Font("Segoe UI", 9F);
-            profitLossButton.Location = new Point(9, 779);
+            profitLossButton.Location = new Point(9, 869);
             profitLossButton.Margin = new Padding(3, 4, 3, 4);
             profitLossButton.Name = "profitLossButton";
             profitLossButton.Size = new Size(302, 37);
-            profitLossButton.TabIndex = 16;
+            profitLossButton.TabIndex = 18;
             profitLossButton.Text = "Profit && &Loss (Ctrl+F5)";
             profitLossButton.UseVisualStyleBackColor = true;
             profitLossButton.Click += profitLossButton_Click;
@@ -635,6 +651,7 @@ namespace WinFormsApp1.Forms
 
             reportsButtons = new Button[]
             {
+                ledgerReportButton,
                 stockReportButton,
                 taxReportButton,
                 salesReportButton,
@@ -916,6 +933,10 @@ namespace WinFormsApp1.Forms
                     break;
                 case Keys.F5 when e.Control && !e.Alt:
                     profitLossButton_Click(null, EventArgs.Empty);
+                    e.Handled = true;
+                    break;
+                case Keys.F6 when e.Control && !e.Alt:
+                    ledgerReportButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
 
@@ -1363,6 +1384,47 @@ namespace WinFormsApp1.Forms
             }
         }
 
+        private void OpenLedgerReportForm()
+        {
+            // Check if LedgerReportForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is LedgerReportForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new ledger report form
+            var ledgerReportForm = new LedgerReportForm(_ledgerService, _localStorageService)
+            {
+                MdiParent = this,
+                Text = "Ledger Report",
+                WindowState = FormWindowState.Maximized
+            };
+
+            ledgerReportForm.Show();
+            
+            // Hide navigation panel when LedgerReportForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            ledgerReportForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1546,6 +1608,7 @@ TRANSACTIONS SECTION:
 • F11 - Journal Entries (Debit/Credit Entries)
 
 REPORTS SECTION:
+• Ctrl+F6 - Ledger Report
 • Ctrl+F1 - Stock Report
 • Ctrl+F2 - Tax Report
 • Ctrl+F3 - Sales Report
@@ -1802,9 +1865,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             {
                 buttonToFocus = saleButton;
             }
-            else if (sectionName == "reports" && stockReportButton.Visible)
+            else if (sectionName == "reports" && ledgerReportButton.Visible)
             {
-                buttonToFocus = stockReportButton;
+                buttonToFocus = ledgerReportButton;
             }
 
             if (buttonToFocus != null)
@@ -1943,7 +2006,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -1973,7 +2036,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -2015,7 +2078,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
             };
 
             foreach (Button btn in allButtons)
@@ -2063,7 +2126,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
             };
 
             foreach (Button btn in allButtons)
@@ -2276,6 +2339,16 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 _lastFocusedButton = btn; // Store the last focused button
             }
             MessageBox.Show("Profit & Loss Report feature will be implemented here.", "Profit & Loss", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ledgerReportButton_Click(object? sender, EventArgs e)
+        {
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
+            OpenLedgerReportForm();
         }
 
         private void mainNavigationGroupBox_Enter(object sender, EventArgs e)
