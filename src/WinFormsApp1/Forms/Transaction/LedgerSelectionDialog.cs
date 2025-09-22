@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using WinFormsApp1.Models;
+using WinFormsApp1.Services;
+using WinFormsApp1.Forms.Ledger;
 
 namespace WinFormsApp1.Forms.Transaction
 {
@@ -9,10 +11,13 @@ namespace WinFormsApp1.Forms.Transaction
         private DataGridView dgvLedgers = null!;
         private Button btnOK = null!;
         private Button btnCancel = null!;
+        private Button btnAddNewLedger = null!;
         private ComboBox cmbFilterType = null!;
         private CheckBox chkShowGroups = null!;
         private List<LedgerModel> _allLedgers;
         private List<LedgerModel> _filteredLedgers;
+        private readonly LedgerService? _ledgerService;
+        private readonly string? _companyId;
 
         public LedgerModel? SelectedLedger { get; private set; }
         
@@ -29,6 +34,20 @@ namespace WinFormsApp1.Forms.Transaction
         {
             _allLedgers = ledgers ?? new List<LedgerModel>();
             _filteredLedgers = new List<LedgerModel>(_allLedgers);
+            _ledgerService = null;
+            _companyId = null;
+            DialogTitle = title;
+            FilterHint = filterHint;
+            DefaultFilterType = defaultFilterType;
+            InitializeDialog();
+        }
+
+        public LedgerSelectionDialog(List<LedgerModel> ledgers, LedgerService ledgerService, string companyId, string title = "Select Ledger", string filterHint = "All Ledgers", string defaultFilterType = "All Ledgers")
+        {
+            _allLedgers = ledgers ?? new List<LedgerModel>();
+            _filteredLedgers = new List<LedgerModel>(_allLedgers);
+            _ledgerService = ledgerService;
+            _companyId = companyId;
             DialogTitle = title;
             FilterHint = filterHint;
             DefaultFilterType = defaultFilterType;
@@ -48,6 +67,7 @@ namespace WinFormsApp1.Forms.Transaction
             dgvLedgers = new DataGridView();
             btnOK = new Button();
             btnCancel = new Button();
+            btnAddNewLedger = new Button();
 
             SuspendLayout();
 
@@ -104,7 +124,7 @@ namespace WinFormsApp1.Forms.Transaction
 
             // Ledgers grid
             dgvLedgers.Location = new Point(20, 95);
-            dgvLedgers.Size = new Size(845, 500);
+            dgvLedgers.Size = new Size(845, 460);
             dgvLedgers.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvLedgers.MultiSelect = false;
             dgvLedgers.AllowUserToAddRows = false;
@@ -115,6 +135,17 @@ namespace WinFormsApp1.Forms.Transaction
             dgvLedgers.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             
             SetupLedgerGrid();
+
+            // Add New Ledger Button
+            btnAddNewLedger.Location = new Point(20, 565);
+            btnAddNewLedger.Size = new Size(120, 30);
+            btnAddNewLedger.Text = "&Add New Ledger";
+            btnAddNewLedger.UseVisualStyleBackColor = true;
+            btnAddNewLedger.BackColor = Color.LightBlue;
+            btnAddNewLedger.ForeColor = Color.DarkBlue;
+            btnAddNewLedger.Enabled = _ledgerService != null && !string.IsNullOrEmpty(_companyId);
+            btnAddNewLedger.Click += BtnAddNewLedger_Click;
+            btnAddNewLedger.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
             // Buttons
             btnOK.Location = new Point(710, 605);
@@ -146,7 +177,7 @@ namespace WinFormsApp1.Forms.Transaction
                 lblFilter, cmbFilterType, chkShowGroups, 
                 lblSearch, txtSearch, 
                 dgvLedgers, 
-                btnOK, btnCancel, lblInfo 
+                btnAddNewLedger, btnOK, btnCancel, lblInfo 
             });
 
             LoadLedgers();
@@ -438,6 +469,142 @@ Tips:
 
             MessageBox.Show(helpMessage, "Ledger Selection Help", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private async void BtnAddNewLedger_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (_ledgerService == null || string.IsNullOrEmpty(_companyId))
+                {
+                    MessageBox.Show("Ledger creation is not available. Missing required services.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                Console.WriteLine("Opening new ledger form...");
+                
+                // Create and show the ledger edit form as a modal dialog
+                using var ledgerForm = new LedgerEditForm(_ledgerService, null);
+                ledgerForm.Text = "Add New Ledger";
+                ledgerForm.FormBorderStyle = FormBorderStyle.Sizable;
+                ledgerForm.MaximizeBox = true;
+                ledgerForm.MinimizeBox = true;
+                ledgerForm.ShowInTaskbar = false; // Don't show in taskbar since it's a modal dialog
+                ledgerForm.StartPosition = FormStartPosition.CenterParent;
+                ledgerForm.WindowState = FormWindowState.Normal;
+                ledgerForm.Size = new Size(900, 800); // Larger size to accommodate all fields
+                ledgerForm.MinimumSize = new Size(800, 700); // Set minimum size to ensure all fields are visible
+                ledgerForm.AutoScroll = true; // Enable scrolling if content exceeds visible area
+                ledgerForm.MaximumSize = new Size(1200, 900); // Set reasonable maximum size
+                
+                var result = ledgerForm.ShowDialog(this);
+                
+                if (result == DialogResult.OK)
+                {
+                    Console.WriteLine("Ledger was successfully created, refreshing ledger list...");
+                    Console.WriteLine($"DialogResult.OK received - proceeding with refresh");
+                    
+                    // Show a temporary status message
+                    Text = "Refreshing ledger list...";
+                    
+                    // Refresh the ledger list from the server
+                    Console.WriteLine("Calling RefreshLedgerList()...");
+                    await RefreshLedgerList();
+                    Console.WriteLine("RefreshLedgerList() completed successfully");
+                    
+                    // Restore original title with updated count
+                    var statusText = $"Showing {_filteredLedgers.Count} of {_allLedgers.Count} ledgers";
+                    Text = $"{DialogTitle} - {statusText} - New ledger added!";
+                    
+                    // Focus on the grid so user can see the updated list
+                    dgvLedgers.Focus();
+                    
+                    // Optionally try to find and select the newly created ledger
+                    TrySelectNewlyCreatedLedger();
+                }
+                else
+                {
+                    Console.WriteLine("Ledger creation was cancelled");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in BtnAddNewLedger_Click: {ex.Message}");
+                MessageBox.Show($"Error opening new ledger form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task RefreshLedgerList()
+        {
+            try
+            {
+                Console.WriteLine("RefreshLedgerList() method started");
+                
+                if (_ledgerService == null || string.IsNullOrEmpty(_companyId))
+                {
+                    Console.WriteLine("RefreshLedgerList() - Missing services, returning early");
+                    return;
+                }
+
+                Console.WriteLine($"RefreshLedgerList() - CompanyId: {_companyId}");
+                Console.WriteLine("Refreshing ledger list from server...");
+                
+                // Parse company ID and fetch fresh ledger list
+                if (Guid.TryParse(_companyId, out var companyId))
+                {
+                    var freshLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
+                    
+                    if (freshLedgers != null && freshLedgers.Any())
+                    {
+                        // Update the ledger lists
+                        _allLedgers = freshLedgers;
+                        _filteredLedgers = new List<LedgerModel>(_allLedgers);
+                        
+                        // Reload the grid with filters applied
+                        LoadLedgers();
+                        
+                        Console.WriteLine($"Ledger list refreshed successfully with {_allLedgers.Count} ledgers");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No ledgers returned from server");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid company ID format: {_companyId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error refreshing ledger list: {ex.Message}");
+                MessageBox.Show($"Error refreshing ledger list: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void TrySelectNewlyCreatedLedger()
+        {
+            try
+            {
+                // Try to find the most recently created ledger by looking for the one with the highest row index
+                // that matches common patterns for new ledgers (could be improved with actual creation timestamp)
+                if (dgvLedgers.Rows.Count > 0)
+                {
+                    // For now, just scroll to the bottom where new ledgers are likely to appear
+                    var lastRowIndex = dgvLedgers.Rows.Count - 1;
+                    dgvLedgers.ClearSelection();
+                    dgvLedgers.Rows[lastRowIndex].Selected = true;
+                    dgvLedgers.CurrentCell = dgvLedgers.Rows[lastRowIndex].Cells[1]; // Focus on the name column
+                    dgvLedgers.FirstDisplayedScrollingRowIndex = Math.Max(0, lastRowIndex - 5); // Scroll to show the selected row
+                    
+                    Console.WriteLine($"Auto-selected row {lastRowIndex + 1} (likely the new ledger)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error auto-selecting newly created ledger: {ex.Message}");
+                // Don't show error to user as this is a nice-to-have feature
+            }
         }
     }
 }

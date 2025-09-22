@@ -446,6 +446,7 @@ namespace WinFormsApp1.Forms.Ledger
                 {
                     lblStatus.Text = "Saved successfully";
                     lblStatus.ForeColor = Color.Green;
+                    DialogResult = DialogResult.OK;
                     Close();
                 }
                 else

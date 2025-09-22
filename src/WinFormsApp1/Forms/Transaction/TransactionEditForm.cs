@@ -136,6 +136,7 @@ namespace WinFormsApp1.Forms.Transaction
         private readonly ProductService _productService;
         private readonly TaxService _taxService;
         private readonly LedgerService _ledgerService;
+        private readonly AttributeService _attributeService;
         private Models.Transaction? _transaction;
         private Models.TransactionByIdDto? _transactionDto;
         private readonly Models.Company _selectedCompany;
@@ -275,7 +276,7 @@ namespace WinFormsApp1.Forms.Transaction
 
         public TransactionEditForm(TransactionService transactionService, LocalStorageService localStorageService,
             Models.TransactionByIdDto? transactionDto, Models.Company selectedCompany, FinancialYearModel selectedFinancialYear,
-            ProductService? productService = null, TaxService? taxService = null, LedgerService? ledgerService = null)
+            ProductService? productService = null, TaxService? taxService = null, LedgerService? ledgerService = null, AttributeService? attributeService = null)
         {
             _transactionService = transactionService;
             _localStorageService = localStorageService;
@@ -288,6 +289,7 @@ namespace WinFormsApp1.Forms.Transaction
             _productService = productService ?? new ProductService(new AuthService());
             _taxService = taxService ?? new TaxService(new AuthService());
             _ledgerService = ledgerService ?? new LedgerService(new AuthService());
+            _attributeService = attributeService ?? new AttributeService(new AuthService());
 
             InitializeComponent();
             SetupForm();
@@ -2144,7 +2146,7 @@ namespace WinFormsApp1.Forms.Transaction
             {
                 case Keys.F2:
                     Console.WriteLine("F2 key pressed - calling ShowItemSelectionDialog");
-                    ShowItemSelectionDialog();
+                    _ = ShowItemSelectionDialog();
                     return true;
                 case Keys.F3:
                     Console.WriteLine("F3 key pressed - calling ShowTaxSelectionDialog");
@@ -2152,11 +2154,11 @@ namespace WinFormsApp1.Forms.Transaction
                     return true;
                 case Keys.F4:
                     Console.WriteLine("F4 key pressed - calling ShowPartyLedgerSelectionDialog");
-                    ShowPartyLedgerSelectionDialog();
+                    _ = ShowPartyLedgerSelectionDialog();
                     return true;
                 case Keys.F5:
                     Console.WriteLine("F5 key pressed - calling ShowAccountLedgerSelectionDialog");
-                    ShowAccountLedgerSelectionDialog();
+                    _ = ShowAccountLedgerSelectionDialog();
                     return true;
                 case Keys.Escape:
                     Console.WriteLine("Escape key pressed - canceling and closing form");
@@ -2192,7 +2194,7 @@ namespace WinFormsApp1.Forms.Transaction
             if (e.KeyCode == Keys.F2)
             {
                 Console.WriteLine("F2 detected in OnKeyDown - calling ShowItemSelectionDialog");
-                ShowItemSelectionDialog();
+                _ = ShowItemSelectionDialog();
                 e.Handled = true;
                 return;
             }
@@ -2405,10 +2407,10 @@ namespace WinFormsApp1.Forms.Transaction
             MessageBox.Show(message, "Available Products", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void BtnAddItem_Click(object? sender, EventArgs e)
+        private async void BtnAddItem_Click(object? sender, EventArgs e)
         {
             Console.WriteLine("BtnAddItem_Click called");
-            ShowItemSelectionDialog();
+            await ShowItemSelectionDialog();
         }
 
         private void BtnEditItem_Click(object? sender, EventArgs e)
@@ -3422,7 +3424,7 @@ namespace WinFormsApp1.Forms.Transaction
 
         #region Item Management and Grid Events
 
-        private void ShowItemSelectionDialog()
+        private async Task ShowItemSelectionDialog()
         {
             try
             {
@@ -3434,7 +3436,7 @@ namespace WinFormsApp1.Forms.Transaction
                     return;
                 }
 
-                var dialog = new ItemSelectionDialog(_availableProducts);
+                var dialog = new ItemSelectionDialog(_availableProducts, _productService, _attributeService, _selectedCompany.Id);
                 dialog.StartPosition = FormStartPosition.CenterParent;
                 
                 Console.WriteLine("Opening item selection dialog...");
@@ -3446,6 +3448,9 @@ namespace WinFormsApp1.Forms.Transaction
                     {
                         AddItemToGrid(selectedProduct);
                     }
+                    
+                    // Update the local product list with any new products that may have been added
+                    await RefreshProductListFromDialog(dialog);
                 }
                 else
                 {
@@ -3700,23 +3705,58 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
+        private async Task RefreshProductListFromDialog(ItemSelectionDialog dialog)
+        {
+            try
+            {
+                Console.WriteLine("Refreshing local product list after dialog usage...");
+                
+                // Get the updated product list from the dialog (if it was refreshed)
+                // We'll reload from the server to ensure we have the latest data
+                var companyId = Guid.Parse(_selectedCompany.Id);
+                var freshProducts = await _productService.GetProductsByCompanyAsync(companyId);
+                
+                if (freshProducts != null && freshProducts.Any())
+                {
+                    _availableProducts = freshProducts.Select(p => new ProductListDto
+                    {
+                        Id = p.Id,
+                        ProductCode = p.ProductCode,
+                        Name = p.Name,
+                        Category = p.Category,
+                        Unit = p.Unit,
+                        SellingPrice = p.SellingPrice,
+                        StockQuantity = p.StockQuantity,
+                        IsActive = p.IsActive
+                    }).ToList();
+                    
+                    Console.WriteLine($"Local product list refreshed with {_availableProducts.Count} products");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error refreshing local product list: {ex.Message}");
+                // Don't show error to user as this is a background operation
+            }
+        }
+
         #endregion
 
         #region Ledger Selection Methods
 
-        private void BtnSelectPartyLedger_Click(object? sender, EventArgs e)
+        private async void BtnSelectPartyLedger_Click(object? sender, EventArgs e)
         {
             Console.WriteLine("BtnSelectPartyLedger_Click called");
-            ShowPartyLedgerSelectionDialog();
+            await ShowPartyLedgerSelectionDialog();
         }
 
-        private void BtnSelectAccountLedger_Click(object? sender, EventArgs e)
+        private async void BtnSelectAccountLedger_Click(object? sender, EventArgs e)
         {
             Console.WriteLine("BtnSelectAccountLedger_Click called");
-            ShowAccountLedgerSelectionDialog();
+            await ShowAccountLedgerSelectionDialog();
         }
 
-        private void ShowPartyLedgerSelectionDialog()
+        private async Task ShowPartyLedgerSelectionDialog()
         {
             try
             {
@@ -3731,6 +3771,8 @@ namespace WinFormsApp1.Forms.Transaction
                 Console.WriteLine("Creating Party Ledger Selection Dialog...");
                 var dialog = new LedgerSelectionDialog(
                     _availableLedgers, 
+                    _ledgerService,
+                    _selectedCompany.Id,
                     "Select Party Ledger - Click or Enter to Select", 
                     "Party Ledgers (Customers/Suppliers)",
                     "Party Ledgers" // Default filter to Party Ledgers
@@ -3757,6 +3799,9 @@ namespace WinFormsApp1.Forms.Transaction
                     
                     // Focus on account ledger for next selection
                     txtAccountLedger.Focus();
+                    
+                    // Refresh local ledger list in case new ledgers were added
+                    await RefreshLedgerListFromDialog();
                 }
                 else
                 {
@@ -3771,7 +3816,7 @@ namespace WinFormsApp1.Forms.Transaction
             }
         }
 
-        private void ShowAccountLedgerSelectionDialog()
+        private async Task ShowAccountLedgerSelectionDialog()
         {
             try
             {
@@ -3786,6 +3831,8 @@ namespace WinFormsApp1.Forms.Transaction
                 Console.WriteLine("Creating Account Ledger Selection Dialog...");
                 var dialog = new LedgerSelectionDialog(
                     _availableLedgers, 
+                    _ledgerService,
+                    _selectedCompany.Id,
                     "Select Account Ledger - Click or Enter to Select", 
                     "Account Ledgers (Income/Expense/Asset/Liability)",
                     "Account Ledgers" // Default filter to Account Ledgers
@@ -3812,6 +3859,9 @@ namespace WinFormsApp1.Forms.Transaction
                     {
                         btnAddItem.Focus();
                     }
+                    
+                    // Refresh local ledger list in case new ledgers were added
+                    await RefreshLedgerListFromDialog();
                 }
                 else
                 {
@@ -3823,6 +3873,29 @@ namespace WinFormsApp1.Forms.Transaction
                 Console.WriteLine($"Error in ShowAccountLedgerSelectionDialog: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 MessageBox.Show($"Error opening account ledger selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task RefreshLedgerListFromDialog()
+        {
+            try
+            {
+                Console.WriteLine("Refreshing local ledger list after dialog usage...");
+                
+                // Get the updated ledger list from the server
+                var companyId = Guid.Parse(_selectedCompany.Id);
+                var freshLedgers = await _ledgerService.GetAllLedgersAsync(companyId);
+                
+                if (freshLedgers != null && freshLedgers.Any())
+                {
+                    _availableLedgers = freshLedgers;
+                    Console.WriteLine($"Local ledger list refreshed with {_availableLedgers.Count} ledgers");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error refreshing local ledger list: {ex.Message}");
+                // Don't show error to user as this is a background operation
             }
         }
 
