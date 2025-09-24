@@ -1,12 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+
 using WinFormsApp1.Models;
 using WinFormsApp1.Services;
 using WinFormsApp1.Forms.Transaction;
@@ -32,8 +24,15 @@ namespace WinFormsApp1.Forms.Reports
         
         private GroupBox reportGroupBox = null!;
         private DataGridView dgvReport = null!;
-        private Label lblSummary = null!;
-        private TextBox txtSummary = null!;
+        private GroupBox summaryGroupBox = null!;
+        private Label lblTotalCredit = null!;
+        private Label lblTotalCreditValue = null!;
+        private Label lblTotalDebit = null!;
+        private Label lblTotalDebitValue = null!;
+        private Label lblBalance = null!;
+        private Label lblBalanceValue = null!;
+        private Label lblTransactionCount = null!;
+        private Label lblTransactionCountValue = null!;
         
         private Panel loadingPanel = null!;
         private ProgressBar loadingProgressBar = null!;
@@ -143,37 +142,118 @@ namespace WinFormsApp1.Forms.Reports
             reportGroupBox = new GroupBox();
             reportGroupBox.Text = "Report Results";
             reportGroupBox.Location = new Point(20, 160);
-            reportGroupBox.Size = new Size(1150, 580);
+            reportGroupBox.Size = new Size(1150, 600);
             reportGroupBox.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             this.Controls.Add(reportGroupBox);
             
             // Data Grid View
             dgvReport = new DataGridView();
             dgvReport.Location = new Point(20, 30);
-            dgvReport.Size = new Size(1110, 450);
+            dgvReport.Size = new Size(1110, 400);
             dgvReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvReport.AllowUserToAddRows = false;
             dgvReport.AllowUserToDeleteRows = false;
             dgvReport.ReadOnly = true;
             dgvReport.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvReport.MultiSelect = false;
+            dgvReport.BackgroundColor = Color.White;
+            dgvReport.BorderStyle = BorderStyle.Fixed3D;
+            dgvReport.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvReport.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            dgvReport.EnableHeadersVisualStyles = false;
+            dgvReport.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
+            dgvReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            dgvReport.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+            dgvReport.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(240, 240, 240);
+            dgvReport.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 248, 248);
+            dgvReport.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
+            dgvReport.RowHeadersVisible = false;
+            dgvReport.GridColor = Color.FromArgb(200, 200, 200);
             reportGroupBox.Controls.Add(dgvReport);
             
-            // Summary
-            lblSummary = new Label();
-            lblSummary.Text = "Summary:";
-            lblSummary.Location = new Point(20, 500);
-            lblSummary.Size = new Size(80, 25);
-            lblSummary.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            reportGroupBox.Controls.Add(lblSummary);
+            // Summary Group Box
+            summaryGroupBox = new GroupBox();
+            summaryGroupBox.Text = "Summary";
+            summaryGroupBox.Location = new Point(20, 450);
+            summaryGroupBox.Size = new Size(1110, 100);
+            summaryGroupBox.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            reportGroupBox.Controls.Add(summaryGroupBox);
             
-            txtSummary = new TextBox();
-            txtSummary.Location = new Point(110, 500);
-            txtSummary.Size = new Size(1020, 60);
-            txtSummary.Multiline = true;
-            txtSummary.ReadOnly = true;
-            txtSummary.ScrollBars = ScrollBars.Vertical;
-            reportGroupBox.Controls.Add(txtSummary);
+            // Calculate approximate column positions based on grid layout
+            // Grid columns: TransactionNumber, InvoiceNumber, Date, Type, Status, Total, PaidAmount, BalanceDue, Debit, Credit
+            // Debit column is approximately at 80% of grid width, Credit at 90%
+            int debitColumnX = 800;  // Approximate position of Debit column
+            int creditColumnX = 950; // Approximate position of Credit column
+            
+            // Total Debit (aligned with grid Debit column) - Wider labels for better visibility
+            lblTotalDebit = new Label();
+            lblTotalDebit.Text = "Total Debit:";
+            lblTotalDebit.Location = new Point(debitColumnX - 100, 30);
+            lblTotalDebit.Size = new Size(100, 25);
+            lblTotalDebit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotalDebit.ForeColor = Color.Green;
+            lblTotalDebit.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblTotalDebit);
+            
+            lblTotalDebitValue = new Label();
+            lblTotalDebitValue.Text = "0.00";
+            lblTotalDebitValue.Location = new Point(debitColumnX, 30);
+            lblTotalDebitValue.Size = new Size(120, 25);
+            lblTotalDebitValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotalDebitValue.ForeColor = Color.Green;
+            lblTotalDebitValue.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblTotalDebitValue);
+            
+            // Total Credit (aligned with grid Credit column) - Wider labels for better visibility
+            lblTotalCredit = new Label();
+            lblTotalCredit.Text = "Total Credit:";
+            lblTotalCredit.Location = new Point(creditColumnX - 100, 30);
+            lblTotalCredit.Size = new Size(100, 25);
+            lblTotalCredit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotalCredit.ForeColor = Color.Red;
+            lblTotalCredit.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblTotalCredit);
+            
+            lblTotalCreditValue = new Label();
+            lblTotalCreditValue.Text = "0.00";
+            lblTotalCreditValue.Location = new Point(creditColumnX, 30);
+            lblTotalCreditValue.Size = new Size(120, 25);
+            lblTotalCreditValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotalCreditValue.ForeColor = Color.Red;
+            lblTotalCreditValue.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblTotalCreditValue);
+            
+            // Transaction Count (on left side of summary, fully visible)
+            lblTransactionCount = new Label();
+            lblTransactionCount.Text = "Total Transactions:";
+            lblTransactionCount.Location = new Point(20, 60);
+            lblTransactionCount.Size = new Size(120, 25);
+            lblTransactionCount.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            summaryGroupBox.Controls.Add(lblTransactionCount);
+            
+            lblTransactionCountValue = new Label();
+            lblTransactionCountValue.Text = "0";
+            lblTransactionCountValue.Location = new Point(150, 60);
+            lblTransactionCountValue.Size = new Size(50, 25);
+            lblTransactionCountValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            summaryGroupBox.Controls.Add(lblTransactionCountValue);
+            
+            // Balance (on next line, aligned with the totals) - Wider labels for better visibility
+            lblBalance = new Label();
+            lblBalance.Text = "Balance:";
+            lblBalance.Location = new Point(debitColumnX - 100, 60);
+            lblBalance.Size = new Size(100, 25);
+            lblBalance.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblBalance.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblBalance);
+            
+            lblBalanceValue = new Label();
+            lblBalanceValue.Text = "0.00";
+            lblBalanceValue.Location = new Point(debitColumnX, 60);
+            lblBalanceValue.Size = new Size(120, 25);
+            lblBalanceValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblBalanceValue.TextAlign = ContentAlignment.MiddleRight;
+            summaryGroupBox.Controls.Add(lblBalanceValue);
             
             // Loading Panel
             SetupLoadingPanel();
@@ -359,67 +439,141 @@ namespace WinFormsApp1.Forms.Reports
 
             // Create a list to hold all transactions for display
             var allTransactions = new List<object>();
+            decimal totalCredit = 0;
+            decimal totalDebit = 0;
+            int totalTransactionCount = _reportData.Transactions.Count;
 
-            foreach (var monthlyData in _reportData.MonthlyData)
+            // Track running balance starting from opening balance
+            decimal runningBalance = _reportData.OpeningBalance;
+            bool isOpeningDebit = _reportData.OpeningBalanceType.Equals("Dr", StringComparison.OrdinalIgnoreCase);
+            
+            foreach (var transaction in _reportData.Transactions)
             {
-                foreach (var transaction in monthlyData.Transactions)
+                // Use the direct debit/credit amounts from the API response
+                decimal creditAmount = 0;
+                decimal debitAmount = 0;
+                
+                if (transaction.EntryType.Equals("Debit", StringComparison.OrdinalIgnoreCase))
                 {
-                    allTransactions.Add(new
-                    {
-                        Month = monthlyData.MonthName,
-                        Year = monthlyData.Year,
-                        TransactionNumber = transaction.TransactionNumber,
-                        InvoiceNumber = transaction.InvoiceNumber,
-                        Date = transaction.TransactionDate.ToString("dd/MM/yyyy"),
-                        Type = transaction.Type,
-                        Status = transaction.Status,
-                        SubTotal = transaction.SubTotal,
-                        TaxAmount = transaction.TaxAmount,
-                        Total = transaction.Total,
-                        PaidAmount = transaction.PaidAmount,
-                        BalanceDue = transaction.BalanceDue
-                    });
+                    debitAmount = transaction.Amount;
+                    totalDebit += debitAmount;
                 }
+                else if (transaction.EntryType.Equals("Credit", StringComparison.OrdinalIgnoreCase))
+                {
+                    creditAmount = transaction.Amount;
+                    totalCredit += creditAmount;
+                }
+
+                // Check if this is the opening balance transaction
+                bool isOpeningBalanceTransaction = transaction.PartyName.Equals("Opening Balance Adjustment", StringComparison.OrdinalIgnoreCase) || 
+                    transaction.Notes.Contains("Opening Balance", StringComparison.OrdinalIgnoreCase) ||
+                    (transaction.Type.Equals("JournalEntry", StringComparison.OrdinalIgnoreCase) && 
+                     transaction.PartyName.Equals("Opening Balance Adjustment", StringComparison.OrdinalIgnoreCase));
+
+                decimal balanceToShow;
+                if (isOpeningBalanceTransaction)
+                {
+                    // For opening balance transaction, show the opening balance
+                    balanceToShow = _reportData.OpeningBalance;
+                }
+                else
+                {
+                    // For subsequent transactions, calculate running balance properly
+                    if (transaction.EntryType.Equals("Debit", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Debit increases the balance if opening is debit, decreases if opening is credit
+                        if (isOpeningDebit)
+                            runningBalance += debitAmount;
+                        else
+                            runningBalance -= debitAmount;
+                    }
+                    else if (transaction.EntryType.Equals("Credit", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Credit decreases the balance if opening is debit, increases if opening is credit
+                        if (isOpeningDebit)
+                            runningBalance -= creditAmount;
+                        else
+                            runningBalance += creditAmount;
+                    }
+                    balanceToShow = Math.Abs(runningBalance);
+                }
+
+                allTransactions.Add(new
+                {
+                    TransactionNumber = transaction.TransactionNumber,
+                    InvoiceNumber = transaction.InvoiceNumber ?? "",
+                    Date = transaction.TransactionDate.ToString("dd/MM/yyyy"),
+                    Type = transaction.Type,
+                    Status = transaction.Status,
+                    PartyName = transaction.PartyName,
+                    Debit = debitAmount,
+                    Credit = creditAmount,
+                    Balance = balanceToShow
+                });
             }
 
             // Bind data to grid
             dgvReport.DataSource = allTransactions;
 
-            // Format columns
+            // Format columns and set widths
             if (dgvReport.Columns.Count > 0)
             {
-                if (dgvReport.Columns["SubTotal"] != null)
-                    dgvReport.Columns["SubTotal"].DefaultCellStyle.Format = "N2";
-                if (dgvReport.Columns["TaxAmount"] != null)
-                    dgvReport.Columns["TaxAmount"].DefaultCellStyle.Format = "N2";
-                if (dgvReport.Columns["Total"] != null)
-                    dgvReport.Columns["Total"].DefaultCellStyle.Format = "N2";
-                if (dgvReport.Columns["PaidAmount"] != null)
-                    dgvReport.Columns["PaidAmount"].DefaultCellStyle.Format = "N2";
-                if (dgvReport.Columns["BalanceDue"] != null)
-                    dgvReport.Columns["BalanceDue"].DefaultCellStyle.Format = "N2";
+                if (dgvReport.Columns["Debit"] != null)
+                {
+                    dgvReport.Columns["Debit"]!.DefaultCellStyle.Format = "N2";
+                    dgvReport.Columns["Debit"]!.DefaultCellStyle.ForeColor = Color.Green;
+                    dgvReport.Columns["Debit"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                    dgvReport.Columns["Debit"]!.Width = 120; // More spacious
+                }
+                if (dgvReport.Columns["Credit"] != null)
+                {
+                    dgvReport.Columns["Credit"]!.DefaultCellStyle.Format = "N2";
+                    dgvReport.Columns["Credit"]!.DefaultCellStyle.ForeColor = Color.Red;
+                    dgvReport.Columns["Credit"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                    dgvReport.Columns["Credit"]!.Width = 120; // More spacious
+                }
+                if (dgvReport.Columns["Balance"] != null)
+                {
+                    dgvReport.Columns["Balance"]!.DefaultCellStyle.Format = "N2";
+                    dgvReport.Columns["Balance"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                    dgvReport.Columns["Balance"]!.Width = 120;
+                    dgvReport.Columns["Balance"]!.DefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                }
+                
+                // Set other column widths for better layout
+                if (dgvReport.Columns["TransactionNumber"] != null)
+                    dgvReport.Columns["TransactionNumber"]!.Width = 120;
+                if (dgvReport.Columns["InvoiceNumber"] != null)
+                    dgvReport.Columns["InvoiceNumber"]!.Width = 120;
+                if (dgvReport.Columns["Date"] != null)
+                    dgvReport.Columns["Date"]!.Width = 100;
+                if (dgvReport.Columns["Type"] != null)
+                    dgvReport.Columns["Type"]!.Width = 120;
+                if (dgvReport.Columns["Status"] != null)
+                    dgvReport.Columns["Status"]!.Width = 100;
+                if (dgvReport.Columns["PartyName"] != null)
+                    dgvReport.Columns["PartyName"]!.Width = 150;
             }
 
-            // Display summary
-            var summary = _reportData.Summary;
-            var summaryText = $"Party: {_reportData.PartyName} | " +
-                             $"Total Amount: {summary.TotalAmount:N2} | " +
-                             $"Total Paid: {summary.TotalPaid:N2} | " +
-                             $"Total Balance: {summary.TotalBalance:N2} | " +
-                             $"Total Transactions: {summary.TotalTransactions} | " +
-                             $"Average Monthly Amount: {summary.AverageMonthlyAmount:N2}";
+            // Align summary with grid columns after data is bound
+            AlignSummaryWithGridColumns();
 
-            if (!string.IsNullOrEmpty(summary.HighestMonth))
-            {
-                summaryText += $" | Highest Month: {summary.HighestMonth}";
-            }
+            // Use the totals directly from the API response
+            decimal apiTotalDebits = _reportData.TotalDebits;
+            decimal apiTotalCredits = _reportData.TotalCredits;
+            decimal apiClosingBalance = _reportData.ClosingBalance;
+            string apiClosingBalanceType = _reportData.ClosingBalanceType;
 
-            if (!string.IsNullOrEmpty(summary.LowestMonth))
-            {
-                summaryText += $" | Lowest Month: {summary.LowestMonth}";
-            }
+            // Format closing balance with type
+            string balanceText = $"{apiClosingBalance:N2} {apiClosingBalanceType}";
+            Color balanceColor = apiClosingBalanceType.Equals("Dr", StringComparison.OrdinalIgnoreCase) ? Color.Green : Color.Red;
 
-            txtSummary.Text = summaryText;
+            // Update summary labels with API response totals
+            lblTotalDebitValue.Text = apiTotalDebits.ToString("N2");
+            lblTotalCreditValue.Text = apiTotalCredits.ToString("N2");
+            lblBalanceValue.Text = balanceText;
+            lblBalanceValue.ForeColor = balanceColor;
+            lblTransactionCountValue.Text = totalTransactionCount.ToString();
         }
 
         private void BtnClear_Click(object? sender, EventArgs e)
@@ -428,14 +582,100 @@ namespace WinFormsApp1.Forms.Reports
             txtLedger.Clear();
             dgvReport.DataSource = null;
             dgvReport.Columns.Clear();
-            txtSummary.Clear();
+            
+            // Clear summary labels
+            lblTotalDebitValue.Text = "0.00";
+            lblTotalCreditValue.Text = "0.00";
+            lblBalanceValue.Text = "0.00";
+            lblBalanceValue.ForeColor = Color.Black;
+            lblTransactionCountValue.Text = "0";
+            
             _reportData = null;
+        }
+
+        private void AlignSummaryWithGridColumns()
+        {
+            // Wait for the grid to finish rendering
+            Application.DoEvents();
+            
+            if (dgvReport.Columns.Count > 0)
+            {
+                // Find the Debit and Credit column positions
+                var debitColumn = dgvReport.Columns["Debit"];
+                var creditColumn = dgvReport.Columns["Credit"];
+                
+                if (debitColumn != null && creditColumn != null)
+                {
+                    // Calculate the actual column positions
+                    int gridLeft = dgvReport.Left;
+                    int summaryLeft = summaryGroupBox.Left;
+                    
+                    // Get column positions relative to the grid
+                    int debitColumnLeft = 0;
+                    int creditColumnLeft = 0;
+                    
+                    for (int i = 0; i < dgvReport.Columns.Count; i++)
+                    {
+                        if (dgvReport.Columns[i].Name == "Debit")
+                        {
+                            debitColumnLeft = GetColumnPosition(i);
+                            break;
+                        }
+                    }
+                    
+                    for (int i = 0; i < dgvReport.Columns.Count; i++)
+                    {
+                        if (dgvReport.Columns[i].Name == "Credit")
+                        {
+                            creditColumnLeft = GetColumnPosition(i);
+                            break;
+                        }
+                    }
+                    
+                    // Adjust label positions to align with columns
+                    int debitX = debitColumnLeft - summaryLeft + gridLeft;
+                    int creditX = creditColumnLeft - summaryLeft + gridLeft;
+                    
+                    // Position the debit labels (wider labels)
+                    lblTotalDebitValue.Location = new Point(debitX, lblTotalDebitValue.Location.Y);
+                    lblTotalDebit.Location = new Point(debitX - 100, lblTotalDebit.Location.Y);
+                    
+                    // Position the credit labels (wider labels)
+                    lblTotalCreditValue.Location = new Point(creditX, lblTotalCreditValue.Location.Y);
+                    lblTotalCredit.Location = new Point(creditX - 100, lblTotalCredit.Location.Y);
+                    
+                    // Position the balance labels (aligned with debit column, wider labels)
+                    lblBalanceValue.Location = new Point(debitX, lblBalanceValue.Location.Y);
+                    lblBalance.Location = new Point(debitX - 100, lblBalance.Location.Y);
+                    
+                    // Transaction count stays on the left side (no need to reposition)
+                }
+            }
+        }
+        
+        private int GetColumnPosition(int columnIndex)
+        {
+            int position = 0;
+            for (int i = 0; i < columnIndex; i++)
+            {
+                if (dgvReport.Columns[i].Visible)
+                {
+                    position += dgvReport.Columns[i].Width;
+                }
+            }
+            return position;
         }
 
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
             CenterLoadingPanel();
+            
+            // Realign summary when form is resized
+            if (dgvReport != null && summaryGroupBox != null)
+            {
+                AlignSummaryWithGridColumns();
+            }
         }
     }
 }

@@ -311,14 +311,14 @@ namespace WinFormsApp1.Services
                 var queryParams = new List<string>
                 {
                     $"companyId={request.CompanyId}",
-                    $"partyLedgerId={request.PartyLedgerId}",
+                    $"ledgerId={request.PartyLedgerId}",
                     $"fromDate={request.FromDate:yyyy-MM-dd}",
                     $"toDate={request.ToDate:yyyy-MM-dd}"
                 };
 
                 var queryString = string.Join("&", queryParams);
-                var url = $"https://readapi.accountingonweb.com/api/v2/reports/ledger/party-monthly?{queryString}";
-
+                var url = $"https://readapi.accountingonweb.com/api/v2/reports/ledger/ledger-transactions?{queryString}";
+               // var url = $"https://localhost:7047/api/v2/reports/ledger/ledger-transactions?{queryString}";
                 Console.WriteLine($"Making GET request to: {url}");
 
                 var response = await _httpClient.GetAsync(url);
