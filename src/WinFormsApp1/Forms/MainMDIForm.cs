@@ -19,6 +19,7 @@ namespace WinFormsApp1.Forms
         private readonly LocalStorageService _localStorageService;
         private readonly FinancialYearService _financialYearService;
         private readonly LedgerService _ledgerService;
+        private readonly LedgerReportService _ledgerReportService;
         private readonly TaxService _taxService;
         private readonly TransactionService _transactionService;
         private readonly JournalEntryService _journalEntryService;
@@ -86,6 +87,7 @@ namespace WinFormsApp1.Forms
             _localStorageService = new LocalStorageService();
             _financialYearService = new FinancialYearService(authService);
             _ledgerService = new LedgerService(authService);
+            _ledgerReportService = new LedgerReportService(authService);
             _taxService = new TaxService(authService);
             _transactionService = new TransactionService(authService);
             _journalEntryService = new JournalEntryService(authService);
@@ -1398,7 +1400,7 @@ namespace WinFormsApp1.Forms
             }
 
             // Create new ledger report form
-            var ledgerReportForm = new LedgerReportForm(_ledgerService, _localStorageService)
+            var ledgerReportForm = new LedgerReportForm(_ledgerService, _ledgerReportService, _localStorageService)
             {
                 MdiParent = this,
                 Text = "Ledger Report",

@@ -301,53 +301,6 @@ namespace WinFormsApp1.Services
             }
         }
 
-        public async Task<LedgerReportResponse?> GetLedgerReportAsync(LedgerReportRequest request)
-        {
-            try
-            {
-                SetAuthHeader();
-
-                // Build query string parameters
-                var queryParams = new List<string>
-                {
-                    $"companyId={request.CompanyId}",
-                    $"ledgerId={request.PartyLedgerId}",
-                    $"fromDate={request.FromDate:yyyy-MM-dd}",
-                    $"toDate={request.ToDate:yyyy-MM-dd}"
-                };
-
-                var queryString = string.Join("&", queryParams);
-                var url = $"https://readapi.accountingonweb.com/api/v2/reports/ledger/ledger-transactions?{queryString}";
-               // var url = $"https://localhost:7047/api/v2/reports/ledger/ledger-transactions?{queryString}";
-                Console.WriteLine($"Making GET request to: {url}");
-
-                var response = await _httpClient.GetAsync(url);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Ledger report response: {json}");
-
-                    var result = JsonSerializer.Deserialize<LedgerReportResponse>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    return result;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Error getting ledger report: {response.StatusCode} - {errorContent}");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception in GetLedgerReportAsync: {ex.Message}");
-                return null;
-            }
-        }
 
         public void Dispose()
         {

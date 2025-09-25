@@ -8,6 +8,7 @@ namespace WinFormsApp1.Forms.Reports
     public partial class LedgerReportForm : Form
     {
         private readonly LedgerService _ledgerService;
+        private readonly LedgerReportService _ledgerReportService;
         private readonly LocalStorageService _localStorageService;
         
         // Controls
@@ -43,9 +44,10 @@ namespace WinFormsApp1.Forms.Reports
         private LedgerModel? _selectedLedger;
         private LedgerReportResponse? _reportData;
 
-        public LedgerReportForm(LedgerService ledgerService, LocalStorageService localStorageService)
+        public LedgerReportForm(LedgerService ledgerService, LedgerReportService ledgerReportService, LocalStorageService localStorageService)
         {
             _ledgerService = ledgerService;
+            _ledgerReportService = ledgerReportService;
             _localStorageService = localStorageService;
             
             InitializeComponent();
@@ -409,7 +411,7 @@ namespace WinFormsApp1.Forms.Reports
                     ToDate = dtpToDate.Value.Date
                 };
 
-                _reportData = await _ledgerService.GetLedgerReportAsync(request);
+                _reportData = await _ledgerReportService.GetLedgerReportAsync(request);
 
                 HideLoadingPanel();
 
