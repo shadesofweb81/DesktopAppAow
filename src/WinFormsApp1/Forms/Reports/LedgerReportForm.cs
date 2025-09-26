@@ -26,9 +26,9 @@ namespace WinFormsApp1.Forms.Reports
         private GroupBox reportGroupBox = null!;
         private DataGridView dgvReport = null!;
         private GroupBox summaryGroupBox = null!;
-        private Label lblTotalCredit = null!;
+      
         private Label lblTotalCreditValue = null!;
-        private Label lblTotalDebit = null!;
+       
         private Label lblTotalDebitValue = null!;
         private Label lblBalance = null!;
         private Label lblBalanceValue = null!;
@@ -187,15 +187,7 @@ namespace WinFormsApp1.Forms.Reports
             int debitColumnX = 800;  // Approximate position of Debit column
             int creditColumnX = 950; // Approximate position of Credit column
             
-            // Total Debit (aligned with grid Debit column) - Wider labels for better visibility
-            lblTotalDebit = new Label();
-            lblTotalDebit.Text = "Total Debit:";
-            lblTotalDebit.Location = new Point(debitColumnX - 100, 30);
-            lblTotalDebit.Size = new Size(100, 25);
-            lblTotalDebit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTotalDebit.ForeColor = Color.Green;
-            lblTotalDebit.TextAlign = ContentAlignment.MiddleRight;
-            summaryGroupBox.Controls.Add(lblTotalDebit);
+           
             
             lblTotalDebitValue = new Label();
             lblTotalDebitValue.Text = "0.00";
@@ -204,17 +196,8 @@ namespace WinFormsApp1.Forms.Reports
             lblTotalDebitValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTotalDebitValue.ForeColor = Color.Green;
             lblTotalDebitValue.TextAlign = ContentAlignment.MiddleRight;
-            summaryGroupBox.Controls.Add(lblTotalDebitValue);
-            
-            // Total Credit (aligned with grid Credit column) - Wider labels for better visibility
-            lblTotalCredit = new Label();
-            lblTotalCredit.Text = "Total Credit:";
-            lblTotalCredit.Location = new Point(creditColumnX - 100, 30);
-            lblTotalCredit.Size = new Size(100, 25);
-            lblTotalCredit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTotalCredit.ForeColor = Color.Red;
-            lblTotalCredit.TextAlign = ContentAlignment.MiddleRight;
-            summaryGroupBox.Controls.Add(lblTotalCredit);
+            summaryGroupBox.Controls.Add(lblTotalDebitValue);            
+           
             
             lblTotalCreditValue = new Label();
             lblTotalCreditValue.Text = "0.00";
@@ -640,11 +623,11 @@ namespace WinFormsApp1.Forms.Reports
                     
                     // Position the debit labels (wider labels)
                     lblTotalDebitValue.Location = new Point(debitX, lblTotalDebitValue.Location.Y);
-                    lblTotalDebit.Location = new Point(debitX - 100, lblTotalDebit.Location.Y);
+                 
                     
                     // Position the credit labels (wider labels)
                     lblTotalCreditValue.Location = new Point(creditX, lblTotalCreditValue.Location.Y);
-                    lblTotalCredit.Location = new Point(creditX - 100, lblTotalCredit.Location.Y);
+                  
                     
                     // Position the balance labels (aligned with debit column, wider labels)
                     lblBalanceValue.Location = new Point(debitX, lblBalanceValue.Location.Y);

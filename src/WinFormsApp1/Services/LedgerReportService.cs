@@ -7,15 +7,14 @@ namespace WinFormsApp1.Services
     {
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
-        private readonly string _baseUrl = "https://readapi.accountingonweb.com";
-        
+
         public AuthService AuthService => _authService;
         
         public LedgerReportService(AuthService authService)
         {
             _authService = authService;
             _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri(_baseUrl);
+            _httpClient.BaseAddress = new Uri(_authService.ReportBaseUrl);
 
             // Add headers
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -47,8 +46,7 @@ namespace WinFormsApp1.Services
                 };
 
                 var queryString = string.Join("&", queryParams);
-                var url = $"/api/v2/reports/ledger/ledger-transactions?{queryString}";
-                Console.WriteLine($"Making GET request to: {_baseUrl}{url}");
+                var url = $"/api/v2/reports/ledger/ledger-transactions?{queryString}";              
 
                 var response = await _httpClient.GetAsync(url);
 

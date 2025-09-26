@@ -11,6 +11,8 @@ namespace WinFormsApp1.Services
         private readonly string _authBaseUrl = "https://auth.accountingonweb.com";
 
         private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
+
+        private readonly string _reportUrl = "https://readapi.accountingonweb.com";
         // private readonly string _erpBaseUrl = "https://localhost:7046";
 
         //private readonly string _authBaseUrl = "https://api.accountingonweb.com";
@@ -41,7 +43,7 @@ namespace WinFormsApp1.Services
         public string? JwtToken => _jwtToken;
         public string AuthBaseUrl => _authBaseUrl;
         public string ErpBaseUrl => _erpBaseUrl;
-
+        public string ReportBaseUrl => _reportUrl;
         /// <summary>
         /// Event triggered when an unauthorized response is received from the API.
         /// Subscribers can use this to handle logout, redirect to login, etc.
