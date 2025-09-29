@@ -70,6 +70,7 @@ namespace WinFormsApp1.Forms
         private Button purchaseReportButton = null!;
         private Button profitLossButton = null!;
         private Button ledgerReportButton = null!;
+        private Button gstReportsButton = null!;
 
         // Navigation state
         private bool isNavigationVisible = true;
@@ -140,6 +141,7 @@ namespace WinFormsApp1.Forms
             purchaseReportButton = new Button();
             profitLossButton = new Button();
             ledgerReportButton = new Button();
+            gstReportsButton = new Button();
             menuStrip.SuspendLayout();
             navigationPanel.SuspendLayout();
             mainNavigationGroupBox.SuspendLayout();
@@ -151,79 +153,47 @@ namespace WinFormsApp1.Forms
             menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, transactionsMenu, windowMenu });
             menuStrip.Location = new Point(0, 0);
             menuStrip.Name = "menuStrip";
-            menuStrip.Padding = new Padding(7, 3, 0, 3);
-            menuStrip.Size = new Size(914, 30);
+            menuStrip.Size = new Size(800, 24);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "menuStrip";
-            // 
-            // lblSelectedCompany
-            // 
-            lblSelectedCompany.AutoSize = true;
-            lblSelectedCompany.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            lblSelectedCompany.Location = new Point(360, 35);
-            lblSelectedCompany.Name = "lblSelectedCompany";
-            lblSelectedCompany.Size = new Size(300, 20);
-            lblSelectedCompany.TabIndex = 2;
-            lblSelectedCompany.Text = "No Company Selected";
-            lblSelectedCompany.ForeColor = Color.Orange;
-            lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
-            lblSelectedCompany.BorderStyle = BorderStyle.FixedSingle;
-            lblSelectedCompany.Padding = new Padding(8, 4, 8, 4);
-            lblSelectedCompany.TextAlign = ContentAlignment.MiddleCenter;
-            
-            // 
-            // lblActiveFinancialYear
-            // 
-            lblActiveFinancialYear.AutoSize = true;
-            lblActiveFinancialYear.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
-            lblActiveFinancialYear.Location = new Point(360, 65);
-            lblActiveFinancialYear.Name = "lblActiveFinancialYear";
-            lblActiveFinancialYear.Size = new Size(300, 20);
-            lblActiveFinancialYear.TabIndex = 3;
-            lblActiveFinancialYear.Text = "No Financial Year Selected";
-            lblActiveFinancialYear.ForeColor = Color.Gray;
-            lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
-            lblActiveFinancialYear.BorderStyle = BorderStyle.FixedSingle;
-            lblActiveFinancialYear.Padding = new Padding(6, 2, 6, 2);
-            lblActiveFinancialYear.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // fileMenu
             // 
             fileMenu.DropDownItems.AddRange(new ToolStripItem[] { selectCompanyMenuItem, companyMenuItem, debugApiMenuItem, logoutMenuItem, exitMenuItem });
             fileMenu.Name = "fileMenu";
-            fileMenu.Size = new Size(46, 24);
+            fileMenu.Size = new Size(37, 20);
             fileMenu.Text = "File";
             // 
             // selectCompanyMenuItem
             // 
             selectCompanyMenuItem.Name = "selectCompanyMenuItem";
-            selectCompanyMenuItem.Size = new Size(224, 26);
+            selectCompanyMenuItem.Size = new Size(180, 22);
             selectCompanyMenuItem.Text = "&Select Company";
             selectCompanyMenuItem.Click += selectCompanyMenuItem_Click;
             // 
             // companyMenuItem
             // 
             companyMenuItem.Name = "companyMenuItem";
-            companyMenuItem.Size = new Size(224, 26);
+            companyMenuItem.Size = new Size(180, 22);
             companyMenuItem.Text = "&Manage Companies";
             companyMenuItem.Click += companyMenuItem_Click;
             // 
             // debugApiMenuItem
             // 
             debugApiMenuItem.Name = "debugApiMenuItem";
-            debugApiMenuItem.Size = new Size(224, 26);
+            debugApiMenuItem.Size = new Size(180, 22);
             // 
             // logoutMenuItem
             // 
             logoutMenuItem.Name = "logoutMenuItem";
-            logoutMenuItem.Size = new Size(224, 26);
+            logoutMenuItem.Size = new Size(180, 22);
             logoutMenuItem.Text = "Logout";
             logoutMenuItem.Click += logoutMenuItem_Click;
             // 
             // exitMenuItem
             // 
             exitMenuItem.Name = "exitMenuItem";
-            exitMenuItem.Size = new Size(224, 26);
+            exitMenuItem.Size = new Size(180, 22);
             exitMenuItem.Text = "Exit";
             exitMenuItem.Click += exitMenuItem_Click;
             // 
@@ -231,13 +201,13 @@ namespace WinFormsApp1.Forms
             // 
             transactionsMenu.DropDownItems.AddRange(new ToolStripItem[] { transactionListMenuItem });
             transactionsMenu.Name = "transactionsMenu";
-            transactionsMenu.Size = new Size(106, 24);
+            transactionsMenu.Size = new Size(85, 20);
             transactionsMenu.Text = "&Transactions";
             // 
             // transactionListMenuItem
             // 
             transactionListMenuItem.Name = "transactionListMenuItem";
-            transactionListMenuItem.Size = new Size(224, 26);
+            transactionListMenuItem.Size = new Size(156, 22);
             transactionListMenuItem.Text = "&Transaction List";
             transactionListMenuItem.Click += transactionListMenuItem_Click;
             // 
@@ -245,36 +215,66 @@ namespace WinFormsApp1.Forms
             // 
             windowMenu.DropDownItems.AddRange(new ToolStripItem[] { cascadeMenuItem, tileHorizontalMenuItem, tileVerticalMenuItem, closeAllMenuItem });
             windowMenu.Name = "windowMenu";
-            windowMenu.Size = new Size(78, 24);
+            windowMenu.Size = new Size(63, 20);
             windowMenu.Text = "Window";
             // 
             // cascadeMenuItem
             // 
             cascadeMenuItem.Name = "cascadeMenuItem";
-            cascadeMenuItem.Size = new Size(190, 26);
+            cascadeMenuItem.Size = new Size(151, 22);
             cascadeMenuItem.Text = "Cascade";
             cascadeMenuItem.Click += cascadeMenuItem_Click;
             // 
             // tileHorizontalMenuItem
             // 
             tileHorizontalMenuItem.Name = "tileHorizontalMenuItem";
-            tileHorizontalMenuItem.Size = new Size(190, 26);
+            tileHorizontalMenuItem.Size = new Size(151, 22);
             tileHorizontalMenuItem.Text = "Tile Horizontal";
             tileHorizontalMenuItem.Click += tileHorizontalMenuItem_Click;
             // 
             // tileVerticalMenuItem
             // 
             tileVerticalMenuItem.Name = "tileVerticalMenuItem";
-            tileVerticalMenuItem.Size = new Size(190, 26);
+            tileVerticalMenuItem.Size = new Size(151, 22);
             tileVerticalMenuItem.Text = "Tile Vertical";
             tileVerticalMenuItem.Click += tileVerticalMenuItem_Click;
             // 
             // closeAllMenuItem
             // 
             closeAllMenuItem.Name = "closeAllMenuItem";
-            closeAllMenuItem.Size = new Size(190, 26);
+            closeAllMenuItem.Size = new Size(151, 22);
             closeAllMenuItem.Text = "Close All";
             closeAllMenuItem.Click += closeAllMenuItem_Click;
+            // 
+            // lblSelectedCompany
+            // 
+            lblSelectedCompany.AutoSize = true;
+            lblSelectedCompany.BackColor = Color.FromArgb(255, 255, 240);
+            lblSelectedCompany.BorderStyle = BorderStyle.FixedSingle;
+            lblSelectedCompany.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblSelectedCompany.ForeColor = Color.Orange;
+            lblSelectedCompany.Location = new Point(315, 26);
+            lblSelectedCompany.Name = "lblSelectedCompany";
+            lblSelectedCompany.Padding = new Padding(7, 3, 7, 3);
+            lblSelectedCompany.Size = new Size(178, 28);
+            lblSelectedCompany.TabIndex = 2;
+            lblSelectedCompany.Text = "No Company Selected";
+            lblSelectedCompany.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // lblActiveFinancialYear
+            // 
+            lblActiveFinancialYear.AutoSize = true;
+            lblActiveFinancialYear.BackColor = Color.FromArgb(248, 248, 248);
+            lblActiveFinancialYear.BorderStyle = BorderStyle.FixedSingle;
+            lblActiveFinancialYear.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            lblActiveFinancialYear.ForeColor = Color.Gray;
+            lblActiveFinancialYear.Location = new Point(315, 49);
+            lblActiveFinancialYear.Name = "lblActiveFinancialYear";
+            lblActiveFinancialYear.Padding = new Padding(5, 2, 5, 2);
+            lblActiveFinancialYear.Size = new Size(158, 21);
+            lblActiveFinancialYear.TabIndex = 3;
+            lblActiveFinancialYear.Text = "No Financial Year Selected";
+            lblActiveFinancialYear.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // navigationPanel
             // 
@@ -282,11 +282,10 @@ namespace WinFormsApp1.Forms
             navigationPanel.BorderStyle = BorderStyle.FixedSingle;
             navigationPanel.Controls.Add(mainNavigationGroupBox);
             navigationPanel.Dock = DockStyle.Left;
-            navigationPanel.Location = new Point(0, 30);
-            navigationPanel.Margin = new Padding(3, 4, 3, 4);
+            navigationPanel.Location = new Point(0, 24);
             navigationPanel.Name = "navigationPanel";
-            navigationPanel.Padding = new Padding(6, 7, 6, 7);
-            navigationPanel.Size = new Size(343, 920);
+            navigationPanel.Padding = new Padding(5, 5, 5, 5);
+            navigationPanel.Size = new Size(300, 576);
             navigationPanel.TabIndex = 1;
             // 
             // mainNavigationGroupBox
@@ -311,12 +310,11 @@ namespace WinFormsApp1.Forms
             mainNavigationGroupBox.Controls.Add(purchaseReportButton);
             mainNavigationGroupBox.Controls.Add(profitLossButton);
             mainNavigationGroupBox.Controls.Add(ledgerReportButton);
+            mainNavigationGroupBox.Controls.Add(gstReportsButton);
             mainNavigationGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            mainNavigationGroupBox.Location = new Point(11, 13);
-            mainNavigationGroupBox.Margin = new Padding(3, 4, 3, 4);
+            mainNavigationGroupBox.Location = new Point(10, 8);
             mainNavigationGroupBox.Name = "mainNavigationGroupBox";
-            mainNavigationGroupBox.Padding = new Padding(3, 4, 3, 4);
-            mainNavigationGroupBox.Size = new Size(320, 920);
+            mainNavigationGroupBox.Size = new Size(280, 690);
             mainNavigationGroupBox.TabIndex = 0;
             mainNavigationGroupBox.TabStop = false;
             mainNavigationGroupBox.Text = "APPLICATION NAVIGATION";
@@ -326,19 +324,18 @@ namespace WinFormsApp1.Forms
             // 
             mastersLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             mastersLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            mastersLabel.Location = new Point(9, 33);
+            mastersLabel.Location = new Point(8, 25);
             mastersLabel.Name = "mastersLabel";
-            mastersLabel.Size = new Size(171, 27);
+            mastersLabel.Size = new Size(150, 20);
             mastersLabel.TabIndex = 0;
             mastersLabel.Text = "MASTERS (Alt+M)";
             // 
             // productsListButton
             // 
             productsListButton.Font = new Font("Segoe UI", 9F);
-            productsListButton.Location = new Point(9, 67);
-            productsListButton.Margin = new Padding(3, 4, 3, 4);
+            productsListButton.Location = new Point(8, 50);
             productsListButton.Name = "productsListButton";
-            productsListButton.Size = new Size(302, 37);
+            productsListButton.Size = new Size(264, 28);
             productsListButton.TabIndex = 1;
             productsListButton.Text = "&Products List (F2)";
             productsListButton.UseVisualStyleBackColor = true;
@@ -347,10 +344,9 @@ namespace WinFormsApp1.Forms
             // companyListButton
             // 
             companyListButton.Font = new Font("Segoe UI", 9F);
-            companyListButton.Location = new Point(9, 112);
-            companyListButton.Margin = new Padding(3, 4, 3, 4);
+            companyListButton.Location = new Point(8, 84);
             companyListButton.Name = "companyListButton";
-            companyListButton.Size = new Size(302, 37);
+            companyListButton.Size = new Size(264, 28);
             companyListButton.TabIndex = 1;
             companyListButton.Text = "&Company List (F3)";
             companyListButton.UseVisualStyleBackColor = true;
@@ -359,10 +355,9 @@ namespace WinFormsApp1.Forms
             // selectCompanyButton
             // 
             selectCompanyButton.Font = new Font("Segoe UI", 9F);
-            selectCompanyButton.Location = new Point(9, 157);
-            selectCompanyButton.Margin = new Padding(3, 4, 3, 4);
+            selectCompanyButton.Location = new Point(8, 118);
             selectCompanyButton.Name = "selectCompanyButton";
-            selectCompanyButton.Size = new Size(302, 37);
+            selectCompanyButton.Size = new Size(264, 28);
             selectCompanyButton.TabIndex = 2;
             selectCompanyButton.Text = "&Select Company (F4)";
             selectCompanyButton.UseVisualStyleBackColor = true;
@@ -371,10 +366,9 @@ namespace WinFormsApp1.Forms
             // financialYearListButton
             // 
             financialYearListButton.Font = new Font("Segoe UI", 9F);
-            financialYearListButton.Location = new Point(9, 203);
-            financialYearListButton.Margin = new Padding(3, 4, 3, 4);
+            financialYearListButton.Location = new Point(8, 152);
             financialYearListButton.Name = "financialYearListButton";
-            financialYearListButton.Size = new Size(302, 37);
+            financialYearListButton.Size = new Size(264, 28);
             financialYearListButton.TabIndex = 3;
             financialYearListButton.Text = "&Financial Years (F5)";
             financialYearListButton.UseVisualStyleBackColor = true;
@@ -383,10 +377,9 @@ namespace WinFormsApp1.Forms
             // accountsButton
             // 
             accountsButton.Font = new Font("Segoe UI", 9F);
-            accountsButton.Location = new Point(9, 248);
-            accountsButton.Margin = new Padding(3, 4, 3, 4);
+            accountsButton.Location = new Point(8, 186);
             accountsButton.Name = "accountsButton";
-            accountsButton.Size = new Size(302, 37);
+            accountsButton.Size = new Size(264, 28);
             accountsButton.TabIndex = 4;
             accountsButton.Text = "&Accounts (F6)";
             accountsButton.UseVisualStyleBackColor = true;
@@ -395,10 +388,9 @@ namespace WinFormsApp1.Forms
             // taxButton
             // 
             taxButton.Font = new Font("Segoe UI", 9F);
-            taxButton.Location = new Point(9, 293);
-            taxButton.Margin = new Padding(3, 4, 3, 4);
+            taxButton.Location = new Point(8, 220);
             taxButton.Name = "taxButton";
-            taxButton.Size = new Size(302, 37);
+            taxButton.Size = new Size(264, 28);
             taxButton.TabIndex = 5;
             taxButton.Text = "&Tax (F12)";
             taxButton.UseVisualStyleBackColor = true;
@@ -408,19 +400,18 @@ namespace WinFormsApp1.Forms
             // 
             transactionsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             transactionsLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            transactionsLabel.Location = new Point(9, 345);
+            transactionsLabel.Location = new Point(8, 259);
             transactionsLabel.Name = "transactionsLabel";
-            transactionsLabel.Size = new Size(229, 27);
+            transactionsLabel.Size = new Size(200, 20);
             transactionsLabel.TabIndex = 6;
             transactionsLabel.Text = "TRANSACTIONS (Alt+T)";
             // 
             // saleButton
             // 
             saleButton.Font = new Font("Segoe UI", 9F);
-            saleButton.Location = new Point(9, 378);
-            saleButton.Margin = new Padding(3, 4, 3, 4);
+            saleButton.Location = new Point(8, 284);
             saleButton.Name = "saleButton";
-            saleButton.Size = new Size(302, 37);
+            saleButton.Size = new Size(264, 28);
             saleButton.TabIndex = 7;
             saleButton.Text = "&Sales (F7) - Invoices, Orders, Quotes";
             saleButton.UseVisualStyleBackColor = true;
@@ -429,10 +420,9 @@ namespace WinFormsApp1.Forms
             // purchaseButton
             // 
             purchaseButton.Font = new Font("Segoe UI", 9F);
-            purchaseButton.Location = new Point(9, 424);
-            purchaseButton.Margin = new Padding(3, 4, 3, 4);
+            purchaseButton.Location = new Point(8, 318);
             purchaseButton.Name = "purchaseButton";
-            purchaseButton.Size = new Size(302, 37);
+            purchaseButton.Size = new Size(264, 28);
             purchaseButton.TabIndex = 8;
             purchaseButton.Text = "&Purchases (F8) - Bills, Orders, Quotes";
             purchaseButton.UseVisualStyleBackColor = true;
@@ -441,10 +431,9 @@ namespace WinFormsApp1.Forms
             // receiptButton
             // 
             receiptButton.Font = new Font("Segoe UI", 9F);
-            receiptButton.Location = new Point(9, 469);
-            receiptButton.Margin = new Padding(3, 4, 3, 4);
+            receiptButton.Location = new Point(8, 352);
             receiptButton.Name = "receiptButton";
-            receiptButton.Size = new Size(302, 37);
+            receiptButton.Size = new Size(264, 28);
             receiptButton.TabIndex = 9;
             receiptButton.Text = "&Receipts (F9) - Customer Payments";
             receiptButton.UseVisualStyleBackColor = true;
@@ -453,10 +442,9 @@ namespace WinFormsApp1.Forms
             // paymentButton
             // 
             paymentButton.Font = new Font("Segoe UI", 9F);
-            paymentButton.Location = new Point(9, 514);
-            paymentButton.Margin = new Padding(3, 4, 3, 4);
+            paymentButton.Location = new Point(8, 386);
             paymentButton.Name = "paymentButton";
-            paymentButton.Size = new Size(302, 37);
+            paymentButton.Size = new Size(264, 28);
             paymentButton.TabIndex = 10;
             paymentButton.Text = "Pa&yments (F10) - Supplier Payments";
             paymentButton.UseVisualStyleBackColor = true;
@@ -465,10 +453,9 @@ namespace WinFormsApp1.Forms
             // journalButton
             // 
             journalButton.Font = new Font("Segoe UI", 9F);
-            journalButton.Location = new Point(9, 559);
-            journalButton.Margin = new Padding(3, 4, 3, 4);
+            journalButton.Location = new Point(8, 419);
             journalButton.Name = "journalButton";
-            journalButton.Size = new Size(302, 37);
+            journalButton.Size = new Size(264, 28);
             journalButton.TabIndex = 11;
             journalButton.Text = "&Journal Entries (F11) - Debit/Credit Entries";
             journalButton.UseVisualStyleBackColor = true;
@@ -478,31 +465,18 @@ namespace WinFormsApp1.Forms
             // 
             reportsLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             reportsLabel.ForeColor = Color.FromArgb(0, 102, 204);
-            reportsLabel.Location = new Point(9, 611);
+            reportsLabel.Location = new Point(8, 458);
             reportsLabel.Name = "reportsLabel";
-            reportsLabel.Size = new Size(171, 27);
+            reportsLabel.Size = new Size(150, 20);
             reportsLabel.TabIndex = 12;
             reportsLabel.Text = "REPORTS (Alt+R)";
-            // 
-            // ledgerReportButton
-            // 
-            ledgerReportButton.Font = new Font("Segoe UI", 9F);
-            ledgerReportButton.Location = new Point(9, 644);
-            ledgerReportButton.Margin = new Padding(3, 4, 3, 4);
-            ledgerReportButton.Name = "ledgerReportButton";
-            ledgerReportButton.Size = new Size(302, 37);
-            ledgerReportButton.TabIndex = 13;
-            ledgerReportButton.Text = "&Ledger Report (Ctrl+F6)";
-            ledgerReportButton.UseVisualStyleBackColor = true;
-            ledgerReportButton.Click += ledgerReportButton_Click;
             // 
             // stockReportButton
             // 
             stockReportButton.Font = new Font("Segoe UI", 9F);
-            stockReportButton.Location = new Point(9, 689);
-            stockReportButton.Margin = new Padding(3, 4, 3, 4);
+            stockReportButton.Location = new Point(8, 517);
             stockReportButton.Name = "stockReportButton";
-            stockReportButton.Size = new Size(302, 37);
+            stockReportButton.Size = new Size(264, 28);
             stockReportButton.TabIndex = 14;
             stockReportButton.Text = "St&ock Report (Ctrl+F1)";
             stockReportButton.UseVisualStyleBackColor = true;
@@ -511,10 +485,9 @@ namespace WinFormsApp1.Forms
             // taxReportButton
             // 
             taxReportButton.Font = new Font("Segoe UI", 9F);
-            taxReportButton.Location = new Point(9, 734);
-            taxReportButton.Margin = new Padding(3, 4, 3, 4);
+            taxReportButton.Location = new Point(8, 550);
             taxReportButton.Name = "taxReportButton";
-            taxReportButton.Size = new Size(302, 37);
+            taxReportButton.Size = new Size(264, 28);
             taxReportButton.TabIndex = 15;
             taxReportButton.Text = "Ta&x Report (Ctrl+F2)";
             taxReportButton.UseVisualStyleBackColor = true;
@@ -523,10 +496,9 @@ namespace WinFormsApp1.Forms
             // salesReportButton
             // 
             salesReportButton.Font = new Font("Segoe UI", 9F);
-            salesReportButton.Location = new Point(9, 779);
-            salesReportButton.Margin = new Padding(3, 4, 3, 4);
+            salesReportButton.Location = new Point(8, 584);
             salesReportButton.Name = "salesReportButton";
-            salesReportButton.Size = new Size(302, 37);
+            salesReportButton.Size = new Size(264, 28);
             salesReportButton.TabIndex = 16;
             salesReportButton.Text = "Sales &Report (Ctrl+F3)";
             salesReportButton.UseVisualStyleBackColor = true;
@@ -535,10 +507,9 @@ namespace WinFormsApp1.Forms
             // purchaseReportButton
             // 
             purchaseReportButton.Font = new Font("Segoe UI", 9F);
-            purchaseReportButton.Location = new Point(9, 824);
-            purchaseReportButton.Margin = new Padding(3, 4, 3, 4);
+            purchaseReportButton.Location = new Point(8, 618);
             purchaseReportButton.Name = "purchaseReportButton";
-            purchaseReportButton.Size = new Size(302, 37);
+            purchaseReportButton.Size = new Size(264, 28);
             purchaseReportButton.TabIndex = 17;
             purchaseReportButton.Text = "Purchase Re&port (Ctrl+F4)";
             purchaseReportButton.UseVisualStyleBackColor = true;
@@ -547,20 +518,41 @@ namespace WinFormsApp1.Forms
             // profitLossButton
             // 
             profitLossButton.Font = new Font("Segoe UI", 9F);
-            profitLossButton.Location = new Point(9, 869);
-            profitLossButton.Margin = new Padding(3, 4, 3, 4);
+            profitLossButton.Location = new Point(8, 652);
             profitLossButton.Name = "profitLossButton";
-            profitLossButton.Size = new Size(302, 37);
+            profitLossButton.Size = new Size(264, 28);
             profitLossButton.TabIndex = 18;
             profitLossButton.Text = "Profit && &Loss (Ctrl+F5)";
             profitLossButton.UseVisualStyleBackColor = true;
             profitLossButton.Click += profitLossButton_Click;
             // 
+            // ledgerReportButton
+            // 
+            ledgerReportButton.Font = new Font("Segoe UI", 9F);
+            ledgerReportButton.Location = new Point(8, 483);
+            ledgerReportButton.Name = "ledgerReportButton";
+            ledgerReportButton.Size = new Size(264, 28);
+            ledgerReportButton.TabIndex = 13;
+            ledgerReportButton.Text = "&Ledger Report (Ctrl+F6)";
+            ledgerReportButton.UseVisualStyleBackColor = true;
+            ledgerReportButton.Click += ledgerReportButton_Click;
+            // 
+            // gstReportsButton
+            // 
+            gstReportsButton.Font = new Font("Segoe UI", 9F);
+            gstReportsButton.Location = new Point(8, 686);
+            gstReportsButton.Name = "gstReportsButton";
+            gstReportsButton.Size = new Size(264, 28);
+            gstReportsButton.TabIndex = 19;
+            gstReportsButton.Text = "&GST Reports (Ctrl+F7)";
+            gstReportsButton.UseVisualStyleBackColor = true;
+            gstReportsButton.Click += gstReportsButton_Click;
+            // 
             // MainMDIForm
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(914, 800);
+            ClientSize = new Size(800, 600);
             Controls.Add(lblActiveFinancialYear);
             Controls.Add(lblSelectedCompany);
             Controls.Add(navigationPanel);
@@ -568,7 +560,6 @@ namespace WinFormsApp1.Forms
             IsMdiContainer = true;
             KeyPreview = true;
             MainMenuStrip = menuStrip;
-            Margin = new Padding(3, 4, 3, 4);
             Name = "MainMDIForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Main Application - Esc=File Menu | ↑↓=Navigate All | Alt+M/T/R=Jump Sections | F1=Help";
@@ -658,7 +649,8 @@ namespace WinFormsApp1.Forms
                 taxReportButton,
                 salesReportButton,
                 purchaseReportButton,
-                profitLossButton
+                profitLossButton,
+                gstReportsButton
             };
         }
 
@@ -939,6 +931,10 @@ namespace WinFormsApp1.Forms
                     break;
                 case Keys.F6 when e.Control && !e.Alt:
                     ledgerReportButton_Click(null, EventArgs.Empty);
+                    e.Handled = true;
+                    break;
+                case Keys.F7 when e.Control && !e.Alt:
+                    gstReportsButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
 
@@ -1427,6 +1423,89 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private void OpenGstReportsForm()
+        {
+            // Check if GstReportsForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is GstReportsForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new GST reports form
+            var gstReportsForm = new GstReportsForm()
+            {
+                MdiParent = this,
+                Text = "GST Reports",
+                WindowState = FormWindowState.Maximized
+            };
+
+            gstReportsForm.Show();
+            
+            // Hide navigation panel when GstReportsForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            gstReportsForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
+        private void OpenTaxReportForm()
+        {
+            // Check if TaxReportForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is TaxReportForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    HideNavigationPanel();
+                    return;
+                }
+            }
+
+            // Create new tax report form
+            var taxReportForm = new TaxReportForm()
+            {
+                MdiParent = this,
+                Text = "Tax Reports"
+            };
+
+            taxReportForm.Show();
+            
+            // Hide navigation panel when TaxReportForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            taxReportForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    // Only show navigation panel if no other child forms are open
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private async void OpenCompanySelectForm()
         {
             // Check if CompanySelectForm is already open
@@ -1616,6 +1695,7 @@ REPORTS SECTION:
 • Ctrl+F3 - Sales Report
 • Ctrl+F4 - Purchase Report
 • Ctrl+F5 - Profit & Loss
+• Ctrl+F7 - GST Reports
 
 FORM MANAGEMENT:
 • Ctrl+Tab - Cycle through open forms
@@ -1909,7 +1989,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     this.ActiveMdiChild is LedgerEditForm ||
                     this.ActiveMdiChild is TaxListForm ||
                     this.ActiveMdiChild is TaxEditForm ||
-                    this.ActiveMdiChild is JournalEntryListForm)
+                    this.ActiveMdiChild is JournalEntryListForm ||
+                    this.ActiveMdiChild is TaxReportForm ||
+                    this.ActiveMdiChild is GstReportForm)
                 {
                     // Hide navigation panel when company/product/ledger/journal-related forms are active
                     HideNavigationPanel();
@@ -1936,9 +2018,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is LedgerEditForm ||
                 this.ActiveMdiChild is TaxListForm ||
                 this.ActiveMdiChild is TaxEditForm ||
-                this.ActiveMdiChild is JournalEntryListForm)
+                this.ActiveMdiChild is JournalEntryListForm ||
+                this.ActiveMdiChild is TaxReportForm ||
+                this.ActiveMdiChild is GstReportForm)
             {
-                // Hide navigation panel when company/product/ledger/journal-related forms are active
+                // Hide navigation panel when company/product/ledger/journal/tax-related forms are active
                 HideNavigationPanel();
                 
                 // Ensure forms stay maximized when they're the active form
@@ -2008,7 +2092,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -2038,7 +2122,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -2080,7 +2164,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
             };
 
             foreach (Button btn in allButtons)
@@ -2128,7 +2212,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton
+                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
             };
 
             foreach (Button btn in allButtons)
@@ -2310,7 +2394,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            MessageBox.Show("Tax Report feature will be implemented here.", "Tax Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenTaxReportForm();
         }
 
         private void salesReportButton_Click(object? sender, EventArgs e)
@@ -2351,6 +2435,16 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 _lastFocusedButton = btn; // Store the last focused button
             }
             OpenLedgerReportForm();
+        }
+
+        private void gstReportsButton_Click(object? sender, EventArgs e)
+        {
+            if (sender is Button btn) 
+            {
+                HighlightButton(btn);
+                _lastFocusedButton = btn; // Store the last focused button
+            }
+            OpenGstReportsForm();
         }
 
         private void mainNavigationGroupBox_Enter(object sender, EventArgs e)
