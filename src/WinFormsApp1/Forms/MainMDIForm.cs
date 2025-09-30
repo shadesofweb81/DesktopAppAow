@@ -20,6 +20,7 @@ namespace WinFormsApp1.Forms
         private readonly FinancialYearService _financialYearService;
         private readonly LedgerService _ledgerService;
         private readonly LedgerReportService _ledgerReportService;
+        private readonly StockReportService _stockReportService;
         private readonly TaxService _taxService;
         private readonly TransactionService _transactionService;
         private readonly JournalEntryService _journalEntryService;
@@ -89,6 +90,7 @@ namespace WinFormsApp1.Forms
             _financialYearService = new FinancialYearService(authService);
             _ledgerService = new LedgerService(authService);
             _ledgerReportService = new LedgerReportService(authService);
+            _stockReportService = new StockReportService(authService);
             _taxService = new TaxService(authService);
             _transactionService = new TransactionService(authService);
             _journalEntryService = new JournalEntryService(authService);
@@ -1464,6 +1466,49 @@ namespace WinFormsApp1.Forms
             };
         }
 
+        private void OpenStockReportForm()
+        {
+            // Check if StockReportForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is StockReportForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    HideNavigationPanel();
+                    return;
+                }
+            }
+
+            // Create new stock report form
+            var stockReportForm = new StockReportForm(_stockReportService, _localStorageService)
+            {
+                MdiParent = this,
+                Text = "Stock Report",
+                WindowState = FormWindowState.Maximized
+            };
+
+            stockReportForm.Show();
+            
+            // Hide navigation panel when StockReportForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            stockReportForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    // Only show navigation panel if no other child forms are open
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
         private void OpenTaxReportForm()
         {
             // Check if TaxReportForm is already open
@@ -1888,6 +1933,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             {
                 _companyService?.Dispose();
                 _financialYearService?.Dispose();
+                _stockReportService?.Dispose();
             }
         }
 
@@ -1990,6 +2036,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     this.ActiveMdiChild is TaxListForm ||
                     this.ActiveMdiChild is TaxEditForm ||
                     this.ActiveMdiChild is JournalEntryListForm ||
+                    this.ActiveMdiChild is StockReportForm ||
                     this.ActiveMdiChild is TaxReportForm ||
                     this.ActiveMdiChild is GstReportForm)
                 {
@@ -2019,6 +2066,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is TaxListForm ||
                 this.ActiveMdiChild is TaxEditForm ||
                 this.ActiveMdiChild is JournalEntryListForm ||
+                this.ActiveMdiChild is StockReportForm ||
                 this.ActiveMdiChild is TaxReportForm ||
                 this.ActiveMdiChild is GstReportForm)
             {
@@ -2384,7 +2432,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            MessageBox.Show("Stock Report feature will be implemented here.", "Stock Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenStockReportForm();
         }
 
         private void taxReportButton_Click(object? sender, EventArgs e)
