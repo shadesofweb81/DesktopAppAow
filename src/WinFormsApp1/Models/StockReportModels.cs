@@ -76,4 +76,58 @@ namespace WinFormsApp1.Models
         public bool IsLowStock { get; set; }
         public bool IsOutOfStock { get; set; }
     }
+
+    public class StockItemReportRequest
+    {
+        public Guid ProductId { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public bool IncludeTransactionDetails { get; set; } = true;
+    }
+
+    public class StockItemReportResponse
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public decimal CurrentStock { get; set; }
+        public decimal OpeningStock { get; set; }
+        public decimal ClosingStock { get; set; }
+        public decimal TotalPurchased { get; set; }
+        public decimal TotalSold { get; set; }
+        public decimal TotalManufactured { get; set; }
+        public decimal TotalReturned { get; set; }
+        public decimal TotalAdjusted { get; set; }
+        public List<StockTransaction> Transactions { get; set; } = new List<StockTransaction>();
+        public StockItemSummaryDetail Summary { get; set; } = new StockItemSummaryDetail();
+    }
+
+    public class StockTransaction
+    {
+        public Guid TransactionId { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public string TransactionType { get; set; } = string.Empty; // Purchase, Sale, Manufacture, Return, Adjustment
+        public string TransactionNumber { get; set; } = string.Empty;
+        public string Reference { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Remarks { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class StockItemSummaryDetail
+    {
+        public int TotalTransactions { get; set; }
+        public int PurchaseTransactions { get; set; }
+        public int SaleTransactions { get; set; }
+        public int ManufactureTransactions { get; set; }
+        public int ReturnTransactions { get; set; }
+        public int AdjustmentTransactions { get; set; }
+        public decimal TotalPurchaseValue { get; set; }
+        public decimal TotalSaleValue { get; set; }
+        public decimal AveragePurchasePrice { get; set; }
+        public decimal AverageSalePrice { get; set; }
+    }
 }

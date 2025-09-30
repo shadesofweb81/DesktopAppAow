@@ -169,6 +169,8 @@ namespace WinFormsApp1.Forms.Reports
             dgvReport.RowHeadersVisible = false;
             dgvReport.ScrollBars = ScrollBars.Both;
             dgvReport.GridColor = Color.FromArgb(200, 200, 200);
+            dgvReport.CellDoubleClick += DgvReport_CellDoubleClick;
+            dgvReport.KeyDown += DgvReport_KeyDown;
             reportGroupBox.Controls.Add(dgvReport);
             
             // Summary Group Box
@@ -309,6 +311,9 @@ namespace WinFormsApp1.Forms.Reports
             
             // Center loading panel
             CenterLoadingPanel();
+            
+            // Automatically generate report when form loads
+            BtnGenerateReport_Click(null, EventArgs.Empty);
         }
 
         private void CenterLoadingPanel()
@@ -394,6 +399,7 @@ namespace WinFormsApp1.Forms.Reports
             {
                 allStockItems.Add(new
                 {
+                    ProductId = stockItem.ProductId,
                     ProductCode = stockItem.ProductCode,
                     ProductName = stockItem.ProductName,
                     Unit = stockItem.Unit,
@@ -413,6 +419,12 @@ namespace WinFormsApp1.Forms.Reports
             // Format columns
             if (dgvReport.Columns.Count > 0)
             {
+                // Hide ProductId column
+                if (dgvReport.Columns["ProductId"] != null)
+                {
+                    dgvReport.Columns["ProductId"]!.Visible = false;
+                }
+
                 // Format numeric columns
                 if (dgvReport.Columns["CurrentStock"] != null)
                 {
@@ -550,6 +562,70 @@ namespace WinFormsApp1.Forms.Reports
             lblProductsNeedingReorderValue.Text = "0";
             
             _reportData = null;
+        }
+
+        private void DgvReport_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && _reportData != null)
+            {
+                var selectedRow = dgvReport.Rows[e.RowIndex];
+                var productId = selectedRow.Cells["ProductId"].Value?.ToString();
+                var productName = selectedRow.Cells["ProductName"].Value?.ToString();
+                var productCode = selectedRow.Cells["ProductCode"].Value?.ToString();
+
+                if (!string.IsNullOrEmpty(productId) && Guid.TryParse(productId, out var productGuid))
+                {
+                    // Open StockItemReportForm
+                    var stockItemReportForm = new StockItemReportForm(
+                        _stockReportService,
+                        productGuid,
+                        productName ?? "Unknown Product",
+                        productCode ?? ""
+                    );
+                    
+                    stockItemReportForm.MdiParent = this.MdiParent;
+                    stockItemReportForm.WindowState = FormWindowState.Maximized;
+                    stockItemReportForm.Show();
+                    
+                    // Hide navigation panel when StockItemReportForm is opened
+                    if (this.MdiParent is MainMDIForm mainForm)
+                    {
+                        mainForm.HideNavigationPanel();
+                    }
+                }
+            }
+        }
+
+        private void DgvReport_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && _reportData != null && dgvReport.SelectedRows.Count > 0)
+            {
+                var selectedRow = dgvReport.SelectedRows[0];
+                var productId = selectedRow.Cells["ProductId"].Value?.ToString();
+                var productName = selectedRow.Cells["ProductName"].Value?.ToString();
+                var productCode = selectedRow.Cells["ProductCode"].Value?.ToString();
+
+                if (!string.IsNullOrEmpty(productId) && Guid.TryParse(productId, out var productGuid))
+                {
+                    // Open StockItemReportForm
+                    var stockItemReportForm = new StockItemReportForm(
+                        _stockReportService,
+                        productGuid,
+                        productName ?? "Unknown Product",
+                        productCode ?? ""
+                    );
+                    
+                    stockItemReportForm.MdiParent = this.MdiParent;
+                    stockItemReportForm.WindowState = FormWindowState.Maximized;
+                    stockItemReportForm.Show();
+                    
+                    // Hide navigation panel when StockItemReportForm is opened
+                    if (this.MdiParent is MainMDIForm mainForm)
+                    {
+                        mainForm.HideNavigationPanel();
+                    }
+                }
+            }
         }
 
         protected override void OnResize(EventArgs e)

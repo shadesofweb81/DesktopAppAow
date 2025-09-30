@@ -67,11 +67,9 @@ namespace WinFormsApp1.Forms
         // Reports Section Buttons
         private Button stockReportButton = null!;
         private Button taxReportButton = null!;
-        private Button salesReportButton = null!;
-        private Button purchaseReportButton = null!;
-        private Button profitLossButton = null!;
-        private Button ledgerReportButton = null!;
-        private Button gstReportsButton = null!;
+        private Button accountBooksButton = null!;
+        private Button financialStatementsButton = null!;
+        private Button trialBalanceButton = null!;
 
         // Navigation state
         private bool isNavigationVisible = true;
@@ -139,11 +137,9 @@ namespace WinFormsApp1.Forms
             reportsLabel = new Label();
             stockReportButton = new Button();
             taxReportButton = new Button();
-            salesReportButton = new Button();
-            purchaseReportButton = new Button();
-            profitLossButton = new Button();
-            ledgerReportButton = new Button();
-            gstReportsButton = new Button();
+            accountBooksButton = new Button();
+            financialStatementsButton = new Button();
+            trialBalanceButton = new Button();
             menuStrip.SuspendLayout();
             navigationPanel.SuspendLayout();
             mainNavigationGroupBox.SuspendLayout();
@@ -286,8 +282,8 @@ namespace WinFormsApp1.Forms
             navigationPanel.Dock = DockStyle.Left;
             navigationPanel.Location = new Point(0, 24);
             navigationPanel.Name = "navigationPanel";
-            navigationPanel.Padding = new Padding(5, 5, 5, 5);
-            navigationPanel.Size = new Size(300, 576);
+            navigationPanel.Padding = new Padding(5);
+            navigationPanel.Size = new Size(300, 772);
             navigationPanel.TabIndex = 1;
             // 
             // mainNavigationGroupBox
@@ -308,15 +304,13 @@ namespace WinFormsApp1.Forms
             mainNavigationGroupBox.Controls.Add(reportsLabel);
             mainNavigationGroupBox.Controls.Add(stockReportButton);
             mainNavigationGroupBox.Controls.Add(taxReportButton);
-            mainNavigationGroupBox.Controls.Add(salesReportButton);
-            mainNavigationGroupBox.Controls.Add(purchaseReportButton);
-            mainNavigationGroupBox.Controls.Add(profitLossButton);
-            mainNavigationGroupBox.Controls.Add(ledgerReportButton);
-            mainNavigationGroupBox.Controls.Add(gstReportsButton);
+            mainNavigationGroupBox.Controls.Add(accountBooksButton);
+            mainNavigationGroupBox.Controls.Add(financialStatementsButton);
+            mainNavigationGroupBox.Controls.Add(trialBalanceButton);
             mainNavigationGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             mainNavigationGroupBox.Location = new Point(10, 8);
             mainNavigationGroupBox.Name = "mainNavigationGroupBox";
-            mainNavigationGroupBox.Size = new Size(280, 690);
+            mainNavigationGroupBox.Size = new Size(280, 672);
             mainNavigationGroupBox.TabIndex = 0;
             mainNavigationGroupBox.TabStop = false;
             mainNavigationGroupBox.Text = "APPLICATION NAVIGATION";
@@ -495,66 +489,44 @@ namespace WinFormsApp1.Forms
             taxReportButton.UseVisualStyleBackColor = true;
             taxReportButton.Click += taxReportButton_Click;
             // 
-            // salesReportButton
+            // accountBooksButton
             // 
-            salesReportButton.Font = new Font("Segoe UI", 9F);
-            salesReportButton.Location = new Point(8, 584);
-            salesReportButton.Name = "salesReportButton";
-            salesReportButton.Size = new Size(264, 28);
-            salesReportButton.TabIndex = 16;
-            salesReportButton.Text = "Sales &Report (Ctrl+F3)";
-            salesReportButton.UseVisualStyleBackColor = true;
-            salesReportButton.Click += salesReportButton_Click;
+            accountBooksButton.Font = new Font("Segoe UI", 9F);
+            accountBooksButton.Location = new Point(8, 584);
+            accountBooksButton.Name = "accountBooksButton";
+            accountBooksButton.Size = new Size(264, 28);
+            accountBooksButton.TabIndex = 16;
+            accountBooksButton.Text = "&Account Books (Ctrl+F3)";
+            accountBooksButton.UseVisualStyleBackColor = true;
+            accountBooksButton.Click += accountBooksButton_Click;
             // 
-            // purchaseReportButton
+            // financialStatementsButton
             // 
-            purchaseReportButton.Font = new Font("Segoe UI", 9F);
-            purchaseReportButton.Location = new Point(8, 618);
-            purchaseReportButton.Name = "purchaseReportButton";
-            purchaseReportButton.Size = new Size(264, 28);
-            purchaseReportButton.TabIndex = 17;
-            purchaseReportButton.Text = "Purchase Re&port (Ctrl+F4)";
-            purchaseReportButton.UseVisualStyleBackColor = true;
-            purchaseReportButton.Click += purchaseReportButton_Click;
+            financialStatementsButton.Font = new Font("Segoe UI", 9F);
+            financialStatementsButton.Location = new Point(10, 618);
+            financialStatementsButton.Name = "financialStatementsButton";
+            financialStatementsButton.Size = new Size(264, 28);
+            financialStatementsButton.TabIndex = 18;
+            financialStatementsButton.Text = "Financial &Statements (Ctrl+F5)";
+            financialStatementsButton.UseVisualStyleBackColor = true;
+            financialStatementsButton.Click += financialStatementsButton_Click;
             // 
-            // profitLossButton
+            // trialBalanceButton
             // 
-            profitLossButton.Font = new Font("Segoe UI", 9F);
-            profitLossButton.Location = new Point(8, 652);
-            profitLossButton.Name = "profitLossButton";
-            profitLossButton.Size = new Size(264, 28);
-            profitLossButton.TabIndex = 18;
-            profitLossButton.Text = "Profit && &Loss (Ctrl+F5)";
-            profitLossButton.UseVisualStyleBackColor = true;
-            profitLossButton.Click += profitLossButton_Click;
-            // 
-            // ledgerReportButton
-            // 
-            ledgerReportButton.Font = new Font("Segoe UI", 9F);
-            ledgerReportButton.Location = new Point(8, 483);
-            ledgerReportButton.Name = "ledgerReportButton";
-            ledgerReportButton.Size = new Size(264, 28);
-            ledgerReportButton.TabIndex = 13;
-            ledgerReportButton.Text = "&Ledger Report (Ctrl+F6)";
-            ledgerReportButton.UseVisualStyleBackColor = true;
-            ledgerReportButton.Click += ledgerReportButton_Click;
-            // 
-            // gstReportsButton
-            // 
-            gstReportsButton.Font = new Font("Segoe UI", 9F);
-            gstReportsButton.Location = new Point(8, 686);
-            gstReportsButton.Name = "gstReportsButton";
-            gstReportsButton.Size = new Size(264, 28);
-            gstReportsButton.TabIndex = 19;
-            gstReportsButton.Text = "&GST Reports (Ctrl+F7)";
-            gstReportsButton.UseVisualStyleBackColor = true;
-            gstReportsButton.Click += gstReportsButton_Click;
+            trialBalanceButton.Font = new Font("Segoe UI", 9F);
+            trialBalanceButton.Location = new Point(8, 483);
+            trialBalanceButton.Name = "trialBalanceButton";
+            trialBalanceButton.Size = new Size(264, 28);
+            trialBalanceButton.TabIndex = 13;
+            trialBalanceButton.Text = "&Trial Balance (Ctrl+F6)";
+            trialBalanceButton.UseVisualStyleBackColor = true;
+            trialBalanceButton.Click += trialBalanceButton_Click;
             // 
             // MainMDIForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 600);
+            ClientSize = new Size(800, 796);
             Controls.Add(lblActiveFinancialYear);
             Controls.Add(lblSelectedCompany);
             Controls.Add(navigationPanel);
@@ -646,13 +618,11 @@ namespace WinFormsApp1.Forms
 
             reportsButtons = new Button[]
             {
-                ledgerReportButton,
+                trialBalanceButton,
                 stockReportButton,
                 taxReportButton,
-                salesReportButton,
-                purchaseReportButton,
-                profitLossButton,
-                gstReportsButton
+                accountBooksButton,
+                financialStatementsButton
             };
         }
 
@@ -920,19 +890,15 @@ namespace WinFormsApp1.Forms
                     e.Handled = true;
                     break;
                 case Keys.F3 when e.Control && !e.Alt:
-                    salesReportButton_Click(null, EventArgs.Empty);
-                    e.Handled = true;
-                    break;
-                case Keys.F4 when e.Control && !e.Alt:
-                    purchaseReportButton_Click(null, EventArgs.Empty);
+                    accountBooksButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
                 case Keys.F5 when e.Control && !e.Alt:
-                    profitLossButton_Click(null, EventArgs.Empty);
+                    financialStatementsButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
                 case Keys.F6 when e.Control && !e.Alt:
-                    ledgerReportButton_Click(null, EventArgs.Empty);
+                    trialBalanceButton_Click(null, EventArgs.Empty);
                     e.Handled = true;
                     break;
                 case Keys.F7 when e.Control && !e.Alt:
@@ -1384,12 +1350,12 @@ namespace WinFormsApp1.Forms
             }
         }
 
-        private void OpenLedgerReportForm()
+        private void OpenTrialBalanceNavForm()
         {
-            // Check if LedgerReportForm is already open
+            // Check if TrialBalanceNavForm is already open
             foreach (Form childForm in this.MdiChildren)
             {
-                if (childForm is LedgerReportForm)
+                if (childForm is TrialBalanceNavForm)
                 {
                     childForm.BringToFront();
                     childForm.Activate();
@@ -1397,21 +1363,21 @@ namespace WinFormsApp1.Forms
                 }
             }
 
-            // Create new ledger report form
-            var ledgerReportForm = new LedgerReportForm(_ledgerService, _ledgerReportService, _localStorageService)
+            // Create new trial balance nav form
+            var trialBalanceNavForm = new TrialBalanceNavForm()
             {
                 MdiParent = this,
-                Text = "Ledger Report",
+                Text = "Trial Balance",
                 WindowState = FormWindowState.Maximized
             };
 
-            ledgerReportForm.Show();
+            trialBalanceNavForm.Show();
             
-            // Hide navigation panel when LedgerReportForm is opened
+            // Hide navigation panel when TrialBalanceNavForm is opened
             HideNavigationPanel();
             
             // Add form closing event to ensure proper focus management
-            ledgerReportForm.FormClosed += (s, e) =>
+            trialBalanceNavForm.FormClosed += (s, e) =>
             {
                 // Ensure proper focus when form is closed
                 this.BeginInvoke(new Action(() =>
@@ -1453,6 +1419,88 @@ namespace WinFormsApp1.Forms
             
             // Add form closing event to ensure proper focus management
             gstReportsForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
+        private void OpenFinancialStatementsForm()
+        {
+            // Check if FinancialStatementsForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is FinancialStatementsForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new financial statements form
+            var financialStatementsForm = new FinancialStatementsForm()
+            {
+                MdiParent = this,
+                Text = "Financial Statements",
+                WindowState = FormWindowState.Maximized
+            };
+
+            financialStatementsForm.Show();
+            
+            // Hide navigation panel when FinancialStatementsForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            financialStatementsForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
+        }
+
+        private void OpenAccountBooksForm()
+        {
+            // Check if AccountBooksForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is AccountBooksForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new account books form
+            var accountBooksForm = new AccountBooksForm()
+            {
+                MdiParent = this,
+                Text = "Account Books",
+                WindowState = FormWindowState.Maximized
+            };
+
+            accountBooksForm.Show();
+            
+            // Hide navigation panel when AccountBooksForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            accountBooksForm.FormClosed += (s, e) =>
             {
                 // Ensure proper focus when form is closed
                 this.BeginInvoke(new Action(() =>
@@ -1734,12 +1782,11 @@ TRANSACTIONS SECTION:
 • F11 - Journal Entries (Debit/Credit Entries)
 
 REPORTS SECTION:
-• Ctrl+F6 - Ledger Report
+• Ctrl+F6 - Trial Balance
 • Ctrl+F1 - Stock Report
 • Ctrl+F2 - Tax Report
-• Ctrl+F3 - Sales Report
-• Ctrl+F4 - Purchase Report
-• Ctrl+F5 - Profit & Loss
+• Ctrl+F3 - Account Books
+• Ctrl+F5 - Financial Statements
 • Ctrl+F7 - GST Reports
 
 FORM MANAGEMENT:
@@ -1773,6 +1820,58 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
         public LocalStorageService GetLocalStorageService()
         {
             return _localStorageService;
+        }
+
+        public void OpenTrialBalanceNavFormFromChild()
+        {
+            OpenTrialBalanceNavForm();
+        }
+
+        // Public method to open LedgerReportForm from child forms
+        public void OpenLedgerReportFormFromChild()
+        {
+            OpenLedgerReportForm();
+        }
+
+        private void OpenLedgerReportForm()
+        {
+            // Check if LedgerReportForm is already open
+            foreach (Form childForm in this.MdiChildren)
+            {
+                if (childForm is LedgerReportForm)
+                {
+                    childForm.BringToFront();
+                    childForm.Activate();
+                    return;
+                }
+            }
+
+            // Create new ledger report form
+            var ledgerReportForm = new LedgerReportForm(_ledgerService, _ledgerReportService, _localStorageService)
+            {
+                MdiParent = this,
+                Text = "Ledger Report",
+                WindowState = FormWindowState.Maximized
+            };
+
+            ledgerReportForm.Show();
+            
+            // Hide navigation panel when LedgerReportForm is opened
+            HideNavigationPanel();
+            
+            // Add form closing event to ensure proper focus management
+            ledgerReportForm.FormClosed += (s, e) =>
+            {
+                // Ensure proper focus when form is closed
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.MdiChildren.Length == 0)
+                    {
+                        // Show navigation panel and restore focus to last focused button
+                        ShowNavigationPanel();
+                    }
+                }));
+            };
         }
 
         public async Task RefreshCompanyDisplay()
@@ -1993,9 +2092,9 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             {
                 buttonToFocus = saleButton;
             }
-            else if (sectionName == "reports" && ledgerReportButton.Visible)
+            else if (sectionName == "reports" && trialBalanceButton.Visible)
             {
-                buttonToFocus = ledgerReportButton;
+                buttonToFocus = trialBalanceButton;
             }
 
             if (buttonToFocus != null)
@@ -2038,7 +2137,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                     this.ActiveMdiChild is JournalEntryListForm ||
                     this.ActiveMdiChild is StockReportForm ||
                     this.ActiveMdiChild is TaxReportForm ||
-                    this.ActiveMdiChild is GstReportForm)
+                    this.ActiveMdiChild is GstReportForm ||
+                    this.ActiveMdiChild is FinancialStatementsForm ||
+                    this.ActiveMdiChild is AccountBooksForm ||
+                    this.ActiveMdiChild is TrialBalanceNavForm ||
+                    this.ActiveMdiChild is LedgerReportForm)
                 {
                     // Hide navigation panel when company/product/ledger/journal-related forms are active
                     HideNavigationPanel();
@@ -2068,7 +2171,11 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 this.ActiveMdiChild is JournalEntryListForm ||
                 this.ActiveMdiChild is StockReportForm ||
                 this.ActiveMdiChild is TaxReportForm ||
-                this.ActiveMdiChild is GstReportForm)
+                this.ActiveMdiChild is GstReportForm ||
+                this.ActiveMdiChild is FinancialStatementsForm ||
+                this.ActiveMdiChild is AccountBooksForm ||
+                this.ActiveMdiChild is TrialBalanceNavForm ||
+                this.ActiveMdiChild is LedgerReportForm)
             {
                 // Hide navigation panel when company/product/ledger/journal/tax-related forms are active
                 HideNavigationPanel();
@@ -2140,7 +2247,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
+                trialBalanceButton, stockReportButton, taxReportButton, accountBooksButton, financialStatementsButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -2170,7 +2277,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
+                trialBalanceButton, stockReportButton, taxReportButton, accountBooksButton, financialStatementsButton
             };
 
             var currentIndex = Array.IndexOf(allButtons, currentFocused);
@@ -2212,7 +2319,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
+                trialBalanceButton, stockReportButton, taxReportButton, accountBooksButton, financialStatementsButton
             };
 
             foreach (Button btn in allButtons)
@@ -2260,7 +2367,7 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
                 // Transactions buttons
                 saleButton, purchaseButton, receiptButton, paymentButton, journalButton,
                 // Reports buttons
-                ledgerReportButton, stockReportButton, taxReportButton, salesReportButton, purchaseReportButton, profitLossButton, gstReportsButton
+                trialBalanceButton, stockReportButton, taxReportButton, accountBooksButton, financialStatementsButton
             };
 
             foreach (Button btn in allButtons)
@@ -2445,44 +2552,34 @@ All buttons are now in one group for easy navigation. Use ↑↓ arrows to move 
             OpenTaxReportForm();
         }
 
-        private void salesReportButton_Click(object? sender, EventArgs e)
+        private void accountBooksButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) 
             {
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            MessageBox.Show("Sales Report feature will be implemented here.", "Sales Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenAccountBooksForm();
         }
 
-        private void purchaseReportButton_Click(object? sender, EventArgs e)
+        private void financialStatementsButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) 
             {
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            MessageBox.Show("Purchase Report feature will be implemented here.", "Purchase Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenFinancialStatementsForm();
         }
 
-        private void profitLossButton_Click(object? sender, EventArgs e)
+        private void trialBalanceButton_Click(object? sender, EventArgs e)
         {
             if (sender is Button btn) 
             {
                 HighlightButton(btn);
                 _lastFocusedButton = btn; // Store the last focused button
             }
-            MessageBox.Show("Profit & Loss Report feature will be implemented here.", "Profit & Loss", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void ledgerReportButton_Click(object? sender, EventArgs e)
-        {
-            if (sender is Button btn) 
-            {
-                HighlightButton(btn);
-                _lastFocusedButton = btn; // Store the last focused button
-            }
-            OpenLedgerReportForm();
+            OpenTrialBalanceNavForm();
         }
 
         private void gstReportsButton_Click(object? sender, EventArgs e)

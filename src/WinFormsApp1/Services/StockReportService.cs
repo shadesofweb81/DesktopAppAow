@@ -99,9 +99,65 @@ namespace WinFormsApp1.Services
             }
         }
 
+        public async Task<StockItemReportResponse?> GetStockItemReportAsync(StockItemReportRequest request)
+        {
+            try
+            {
+                SetAuthHeader();
+
+                // Build query string parameters
+                var queryParams = new List<string>();
+
+                if (request.FromDate.HasValue)
+                {
+                    queryParams.Add($"fromDate={request.FromDate.Value:yyyy-MM-dd}");
+                }
+
+                if (request.ToDate.HasValue)
+                {
+                    queryParams.Add($"toDate={request.ToDate.Value:yyyy-MM-dd}");
+                }
+
+                if (!request.IncludeTransactionDetails)
+                {
+                    queryParams.Add("includeTransactionDetails=false");
+                }
+
+                var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+                var url = $"/api/v2/reports/stock/product-summary/{request.ProductId}{queryString}";
+
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Stock item report response: {json}");
+
+                    var result = JsonSerializer.Deserialize<StockItemReportResponse>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    return result;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error getting stock item report: {response.StatusCode} - {errorContent}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in GetStockItemReportAsync: {ex.Message}");
+                return null;
+            }
+        }
+
         public void Dispose()
         {
             _httpClient?.Dispose();
         }
     }
 }
+
