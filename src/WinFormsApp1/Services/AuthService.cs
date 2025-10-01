@@ -13,8 +13,8 @@ namespace WinFormsApp1.Services
         private readonly string _erpBaseUrl = "https://erp.accountingonweb.com";
         // private readonly string _erpBaseUrl = "https://localhost:7046";
 
-        //private readonly string _reportUrl = "https://readapi.accountingonweb.com";
-        private readonly string _reportUrl = "https://localhost:7047";
+        private readonly string _reportUrl = "https://readapi.accountingonweb.com";
+        //private readonly string _reportUrl = "https://localhost:7047";
 
         //private readonly string _authBaseUrl = "https://api.accountingonweb.com";
         //private readonly string _erpBaseUrl = "https://api.accountingonweb.com";

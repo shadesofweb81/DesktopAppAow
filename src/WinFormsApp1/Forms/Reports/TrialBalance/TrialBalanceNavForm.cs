@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using WinFormsApp1.Forms.Reports.TrialBalance;
 
 namespace WinFormsApp1.Forms.Reports
 {
@@ -327,8 +328,16 @@ namespace WinFormsApp1.Forms.Reports
         // Trial Balance Event Handlers
         private void TrialBalanceAllAccountsButton_Click(object? sender, EventArgs e)
         {
-            MessageBox.Show("Trial Balance - All Accounts report will be implemented here.\n\nThis report shows all accounts with their debit and credit balances in a flat list format.", 
-                "Trial Balance - All Accounts", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                var trialBalanceForm = new TrialBalanceAllAccountsForm();
+                trialBalanceForm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening Trial Balance All Accounts form: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void TrialBalanceGroupedButton_Click(object? sender, EventArgs e)
@@ -366,3 +375,4 @@ namespace WinFormsApp1.Forms.Reports
         }
     }
 }
+
