@@ -48,8 +48,14 @@ namespace WinFormsApp1.Models
         [JsonPropertyName("accountCode")]
         public string AccountCode { get; set; } = string.Empty;
 
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+
         [JsonPropertyName("accountType")]
         public string AccountType { get; set; } = string.Empty;
+
+        [JsonPropertyName("rootCategory")]
+        public string RootCategory { get; set; } = string.Empty;
 
         [JsonPropertyName("parentId")]
         public string? ParentId { get; set; }

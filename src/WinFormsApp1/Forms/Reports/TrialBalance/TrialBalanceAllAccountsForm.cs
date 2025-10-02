@@ -77,7 +77,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             mainGroupBox.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             mainGroupBox.Location = new Point(10, 10);
             mainGroupBox.Name = "mainGroupBox";
-            mainGroupBox.Size = new Size(1000, 600);
+            mainGroupBox.Size = new Size(1400, 800);
             mainGroupBox.TabIndex = 0;
             mainGroupBox.TabStop = false;
             mainGroupBox.Text = "TRIAL BALANCE - ALL ACCOUNTS";
@@ -89,7 +89,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             titleLabel.ForeColor = Color.FromArgb(0, 102, 204);
             titleLabel.Location = new Point(10, 25);
             titleLabel.Name = "titleLabel";
-            titleLabel.Size = new Size(980, 30);
+            titleLabel.Size = new Size(1380, 30);
             titleLabel.TabIndex = 0;
             titleLabel.Text = "Trial Balance Report - All Accounts";
             titleLabel.TextAlign = ContentAlignment.MiddleCenter;
@@ -107,7 +107,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             filterGroupBox.Font = new Font("Segoe UI", 9F);
             filterGroupBox.Location = new Point(10, 65);
             filterGroupBox.Name = "filterGroupBox";
-            filterGroupBox.Size = new Size(980, 60);
+            filterGroupBox.Size = new Size(1380, 60);
             filterGroupBox.TabIndex = 1;
             filterGroupBox.TabStop = false;
             filterGroupBox.Text = "Report Filters";
@@ -177,13 +177,13 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             trialBalanceDataGrid.BackgroundColor = Color.White;
             trialBalanceDataGrid.BorderStyle = BorderStyle.Fixed3D;
             trialBalanceDataGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            trialBalanceDataGrid.Font = new Font("Segoe UI", 9F);
+            trialBalanceDataGrid.Font = new Font("Segoe UI", 10F);
             trialBalanceDataGrid.Location = new Point(10, 135);
             trialBalanceDataGrid.Name = "trialBalanceDataGrid";
             trialBalanceDataGrid.ReadOnly = true;
             trialBalanceDataGrid.RowHeadersVisible = false;
             trialBalanceDataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            trialBalanceDataGrid.Size = new Size(980, 350);
+            trialBalanceDataGrid.Size = new Size(1380, 550);
             trialBalanceDataGrid.TabIndex = 2;
             trialBalanceDataGrid.TabStop = false;
 
@@ -197,9 +197,9 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             summaryGroupBox.Controls.Add(isBalancedLabel);
             summaryGroupBox.FlatStyle = FlatStyle.Flat;
             summaryGroupBox.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            summaryGroupBox.Location = new Point(10, 495);
+            summaryGroupBox.Location = new Point(10, 695);
             summaryGroupBox.Name = "summaryGroupBox";
-            summaryGroupBox.Size = new Size(980, 50);
+            summaryGroupBox.Size = new Size(1380, 50);
             summaryGroupBox.TabIndex = 3;
             summaryGroupBox.TabStop = false;
             summaryGroupBox.Text = "Summary";
@@ -259,7 +259,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             closeButton.FlatStyle = FlatStyle.Flat;
             closeButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             closeButton.ForeColor = Color.White;
-            closeButton.Location = new Point(890, 555);
+            closeButton.Location = new Point(1290, 755);
             closeButton.Name = "closeButton";
             closeButton.Size = new Size(100, 30);
             closeButton.TabIndex = 4;
@@ -273,7 +273,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(240, 240, 240);
-            ClientSize = new Size(1020, 620);
+            ClientSize = new Size(1420, 820);
             Controls.Add(mainGroupBox);
             FormBorderStyle = FormBorderStyle.Sizable;
             MaximizeBox = true;
@@ -318,8 +318,8 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             var accountCodeColumn = new DataGridViewTextBoxColumn
             {
                 Name = "AccountCode",
-                HeaderText = "Code",
-                Width = 80,
+                HeaderText = "Account Code",
+                Width = 100,
                 ReadOnly = true
             };
 
@@ -331,11 +331,27 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
                 ReadOnly = true
             };
 
+            var categoryColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "Category",
+                HeaderText = "Category",
+                Width = 120,
+                ReadOnly = true
+            };
+
             var accountTypeColumn = new DataGridViewTextBoxColumn
             {
                 Name = "AccountType",
-                HeaderText = "Type",
+                HeaderText = "Account Type",
                 Width = 100,
+                ReadOnly = true
+            };
+
+            var rootCategoryColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "RootCategory",
+                HeaderText = "Root Category",
+                Width = 120,
                 ReadOnly = true
             };
 
@@ -343,7 +359,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             {
                 Name = "OpeningBalance",
                 HeaderText = "Opening Balance",
-                Width = 120,
+                Width = 150,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             };
@@ -352,7 +368,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             {
                 Name = "DebitAmount",
                 HeaderText = "Debit Amount",
-                Width = 120,
+                Width = 150,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
             };
@@ -361,7 +377,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             {
                 Name = "CreditAmount",
                 HeaderText = "Credit Amount",
-                Width = 120,
+                Width = 150,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
             };
@@ -370,19 +386,31 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             {
                 Name = "ClosingBalance",
                 HeaderText = "Closing Balance",
-                Width = 120,
+                Width = 150,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             };
 
             trialBalanceDataGrid.Columns.AddRange(new DataGridViewColumn[]
             {
-                accountCodeColumn, accountNameColumn, accountTypeColumn,
+                accountCodeColumn, accountNameColumn, categoryColumn, accountTypeColumn, rootCategoryColumn,
                 openingBalanceColumn, debitAmountColumn, creditAmountColumn, closingBalanceColumn
             });
 
-            // Set alternating row colors
+            // Set alternating row colors and improve row height
             trialBalanceDataGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 248, 248);
+            trialBalanceDataGrid.RowTemplate.Height = 28;
+            trialBalanceDataGrid.ColumnHeadersHeight = 35;
+            
+            // Improve header styling
+            trialBalanceDataGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            trialBalanceDataGrid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(0, 102, 204);
+            trialBalanceDataGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            trialBalanceDataGrid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            
+            // Enable auto-resize for better text display
+            trialBalanceDataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            trialBalanceDataGrid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
         }
 
         private async void LoadTrialBalanceData()
@@ -457,22 +485,29 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
                 string closingBalanceText = account.ClosingBalance == 0 ? "-" : 
                     $"{account.ClosingBalance:N2} {account.ClosingBalanceType}";
 
-                row.Cells[0].Value = account.AccountCode;
-                row.Cells[1].Value = account.AccountName;
-                row.Cells[2].Value = account.AccountType;
-                row.Cells[3].Value = openingBalanceText;
-                row.Cells[4].Value = account.DebitAmount;
-                row.Cells[5].Value = account.CreditAmount;
-                row.Cells[6].Value = closingBalanceText;
+                // Populate cells with correct field mapping
+                row.Cells[0].Value = account.AccountCode ?? "";
+                row.Cells[1].Value = account.AccountName ?? "";
+                row.Cells[2].Value = account.Category ?? "";
+                row.Cells[3].Value = account.AccountType ?? "";
+                row.Cells[4].Value = account.RootCategory ?? "";
+                row.Cells[5].Value = openingBalanceText;
+                row.Cells[6].Value = account.DebitAmount;
+                row.Cells[7].Value = account.CreditAmount;
+                row.Cells[8].Value = closingBalanceText;
 
-                // Color code based on account type
-                if (account.AccountType == "Asset" || account.AccountType == "Expense")
+                // Color code based on root category
+                if (account.RootCategory == "Assets" || account.RootCategory == "Expenses")
                 {
                     row.DefaultCellStyle.BackColor = Color.FromArgb(255, 245, 245); // Light red for assets/expenses
                 }
-                else if (account.AccountType == "Liability" || account.AccountType == "Equity" || account.AccountType == "Income")
+                else if (account.RootCategory == "Liabilities" || account.RootCategory == "Equity" || account.RootCategory == "Income")
                 {
                     row.DefaultCellStyle.BackColor = Color.FromArgb(245, 255, 245); // Light green for liabilities/equity/income
+                }
+                else
+                {
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(248, 248, 255); // Light blue for other categories
                 }
 
                 trialBalanceDataGrid.Rows.Add(row);
@@ -485,6 +520,7 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
 
             var summary = _trialBalanceData.Summary;
 
+            // Update labels with new summary structure
             totalDebitsLabel.Text = $"Total Debits: {summary.TotalDebitAmount:N2}";
             totalCreditsLabel.Text = $"Total Credits: {summary.TotalCreditAmount:N2}";
             differenceLabel.Text = $"Difference: {summary.BalanceDifference:N2}";
@@ -498,6 +534,13 @@ namespace WinFormsApp1.Forms.Reports.TrialBalance
             else
             {
                 isBalancedLabel.ForeColor = Color.Red;
+            }
+
+            // Update form title with additional info
+            if (_trialBalanceData != null)
+            {
+                this.Text = $"Trial Balance - {_trialBalanceData.CompanyName} ({summary.TotalAccounts} Accounts)";
+                titleLabel.Text = $"Trial Balance Report - {_trialBalanceData.CompanyName} ({summary.TotalAccounts} Accounts)";
             }
         }
 
